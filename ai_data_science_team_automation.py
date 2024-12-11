@@ -8,6 +8,7 @@ from langchain_core.messages import BaseMessage, AIMessage, HumanMessage
 from langgraph.graph import START, END, StateGraph
 
 import os
+import io
 
 from typing import TypedDict, Annotated, Sequence
 import operator
@@ -78,7 +79,7 @@ def data_cleaning_agent(model, log=True, log_path=None):
         * Converting columns to the correct data type
         * Removing duplicate rows
         * Removing rows with missing values
-        * Removing rows with extreme outliers
+        * Removing rows with extreme outliers (3X the interquartile range)
         
         Return Python code in ```python ``` format with a single function definition, data_cleaner(data_raw), that incldues all imports inside the function.
         
@@ -131,10 +132,14 @@ def data_cleaning_agent(model, log=True, log_path=None):
         
         df = pd.DataFrame.from_dict(data_raw)
         
+        buffer = io.StringIO()
+        df.info(buf=buffer)
+        info_text = buffer.getvalue()
+        
         response = data_cleaning_agent.invoke({
             "data_head": df.head().to_string(), 
             "data_description": df.describe().to_string(), 
-            "data_info": df.info()
+            "data_info": info_text
         })
         
         pprint(response)
@@ -217,13 +222,20 @@ def data_cleaning_agent(model, log=True, log_path=None):
     def explain_data_cleaner_code(state: GraphState):
         print("    * EXPLAIN DATA CLEANER CODE")
         
-        data_cleaning_function = state.get("data_cleaning_function")
+        if state.get("data_cleaner_error") is None:
         
-        response = llm.invoke("Explain the data cleaning steps that the data cleaning agent performed in this function: \n\n" + data_cleaning_function)
+            data_cleaning_function = state.get("data_cleaning_function")
+            
+            response = llm.invoke("Explain the data cleaning steps that the data cleaning agent performed in this function. Keep the summary succinct and to the point. \n\n # Data Cleaning Agent: \n\n" + data_cleaning_function)
+            
+            
+            message = AIMessage(content=f"# Data Cleaning Agent: \n\n The Data Cleaning Agent preformed data cleaning with the following code explanation for decisions made: \n\n{response.content}")
+            
+            return {"messages": [message]}
         
-        message = AIMessage(content=f"The Data Cleaning Agent preformed data cleaning with the following code explanation for decisions made: \n\n{response.content}")
-        
-        return {"messages": [message]}
+        else:
+            message = AIMessage(content="The Data Cleaning Agent encountered an error during data cleaning. Data could not be cleaned.")
+            return {"messages": [message]}
         
     
     workflow = StateGraph(GraphState)
