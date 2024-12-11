@@ -1,6 +1,6 @@
 # BUSINESS SCIENCE UNIVERSITY
 # PYTHON FOR GENERATIVE AI COURSE
-# AI DATA SCIENCE TEAM
+# AI DATA SCIENCE TEAM STREAMLIT APPLICATION
 # ***
 
 # Goal: Create an AI data science team automation that can clean, analyze, model, predict, and interpret data.

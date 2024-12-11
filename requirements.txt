@@ -1,0 +1,15 @@
+openpyxl
+langchain
+langchain_community
+langchain_openai
+langchain_experimental
+langgraph
+openai
+pandas
+numpy
+plotly
+streamlit
+asyncio
+streamlit-authenticator
+scikit-learn
+xgboost
