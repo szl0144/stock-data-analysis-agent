@@ -1,7 +1,11 @@
+# BUSINESS SCIENCE UNIVERSITY
+# FREE GENERATIVE AI TRAINING FOR DATA SCIENTISTS
+# AI DATA SCIENCE TEAM
+# ***
 # Agents
 # ai_data_science_team/agents.py
 
-# LIBRARIES
+# Libraries
 from typing import TypedDict, Annotated, Sequence
 import operator
 

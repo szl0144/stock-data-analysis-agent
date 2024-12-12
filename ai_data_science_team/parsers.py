@@ -1,3 +1,7 @@
+# BUSINESS SCIENCE UNIVERSITY
+# FREE GENERATIVE AI TRAINING FOR DATA SCIENTISTS
+# AI DATA SCIENCE TEAM
+# ***
 # Parsers
 # ai_data_science_team/parsers.py
 

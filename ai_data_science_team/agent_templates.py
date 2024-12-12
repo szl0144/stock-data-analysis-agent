@@ -1,3 +1,7 @@
+# BUSINESS SCIENCE UNIVERSITY
+# FREE GENERATIVE AI TRAINING FOR DATA SCIENTISTS
+# AI DATA SCIENCE TEAM
+# ***
 # Agent Templates
 # ai_data_science_team/agent_templates.py
 
