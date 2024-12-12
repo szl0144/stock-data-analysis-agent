@@ -1,3 +1,6 @@
+# Agents
+# ai_data_science_team/agents.py
+
 # LIBRARIES
 from typing import TypedDict, Annotated, Sequence
 import operator
@@ -108,12 +111,10 @@ def data_summary_agent(model, log=True, log_path=None):
 
 def data_cleaning_agent(model, log=True, log_path=None):
     """
-    Creates a data cleaning agent that can be run on a dataset. The agent is created
-    using the langchain library and can be used to clean a dataset in a variety of
+    Creates a data cleaning agent that can be run on a dataset. The agent can be used to clean a dataset in a variety of
     ways, such as removing columns with more than 40% missing values, imputing missing
     values with the mean of the column if the column is numeric, or imputing missing
     values with the mode of the column if the column is categorical.
-
     The agent takes in a dataset and some user instructions, and outputs a python
     function that can be used to clean the dataset. The agent also logs the code
     generated and any errors that occur.
@@ -185,7 +186,7 @@ def data_cleaning_agent(model, log=True, log_path=None):
             * Removing rows with missing values
             * Removing rows with extreme outliers (3X the interquartile range)
             
-            Make sure to take into account any additional user instructions that may negate some of these steps or add new steps.
+            Make sure to take into account any additional user instructions that may negate some of these steps or add new steps. Include comments in your code to explain your reasoning for each step. Include comments if something is not done because a user requested. Include comments if something is done because a user requested.
             
             User instructions:
             {user_instructions}
@@ -285,7 +286,7 @@ def data_cleaning_agent(model, log=True, log_path=None):
     def explain_data_cleaner_code(state: GraphState):        
         return explain_agent_code(
             state=state,
-            code_snippet_key="data_cleaning_function",
+            code_snippet_key="data_cleaner_function",
             result_key="messages",
             error_key="data_cleaner_error",
             llm=llm,  
@@ -293,7 +294,7 @@ def data_cleaning_agent(model, log=True, log_path=None):
             Explain the data cleaning steps that the data cleaning agent performed in this function. 
             Keep the summary succinct and to the point.\n\n# Data Cleaning Agent:\n\n{code}
             """,
-            success_prefix="# Data Cleaning Agent:\n\n The Data Cleaning Agent performed data cleaning with the following explanation:\n\n",
+            success_prefix="# Data Cleaning Agent:\n\n ",
             error_message="The Data Cleaning Agent encountered an error during data cleaning. Data could not be explained."
         )
         

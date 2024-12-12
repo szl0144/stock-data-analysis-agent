@@ -5,28 +5,32 @@ def data_cleaner(data_raw):
 
     # Step 1: Remove columns with more than 40% missing values
     threshold = 0.4 * len(data_raw)
-    data_cleaned = data_raw.dropna(thresh=threshold, axis=1)
+    data_cleaned = data_raw.dropna(axis=1, thresh=threshold)
 
-    # Step 2: Impute missing values
-    for column in data_cleaned.columns:
-        if data_cleaned[column].dtype == 'object':
-            # Impute categorical columns with mode
-            imputer = SimpleImputer(strategy='most_frequent')
-            data_cleaned[column] = imputer.fit_transform(data_cleaned[[column]]).ravel()
-        else:
-            # Impute numeric columns with mean
-            imputer = SimpleImputer(strategy='mean')
-            data_cleaned[column] = imputer.fit_transform(data_cleaned[[column]]).ravel()
+    # Step 2: Separate numeric and categorical columns
+    numeric_cols = data_cleaned.select_dtypes(include=[np.number]).columns
+    categorical_cols = data_cleaned.select_dtypes(include=[object]).columns
 
-    # Step 3: Convert columns to correct data types
-    # Convert 'TotalCharges' to numeric, forcing errors to NaN (in case of strings)
+    # Step 3: Impute missing values
+    # Impute numeric columns with mean
+    if len(numeric_cols) > 0:
+        num_imputer = SimpleImputer(strategy='mean')
+        data_cleaned[numeric_cols] = num_imputer.fit_transform(data_cleaned[numeric_cols])
+
+    # Impute categorical columns with mode
+    if len(categorical_cols) > 0:
+        cat_imputer = SimpleImputer(strategy='most_frequent')
+        data_cleaned[categorical_cols] = cat_imputer.fit_transform(data_cleaned[categorical_cols])
+
+    # Step 4: Convert columns to the correct data type
     data_cleaned['TotalCharges'] = pd.to_numeric(data_cleaned['TotalCharges'], errors='coerce')
-    
-    # Step 4: Remove duplicate rows
+
+    # Step 5: Remove duplicate rows
     data_cleaned = data_cleaned.drop_duplicates()
 
-    # Step 5: Remove rows with any missing values
+    # Step 6: Remove rows with remaining missing values
     data_cleaned = data_cleaned.dropna()
 
-    # Return the cleaned DataFrame
+    # Note: Step for removing outliers is skipped based on user instructions
+
     return data_cleaned
