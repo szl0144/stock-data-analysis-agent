@@ -3,8 +3,9 @@
 
 import pandas as pd
 from typing import Any, Callable, Dict, Optional
+from langchain_core.messages import AIMessage
 
-from ai_data_science_team.tools import PythonOutputParser
+from ai_data_science_team.parsers import PythonOutputParser
 
 def execute_agent_code_on_data(
     state: Any, 
@@ -82,6 +83,11 @@ def execute_agent_code_on_data(
     result = None
     try:
         result = agent_function(df)
+        
+        # Test an error
+        # if state.get("retry_count") == 0:
+        #     10/0
+        
         # Apply post-processing if provided
         if post_processing is not None:
             result = post_processing(result)
@@ -135,12 +141,11 @@ def fix_agent_code(
     dict
         A dictionary containing updated code, cleared error, and incremented retry count.
     """
+    print("    * FIX AGENT CODE")
+    
     # Retrieve the code snippet and the error from the state
     code_snippet = state.get(code_snippet_key)
     error_message = state.get(error_key)
-
-    print("    * FIX AGENT CODE")
-    print(error_message)
 
     # Format the prompt with the code snippet and the error
     prompt = prompt_template.format(
@@ -150,7 +155,6 @@ def fix_agent_code(
     
     # Execute the prompt with the LLM
     response = (llm | PythonOutputParser()).invoke(prompt)
-    print(response)
     
     # Log the response if requested
     if log:
@@ -163,3 +167,67 @@ def fix_agent_code(
         error_key: None,
         retry_count_key: state.get(retry_count_key) + 1
     }
+
+def explain_agent_code(
+    state: Any, 
+    code_snippet_key: str,
+    result_key: str,
+    error_key: str,
+    llm: Any, 
+    explanation_prompt_template: str,
+    success_prefix: str = "# Agent Explanation:\n\n",
+    error_message: str = "The agent encountered an error during execution and cannot be explained."
+) -> Dict[str, Any]:
+    """
+    Generic function to explain what a given agent code snippet does.
+    
+    Parameters
+    ----------
+    state : Any
+        A state object that supports `get(key: str)` to retrieve values.
+    code_snippet_key : str
+        The key in `state` where the agent code snippet is stored.
+    result_key : str
+        The key in `state` where the LLM's explanation is stored. Typically this is "messages".
+    error_key : str
+        The key in `state` where any error messages related to the code snippet are stored.
+    llm : Any
+        The language model used to explain the code. Should support `.invoke(prompt)`.
+    explanation_prompt_template : str
+        A prompt template that can be used to explain the code. It should contain a placeholder 
+        for inserting the agent code snippet. For example:
+        
+        "Explain the steps performed by this agent code in a succinct manner:\n\n{code}"
+        
+    success_prefix : str, optional
+        A prefix to add before the LLM's explanation, helping format the final message.
+    error_message : str, optional
+        Message to return if the agent code snippet cannot be explained due to an error.
+    
+    Returns
+    -------
+    Dict[str, Any]
+        A dictionary containing one key "messages", which is a list of messages (e.g., AIMessage) 
+        describing the explanation or the error.
+    """
+    print("    * EXPLAIN AGENT CODE")
+    
+    # Check if there's an error associated with the code
+    agent_error = state.get(error_key)
+    if agent_error is None:
+        # Retrieve the code snippet
+        code_snippet = state.get(code_snippet_key)
+        
+        # Format the prompt by inserting the code snippet
+        prompt = explanation_prompt_template.format(code=code_snippet)
+        
+        # Invoke the LLM to get an explanation
+        response = llm.invoke(prompt)
+        
+        # Prepare the success message
+        message = AIMessage(content=f"{success_prefix}{response.content}")
+        return {"messages": [message]}
+    else:
+        # Return an error message if there was a problem with the code
+        message = AIMessage(content=error_message)
+        return {result_key: [message]}

@@ -3,15 +3,15 @@ from typing import TypedDict, Annotated, Sequence
 import operator
 
 from langchain.prompts import PromptTemplate
-from langchain_core.messages import BaseMessage, AIMessage
+from langchain_core.messages import BaseMessage
 from langgraph.graph import END, StateGraph
 
 import os
 import io
 import pandas as pd
 
-from ai_data_science_team.agent_templates import execute_agent_code_on_data
-from ai_data_science_team.tools import PythonOutputParser
+from ai_data_science_team.agent_templates import execute_agent_code_on_data, fix_agent_code, explain_agent_code
+from ai_data_science_team.parsers import PythonOutputParser
 
 # Setup
 
@@ -107,7 +107,45 @@ def data_summary_agent(model, log=True, log_path=None):
 # * Data Cleaning Agent
 
 def data_cleaning_agent(model, log=True, log_path=None):
-    
+    """
+    Creates a data cleaning agent that can be run on a dataset. The agent is created
+    using the langchain library and can be used to clean a dataset in a variety of
+    ways, such as removing columns with more than 40% missing values, imputing missing
+    values with the mean of the column if the column is numeric, or imputing missing
+    values with the mode of the column if the column is categorical.
+
+    The agent takes in a dataset and some user instructions, and outputs a python
+    function that can be used to clean the dataset. The agent also logs the code
+    generated and any errors that occur.
+
+    Parameters
+    ----------
+    model : langchain.llms.base.LLM
+        The language model to use to generate code.
+    log : bool, optional
+        Whether or not to log the code generated and any errors that occur.
+        Defaults to True.
+    log_path : str, optional
+        The path to the directory where the log files should be stored. Defaults to
+        "logs/".
+        
+    Examples
+    -------
+    >>> from ai_data_science_team.agents import data_cleaning_agent
+    >>> data_cleaning_agent(model, log=True, log_path="logs/")
+    >>> df = pd.read_csv("data/churn_data.csv")
+    >>> response = data_cleaning_agent.invoke({
+    >>>     "user_instructions": "Don't remove outliers when cleaning the data.",
+    >>>     "data_raw": df.to_dict(),
+    >>>     "max_retries":3, 
+    >>>     "retry_count":0
+    >>> })
+
+    Returns
+    -------
+    app : langchain.graphs.StateGraph
+        The data cleaning agent as a state graph.
+    """
     llm = model
     
     # Setup Log Directory
@@ -115,66 +153,14 @@ def data_cleaning_agent(model, log=True, log_path=None):
         if log_path is None:
             log_path = LOG_PATH
         if not os.path.exists(log_path):
-            os.makedirs(log_path)
-    
-    
-    data_cleaning_prompt = PromptTemplate(
-        template="""
-        You are a Data Cleaning Agent. Your job is to create a data_cleaner() function to that can be run on the data provided.
-        
-        Things that should be considered in the data summary function:
-        
-        * Removing columns if more than 40 percent of the data is missing
-        * Imputing missing values with the mean of the column if the column is numeric
-        * Imputing missing values with the mode of the column if the column is categorical
-        * Converting columns to the correct data type
-        * Removing duplicate rows
-        * Removing rows with missing values
-        * Removing rows with extreme outliers (3X the interquartile range)
-        
-        Make sure to take into account any additional user instructions that may negate some of these steps or add new steps.
-        
-        User instructions:
-        {user_instructions}
-        
-        Return Python code in ```python ``` format with a single function definition, data_cleaner(data_raw), that incldues all imports inside the function.
-        
-        You can use Pandas, Numpy, and Scikit Learn libraries to clean the data.
-
-        Sample Data (first 100 rows):
-        {data_head}
-        
-        Data Description:
-        {data_description}
-        
-        Data Info:
-        {data_info}
-        
-        Return code to provide the data cleaning function:
-        
-        def data_cleaner(data_raw):
-            import pandas as pd
-            import numpy as np
-            ...
-            return data_cleaner
-        
-        Best Practices and Error Preventions:
-        
-        Always ensure that when assigning the output of fit_transform() from SimpleImputer to a Pandas DataFrame column, you call .ravel() or flatten the array, because fit_transform() returns a 2D array while a DataFrame column is 1D.
-        
-        """,
-        input_variables=["user_instructions","data_head", "data_description", "data_info"]
-    )
-
-    data_cleaning_agent = data_cleaning_prompt | llm | PythonOutputParser()
-    
+            os.makedirs(log_path)    
 
     # Define GraphState for the router
     class GraphState(TypedDict):
         messages: Annotated[Sequence[BaseMessage], operator.add]
         user_instructions: str
         data_raw: dict
-        data_cleaning_function: str
+        data_cleaner_function: str
         data_cleaner_error: str
         data_cleaned: dict
         max_retries: int
@@ -184,6 +170,56 @@ def data_cleaning_agent(model, log=True, log_path=None):
     def create_data_cleaner_code(state: GraphState):
         print("---DATA CLEANING AGENT----")
         print("    * CREATE DATA CLEANER CODE")
+        
+        data_cleaning_prompt = PromptTemplate(
+            template="""
+            You are a Data Cleaning Agent. Your job is to create a data_cleaner() function to that can be run on the data provided.
+            
+            Things that should be considered in the data summary function:
+            
+            * Removing columns if more than 40 percent of the data is missing
+            * Imputing missing values with the mean of the column if the column is numeric
+            * Imputing missing values with the mode of the column if the column is categorical
+            * Converting columns to the correct data type
+            * Removing duplicate rows
+            * Removing rows with missing values
+            * Removing rows with extreme outliers (3X the interquartile range)
+            
+            Make sure to take into account any additional user instructions that may negate some of these steps or add new steps.
+            
+            User instructions:
+            {user_instructions}
+            
+            Return Python code in ```python ``` format with a single function definition, data_cleaner(data_raw), that incldues all imports inside the function.
+            
+            You can use Pandas, Numpy, and Scikit Learn libraries to clean the data.
+
+            Sample Data (first 100 rows):
+            {data_head}
+            
+            Data Description:
+            {data_description}
+            
+            Data Info:
+            {data_info}
+            
+            Return code to provide the data cleaning function:
+            
+            def data_cleaner(data_raw):
+                import pandas as pd
+                import numpy as np
+                ...
+                return data_cleaner
+            
+            Best Practices and Error Preventions:
+            
+            Always ensure that when assigning the output of fit_transform() from SimpleImputer to a Pandas DataFrame column, you call .ravel() or flatten the array, because fit_transform() returns a 2D array while a DataFrame column is 1D.
+            
+            """,
+            input_variables=["user_instructions","data_head", "data_description", "data_info"]
+        )
+
+        data_cleaning_agent = data_cleaning_prompt | llm | PythonOutputParser()
         
         data_raw = state.get("data_raw")
         
@@ -205,7 +241,7 @@ def data_cleaning_agent(model, log=True, log_path=None):
             with open(log_path + 'data_cleaner.py', 'w') as file:
                 file.write(response)
    
-        return {"data_cleaning_function" : response}
+        return {"data_cleaner_function" : response}
     
     def execute_data_cleaner_code(state):
         return execute_agent_code_on_data(
@@ -213,7 +249,7 @@ def data_cleaning_agent(model, log=True, log_path=None):
             data_key="data_raw",
             result_key="data_cleaned",
             error_key="data_cleaner_error",
-            code_snippet_key="data_cleaning_function",
+            code_snippet_key="data_cleaner_function",
             agent_function_name="data_cleaner",
             pre_processing=lambda data: pd.DataFrame.from_dict(data),
             post_processing=lambda df: df.to_dict(),
@@ -221,56 +257,45 @@ def data_cleaning_agent(model, log=True, log_path=None):
         )
         
     def fix_data_cleaner_code(state: GraphState):
-        print("    * FIX DATA CLEANER CODE")
+        data_cleaner_prompt = """
+        You are a Data Cleaning Agent. Your job is to create a data_cleaner() function that can be run on the data provided. The function is currently broken and needs to be fixed.
         
-        data_cleaning_function = state.get("data_cleaning_function")
-        data_cleaner_error = state.get("data_cleaner_error")
+        Make sure to only return the function definition for data_cleaner().
         
-        response = (llm | PythonOutputParser()).invoke(
-            f"""
-            You are a Data Cleaning Agent. Your job is to create a data_cleaner() function to that can be run on the data provided. The function is currently broken and needs to be fixed.
-            
-            Make sure to only return the function definition for data_cleaner().
-            
-            Return Python code in ```python ``` format with a single function definition, data_cleaner(data_raw), that incldues all imports inside the function.
-            
-            This is the broken code (please fix): \n\n 
-            
-            { data_cleaning_function}
-            
-            Last Known Error: 
-            
-            {data_cleaner_error}
-            """
-        ) 
+        Return Python code in ```python``` format with a single function definition, data_cleaner(data_raw), that includes all imports inside the function.
         
-        # For logging: store the code generated:
-        if log:
-            with open(log_path + 'data_cleaner.py', 'w') as file:
-                file.write(response)
-        
-        return {
-            "data_cleaning_function" : response, "data_cleaner_error": None,
-            "retry_count": state.get("retry_count") + 1
-        }
+        This is the broken code (please fix): 
+        {code_snippet}
+
+        Last Known Error:
+        {error}
+        """
+
+        return fix_agent_code(
+            state=state,
+            code_snippet_key="data_cleaner_function",
+            error_key="data_cleaner_error",
+            llm=llm,  
+            prompt_template=data_cleaner_prompt,
+            log=True,
+            log_path="logs/",
+            log_file_name="data_cleaner.py"
+        )
     
-    def explain_data_cleaner_code(state: GraphState):
-        print("    * EXPLAIN DATA CLEANER CODE")
-        
-        if state.get("data_cleaner_error") is None:
-        
-            data_cleaning_function = state.get("data_cleaning_function")
-            
-            response = llm.invoke("Explain the data cleaning steps that the data cleaning agent performed in this function. Keep the summary succinct and to the point. \n\n # Data Cleaning Agent: \n\n" + data_cleaning_function)
-            
-            
-            message = AIMessage(content=f"# Data Cleaning Agent: \n\n The Data Cleaning Agent preformed data cleaning with the following code explanation for decisions made: \n\n{response.content}")
-            
-            return {"messages": [message]}
-        
-        else:
-            message = AIMessage(content="The Data Cleaning Agent encountered an error during data cleaning. Data could not be cleaned.")
-            return {"messages": [message]}
+    def explain_data_cleaner_code(state: GraphState):        
+        return explain_agent_code(
+            state=state,
+            code_snippet_key="data_cleaning_function",
+            result_key="messages",
+            error_key="data_cleaner_error",
+            llm=llm,  
+            explanation_prompt_template="""
+            Explain the data cleaning steps that the data cleaning agent performed in this function. 
+            Keep the summary succinct and to the point.\n\n# Data Cleaning Agent:\n\n{code}
+            """,
+            success_prefix="# Data Cleaning Agent:\n\n The Data Cleaning Agent performed data cleaning with the following explanation:\n\n",
+            error_message="The Data Cleaning Agent encountered an error during data cleaning. Data could not be explained."
+        )
         
     
     workflow = StateGraph(GraphState)

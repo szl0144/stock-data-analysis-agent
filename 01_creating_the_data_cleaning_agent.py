@@ -21,7 +21,7 @@ import yaml
 from IPython.display import Image
 from pprint import pprint
 
-from ai_data_science_team.tools import PythonOutputParser
+from ai_data_science_team.parsers import PythonOutputParser
 
 # Setup
 
