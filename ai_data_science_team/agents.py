@@ -23,13 +23,10 @@ def orchestrator(model, log=True, log_path=None):
     agent_list = [
         data_cleaning_agent,
         data_summary_agent,
-        data_modeling_agent
+        # data_modeling_agent
     ]
     
-    for agent in agent_list:
-        agent(model, log=log, log_path=log_path)
-    
-    return
+    return 1
 
 #endregion
 
@@ -38,7 +35,68 @@ def orchestrator(model, log=True, log_path=None):
 
 # * Data Summary Agent
 
-def data_summary_agent(model):
+def data_summary_agent(model, log=True, log_path=None):
+    
+    # Setup Log Directory
+    if log:
+        if log_path is None:
+            log_path = LOG_PATH
+        if not os.path.exists(log_path):
+            os.makedirs(log_path)
+    
+    llm = model
+    
+    data_summary_prompt = PromptTemplate(
+        template="""
+        You are a Data Summary Agent. Your job is to summarize a dataset.
+        
+        Things that should be considered in the data summary function:
+        
+        * How many missing values
+        * How many unique values
+        * How many rows
+        * How many columns
+        * What data types are present
+        * What the data looks like
+        * What column types are present
+        * What is the distribution of the data
+        * What is the correlation between the data
+        
+        Make sure to take into account any additional user instructions that may negate some of these steps or add new steps.
+        
+        User instructions:
+        {user_instructions}
+        
+        Return Python code in ```python ``` format with a single function definition, data_sumary(data), that incldues all imports inside the function.
+        
+        You can use Pandas, Numpy, and Scikit Learn libraries to summarize the data.
+
+        Sample Data (first 100 rows):
+        {data_head}
+        
+        Data Description:
+        {data_description}
+        
+        Data Info:
+        {data_info}
+        
+        Return code to provide the data cleaning function:
+        
+        def data_summary(data):
+            import pandas as pd
+            import numpy as np
+            ...
+            return {
+                'data_summary': ..., 
+                'data_correlation': ...
+                [INSERT MORE KEYS HERE],
+            }
+        
+        """,
+        input_variables=["user_instructions","data_head", "data_description", "data_info"]
+    )
+
+    data_summary_agent = data_summary_prompt | llm | PythonOutputParser()
     
     
     
