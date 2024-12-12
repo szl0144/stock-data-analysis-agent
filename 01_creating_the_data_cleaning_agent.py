@@ -81,6 +81,11 @@ def data_cleaning_agent(model, log=True, log_path=None):
         * Removing rows with missing values
         * Removing rows with extreme outliers (3X the interquartile range)
         
+        Make sure to take into account any additional user instructions that may negate some of these steps or add new steps.
+        
+        User instructions:
+        {user_instructions}
+        
         Return Python code in ```python ``` format with a single function definition, data_cleaner(data_raw), that incldues all imports inside the function.
         
         You can use Pandas, Numpy, and Scikit Learn libraries to clean the data.
@@ -107,7 +112,7 @@ def data_cleaning_agent(model, log=True, log_path=None):
         Always ensure that when assigning the output of fit_transform() from SimpleImputer to a Pandas DataFrame column, you call .ravel() or flatten the array, because fit_transform() returns a 2D array while a DataFrame column is 1D.
         
         """,
-        input_variables=["data_head", "data_description", "data_info"]
+        input_variables=["user_instructions","data_head", "data_description", "data_info"]
     )
 
     data_cleaning_agent = data_cleaning_prompt | llm | PythonOutputParser()
@@ -116,6 +121,7 @@ def data_cleaning_agent(model, log=True, log_path=None):
     # Define GraphState for the router
     class GraphState(TypedDict):
         messages: Annotated[Sequence[BaseMessage], operator.add]
+        user_instructions: str
         data_raw: dict
         data_cleaning_function: str
         data_cleaner_error: str
@@ -137,6 +143,7 @@ def data_cleaning_agent(model, log=True, log_path=None):
         info_text = buffer.getvalue()
         
         response = data_cleaning_agent.invoke({
+            "user_instructions": state.get("user_instructions"),
             "data_head": df.head().to_string(), 
             "data_description": df.describe().to_string(), 
             "data_info": info_text
@@ -275,15 +282,18 @@ Image(agent_data_cleaning.get_graph().draw_mermaid_png())
 # Test
 
 response = agent_data_cleaning.invoke({
+    "user_instructions": "Don't remove outliers when cleaning the data.",
     "data_raw": df.to_dict(),
     "max_retries":3, 
     "retry_count":0
-})
+}, debug=False)
     
 
 response.keys()
 
 pd.DataFrame(response['data_cleaned'])
+
+df.compare(pd.DataFrame(response['data_cleaned']))
 
 pprint(response['messages'][0].content)
 

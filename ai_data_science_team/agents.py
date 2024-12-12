@@ -16,6 +16,36 @@ from ai_data_science_team.tools import PythonOutputParser
 
 LOG_PATH = os.path.join(os.getcwd(), "logs/")
 
+#region orchestrator
+
+def orchestrator(model, log=True, log_path=None):
+    
+    agent_list = [
+        data_cleaning_agent,
+        data_summary_agent,
+        data_modeling_agent
+    ]
+    
+    for agent in agent_list:
+        agent(model, log=log, log_path=log_path)
+    
+    return
+
+#endregion
+
+
+#region DATA_SUMMARY_AGENT
+
+# * Data Summary Agent
+
+def data_summary_agent(model):
+    
+    
+    
+    return 1
+    
+    
+
 
 #region DATA_CLEANING_AGENT
 
@@ -23,7 +53,6 @@ LOG_PATH = os.path.join(os.getcwd(), "logs/")
 
 def data_cleaning_agent(model, log=True, log_path=None):
     
-    # Handle case when users want to make a different model than ChatOpenAI
     llm = model
     
     # Setup Log Directory
@@ -47,6 +76,11 @@ def data_cleaning_agent(model, log=True, log_path=None):
         * Removing duplicate rows
         * Removing rows with missing values
         * Removing rows with extreme outliers (3X the interquartile range)
+        
+        Make sure to take into account any additional user instructions that may negate some of these steps or add new steps.
+        
+        User instructions:
+        {user_instructions}
         
         Return Python code in ```python ``` format with a single function definition, data_cleaner(data_raw), that incldues all imports inside the function.
         
@@ -74,7 +108,7 @@ def data_cleaning_agent(model, log=True, log_path=None):
         Always ensure that when assigning the output of fit_transform() from SimpleImputer to a Pandas DataFrame column, you call .ravel() or flatten the array, because fit_transform() returns a 2D array while a DataFrame column is 1D.
         
         """,
-        input_variables=["data_head", "data_description", "data_info"]
+        input_variables=["user_instructions","data_head", "data_description", "data_info"]
     )
 
     data_cleaning_agent = data_cleaning_prompt | llm | PythonOutputParser()
@@ -83,6 +117,7 @@ def data_cleaning_agent(model, log=True, log_path=None):
     # Define GraphState for the router
     class GraphState(TypedDict):
         messages: Annotated[Sequence[BaseMessage], operator.add]
+        user_instructions: str
         data_raw: dict
         data_cleaning_function: str
         data_cleaner_error: str
@@ -104,6 +139,7 @@ def data_cleaning_agent(model, log=True, log_path=None):
         info_text = buffer.getvalue()
         
         response = data_cleaning_agent.invoke({
+            "user_instructions": state.get("user_instructions"),
             "data_head": df.head().to_string(), 
             "data_description": df.describe().to_string(), 
             "data_info": info_text
@@ -230,3 +266,6 @@ def data_cleaning_agent(model, log=True, log_path=None):
     app = workflow.compile()
     
     return app
+
+#endregion
+
