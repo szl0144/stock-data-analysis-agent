@@ -10,13 +10,15 @@ import os
 import io
 import pandas as pd
 
+from ai_data_science_team.agent_templates import execute_agent_code_on_data
 from ai_data_science_team.tools import PythonOutputParser
 
 # Setup
 
 LOG_PATH = os.path.join(os.getcwd(), "logs/")
 
-#region orchestrator
+
+# * Orchestrator
 
 def orchestrator(model, log=True, log_path=None):
     
@@ -28,10 +30,8 @@ def orchestrator(model, log=True, log_path=None):
     
     return 1
 
-#endregion
 
 
-#region DATA_SUMMARY_AGENT
 
 # * Data Summary Agent
 
@@ -102,10 +102,7 @@ def data_summary_agent(model, log=True, log_path=None):
     
     return 1
     
-    
 
-
-#region DATA_CLEANING_AGENT
 
 # * Data Cleaning Agent
 
@@ -210,43 +207,24 @@ def data_cleaning_agent(model, log=True, log_path=None):
    
         return {"data_cleaning_function" : response}
     
-    def execute_data_cleaner_code(state: GraphState):     
-        print("    * EXECUTE DATA CLEANER FUNCTION")
-        # Execute the code
-        
-        data_raw = state.get("data_raw")
-        
-        df = pd.DataFrame.from_dict(data_raw)
-        
-        data_cleaning_function = state.get("data_cleaning_function")
-        
-        # Execute the code
-        local_vars = {}
-        global_vars = {}
-        exec(data_cleaning_function, global_vars, local_vars)
-        
-        data_cleaner = local_vars.get('data_cleaner')
-        
-        data_cleaner_error = None
-        df_cleaned = None
-        try:
-            df_cleaned = data_cleaner(df).to_dict()
-        except Exception as e:
-            print(e)
-            data_cleaner_error = f"An error occurred during data cleaning: {str(e)}"
-        
-        return {
-            "data_cleaned": df_cleaned,
-            "data_cleaner_error": data_cleaner_error
-        }
+    def execute_data_cleaner_code(state):
+        return execute_agent_code_on_data(
+            state=state,
+            data_key="data_raw",
+            result_key="data_cleaned",
+            error_key="data_cleaner_error",
+            code_snippet_key="data_cleaning_function",
+            agent_function_name="data_cleaner",
+            pre_processing=lambda data: pd.DataFrame.from_dict(data),
+            post_processing=lambda df: df.to_dict(),
+            error_message_prefix="An error occurred during data cleaning: "
+        )
         
     def fix_data_cleaner_code(state: GraphState):
         print("    * FIX DATA CLEANER CODE")
         
         data_cleaning_function = state.get("data_cleaning_function")
         data_cleaner_error = state.get("data_cleaner_error")
-        
-        print(data_cleaner_error)
         
         response = (llm | PythonOutputParser()).invoke(
             f"""
@@ -265,8 +243,6 @@ def data_cleaning_agent(model, log=True, log_path=None):
             {data_cleaner_error}
             """
         ) 
-        
-        print(response)
         
         # For logging: store the code generated:
         if log:
@@ -325,5 +301,4 @@ def data_cleaning_agent(model, log=True, log_path=None):
     
     return app
 
-#endregion
 
