@@ -166,3 +166,6 @@ cython_debug/
 
 # Tempp
 /temp
+
+# Draw.io
+*.drawio

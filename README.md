@@ -9,18 +9,31 @@
 - Credit Card Risk
 - And more
 
-## Free Generative AI Data Science Workshop
+## Companies That Want An AI Data Science Team
 
-If you want to learn how to build AI Agents that perform Data Science, Business Intelligence, Churn Modeling, Time Series Forecasting, and more, [register for my next free AI for Data Scientists workshop here.](https://learn.business-science.io/ai-register)
+If you are interested in having your own AI Data Science Team built and deployed for your enterprise, send inquiries here: [https://www.business-science.io/contact.html](https://www.business-science.io/contact.html)
+
+## Free Generative AI For Data Scientists Workshop
+
+If you want to learn how to build AI Agents for your company that perform Data Science, Business Intelligence, Churn Modeling, Time Series Forecasting, and more, [register for my next Generative AI for Data Scientists workshop here.](https://learn.business-science.io/ai-register)
 
 ## Agents
 
-This project is a work in progress. Currently there is the following Agents:
+This project is a work in progress. New agents will be released soon.
 
-1. **Data Cleaning Agent**: Performs Data Preparation steps including handling missing values, outliers, and data type conversions.
+![Data Science Team](/img/ai_data_science_team.jpg)
 
+### Agents Available Now:
 
-[TODO - INSERT IMAGE]
+1. **Data Cleaning Agent:** Performs Data Preparation steps including handling missing values, outliers, and data type conversions.
+
+### Agents Coming Soon:
+
+1. **Supervisor:** Forms task list. Moderates sub-agents. Returns completed assignment. 
+2. **Exploratory Data Analyst:** Analyzes data structure, creates exploratory visualizations, and performs correlation analysis to identify relationships. 
+3. **Feature Engineering Agent:** Converts the prepared data into ML-ready data. Adds features to increase predictive accuracy of ML models. 
+4. **Machine Learning Agent:** Builds and logs the machine learning models.
+5. **Interpretability Agent:** Performs Interpretable ML to explain why the model returned predictions including which features were the most important to the model.
 
 ## Disclaimer
 
@@ -30,14 +43,18 @@ This project is a work in progress. Currently there is the following Agents:
 - No warranties or guarantees provided
 - Creator assumes no liability for financial loss
 - Consult an experienced Generative AI Data Scientist for building your own AI Data Science Team
+- If you want an enterprise-grade AI Data Science Team, [send inquiries here](https://www.business-science.io/contact.html). 
 
 By using this software, you agree to use it solely for learning purposes.
 
 ## Table of Contents
 
 - [AI Data Science Team](#ai-data-science-team)
-  - [Free Generative AI Data Science Workshop](#free-generative-ai-data-science-workshop)
+  - [Companies That Want An AI Data Science Team](#companies-that-want-an-ai-data-science-team)
+  - [Free Generative AI For Data Scientists Workshop](#free-generative-ai-for-data-scientists-workshop)
   - [Agents](#agents)
+    - [Agents Available Now:](#agents-available-now)
+    - [Agents Coming Soon:](#agents-coming-soon)
   - [Disclaimer](#disclaimer)
   - [Table of Contents](#table-of-contents)
   - [Installation](#installation)
@@ -45,7 +62,6 @@ By using this software, you agree to use it solely for learning purposes.
     - [Example 1: Cleaning Data with the Data Cleaning Agent](#example-1-cleaning-data-with-the-data-cleaning-agent)
   - [Contributing](#contributing)
   - [License](#license)
-  - [Free GenAI Data Science Workshop](#free-genai-data-science-workshop)
 
 ## Installation
 
@@ -89,6 +105,3 @@ response = data_cleaning_agent.invoke({
 
 This project is licensed under the MIT License. See LICENSE file for details. 
 
-## Free GenAI Data Science Workshop
-
-If you want to learn how to build Generative AI Agents that perform Data Science, Business Intelligence, Churn Modeling, Time Series Forecasting, and more, [register for my next free AI for Data Scientists workshop here.](https://learn.business-science.io/ai-register)
