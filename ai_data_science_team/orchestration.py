@@ -6,9 +6,11 @@
 
 from ai_data_science_team.agents import data_cleaning_agent
 
-def pipeline(model, log=True, log_path=None):
+# TODO - add orchestration
+
+def model_pipeline(model, log=True, log_path=None):
     
-    return 1
+    return "todo"
     
     
     

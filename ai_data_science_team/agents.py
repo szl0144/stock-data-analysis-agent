@@ -16,27 +16,12 @@ import os
 import io
 import pandas as pd
 
-from ai_data_science_team.agent_templates import execute_agent_code_on_data, fix_agent_code, explain_agent_code
-from ai_data_science_team.parsers import PythonOutputParser
+from ai_data_science_team.templates.agent_templates import execute_agent_code_on_data, fix_agent_code, explain_agent_code
+from ai_data_science_team.tools.parsers import PythonOutputParser
 
 # Setup
 
 LOG_PATH = os.path.join(os.getcwd(), "logs/")
-
-
-# * Orchestrator
-
-def orchestrator(model, log=True, log_path=None):
-    
-    agent_list = [
-        data_cleaning_agent,
-        data_summary_agent,
-        # data_modeling_agent
-    ]
-    
-    return 1
-
-
 
 
 # * Data Summary Agent

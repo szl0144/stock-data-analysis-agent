@@ -8,7 +8,7 @@ import pandas as pd
 from typing import Any, Callable, Dict, Optional
 from langchain_core.messages import AIMessage
 
-from ai_data_science_team.parsers import PythonOutputParser
+from ai_data_science_team.tools.parsers import PythonOutputParser
 
 def execute_agent_code_on_data(
     state: Any, 
