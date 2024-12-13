@@ -2,7 +2,6 @@
 # AI DATA SCIENCE TEAM
 # ***
 # Agents
-# ai_data_science_team/agents.py
 
 # Libraries
 from typing import TypedDict, Annotated, Sequence
@@ -206,8 +205,8 @@ def data_cleaning_agent(model, log=False, log_path=None):
             error_key="data_cleaner_error",
             llm=llm,  
             prompt_template=data_cleaner_prompt,
-            log=True,
-            log_path="logs/",
+            log=log,
+            log_path=log_path,
             log_file_name="data_cleaner.py"
         )
     
