@@ -120,15 +120,26 @@ def data_cleaning_agent(model, log=True, log_path=None):
         
     Examples
     -------
-    >>> from ai_data_science_team.agents import data_cleaning_agent
-    >>> data_cleaning_agent(model, log=True, log_path="logs/")
-    >>> df = pd.read_csv("data/churn_data.csv")
-    >>> response = data_cleaning_agent.invoke({
-    >>>     "user_instructions": "Don't remove outliers when cleaning the data.",
-    >>>     "data_raw": df.to_dict(),
-    >>>     "max_retries":3, 
-    >>>     "retry_count":0
-    >>> })
+    ``` python
+    import pandas as pd
+    from langchain_openai import ChatOpenAI
+    from ai_data_science_team.agents import data_cleaning_agent
+    
+    llm = ChatOpenAI(model = "gpt-4o-mini")
+
+    data_cleaning_agent = data_cleaning_agent(llm)
+    
+    df = pd.read_csv("data/churn_data.csv")
+    
+    response = data_cleaning_agent.invoke({
+        "user_instructions": "Don't remove outliers when cleaning the data.",
+        "data_raw": df.to_dict(),
+        "max_retries":3, 
+        "retry_count":0
+    })
+    
+    pd.DataFrame(response['data_cleaned'])
+    ```
 
     Returns
     -------
