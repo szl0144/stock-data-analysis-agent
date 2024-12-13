@@ -2,7 +2,6 @@
 # AI DATA SCIENCE TEAM
 # ***
 # Agent Templates
-# ai_data_science_team/agent_templates.py
 
 import pandas as pd
 from typing import Any, Callable, Dict, Optional

@@ -2,7 +2,6 @@
 # AI DATA SCIENCE TEAM
 # ***
 # Parsers
-# ai_data_science_team/parsers.py
 
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.output_parsers import BaseOutputParser

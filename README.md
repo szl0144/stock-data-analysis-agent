@@ -23,11 +23,11 @@ This project is a work in progress. New agents will be released soon.
 
 ![Data Science Team](/img/ai_data_science_team.jpg)
 
-### Agents Available Now:
+### Agents Available Now
 
 1. **Data Cleaning Agent:** Performs Data Preparation steps including handling missing values, outliers, and data type conversions.
 
-### Agents Coming Soon:
+### Agents Coming Soon
 
 1. **Supervisor:** Forms task list. Moderates sub-agents. Returns completed assignment. 
 2. **Exploratory Data Analyst:** Analyzes data structure, creates exploratory visualizations, and performs correlation analysis to identify relationships. 
@@ -53,8 +53,8 @@ By using this software, you agree to use it solely for learning purposes.
   - [Companies That Want An AI Data Science Team](#companies-that-want-an-ai-data-science-team)
   - [Free Generative AI For Data Scientists Workshop](#free-generative-ai-for-data-scientists-workshop)
   - [Agents](#agents)
-    - [Agents Available Now:](#agents-available-now)
-    - [Agents Coming Soon:](#agents-coming-soon)
+    - [Agents Available Now](#agents-available-now)
+    - [Agents Coming Soon](#agents-coming-soon)
   - [Disclaimer](#disclaimer)
   - [Table of Contents](#table-of-contents)
   - [Installation](#installation)
@@ -76,7 +76,7 @@ pip install git+https://github.com/business-science/ai-data-science-team.git --u
 [See the full example here.](https://github.com/business-science/ai-data-science-team/blob/master/examples/data_cleaning_agent.ipynb) 
 
 ``` python
-data_cleaning_agent = data_cleaning_agent(model = llm, log=LOG, log_path=LOG_PATH)
+data_cleaning_agent = data_cleaning_agent(model = llm)
 
 response = data_cleaning_agent.invoke({
     "user_instructions": "Don't remove outliers when cleaning the data.",
