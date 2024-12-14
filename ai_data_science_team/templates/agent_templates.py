@@ -4,55 +4,12 @@
 # Agent Templates
 
 import pandas as pd
+import io
 from typing import Any, Callable, Dict, Optional
 from langchain_core.messages import AIMessage
 
 from ai_data_science_team.tools.parsers import PythonOutputParser
 
-
-# def create_code_from_data(state, task_name, prompt_template, log_path=None, log=False):
-#     """
-#     A generic function to create Python code from data for various tasks.
-
-#     Parameters:
-#     - state (GraphState): The application state containing relevant data.
-#     - task_name (str): A descriptive name for the task (e.g., "data_cleaner").
-#     - prompt_template (PromptTemplate): The prompt template for the task.
-#     - log_path (str): Path to save the generated code, if logging is enabled.
-#     - log (bool): Whether to log the generated code to a file.
-
-#     Returns:
-#     - dict: A dictionary containing the generated function as a string.
-#     """
-#     print(f"---{task_name.upper()} AGENT----")
-#     print(f"    * CREATE {task_name.upper()} CODE")
-    
-#     # Extract data and other necessary state information
-#     data_raw = state.get("data_raw")
-#     user_instructions = state.get("user_instructions", "")
-    
-#     df = pd.DataFrame.from_dict(data_raw)
-#     buffer = io.StringIO()
-#     df.info(buf=buffer)
-#     info_text = buffer.getvalue()
-
-#     # Create the agent with the prompt
-#     agent = prompt_template | llm | PythonOutputParser()
-#     response = agent.invoke({
-#         "user_instructions": user_instructions,
-#         "data_head": df.head().to_string(), 
-#         "data_description": df.describe().to_string(), 
-#         "data_info": info_text
-#     })
-    
-#     # Log the generated code if logging is enabled
-#     if log and log_path:
-#         file_name = f"{log_path}{task_name}.py"
-#         with open(file_name, 'w') as file:
-#             file.write(response)
-#         print(f"Code logged to {file_name}")
-
-#     return {f"{task_name}_function": response}
 
 
 def execute_agent_code_on_data(
@@ -102,19 +59,17 @@ def execute_agent_code_on_data(
     print("    * EXECUTING AGENT CODE")
     
     # Retrieve raw data and code snippet from the state
-    data_raw = state.get(data_key)
+    data = state.get(data_key)
     agent_code = state.get(code_snippet_key)
     
     # Preprocessing: If no pre-processing function is given, attempt a default handling
     if pre_processing is None:
-        if isinstance(data_raw, dict):
-            df = pd.DataFrame.from_dict(data_raw)
+        if isinstance(data, dict):
+            df = pd.DataFrame.from_dict(data)
         else:
-            # If data isn't a dict, we must decide how to handle it.
-            # For a generic function, raise an error or implement another fallback logic.
             raise ValueError("Data is not a dictionary and no pre_processing function was provided.")
     else:
-        df = pre_processing(data_raw)
+        df = pre_processing(data)
     
     # Execute the code snippet to define the agent function
     local_vars = {}
