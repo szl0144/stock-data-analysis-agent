@@ -94,6 +94,50 @@ def data_cleaning_agent(model, log=False, log_path=None):
         max_retries: int
         retry_count: int
     
+    # def create_data_cleaner_code(state):
+    #     data_cleaning_prompt = PromptTemplate(
+    #         template="""
+    #         You are a Data Cleaning Agent. Your job is to create a data_cleaner() function that can clean the provided dataset.
+            
+    #         Tasks:
+    #         - Remove columns with more than 40% missing values.
+    #         - Impute missing numeric values with the column mean.
+    #         - Impute missing categorical values with the column mode.
+    #         - Convert columns to correct data types.
+    #         - Remove duplicate rows.
+    #         - Remove rows with missing values.
+    #         - Remove rows with extreme outliers (3X the interquartile range).
+            
+    #         Additional Instructions:
+    #         {user_instructions}
+            
+    #         Sample Data (first 100 rows):
+    #         {data_head}
+            
+    #         Data Description:
+    #         {data_description}
+            
+    #         Data Info:
+    #         {data_info}
+            
+    #         Return Python code in `python` format:
+            
+    #         def data_cleaner(data_raw):
+    #             import pandas as pd
+    #             import numpy as np
+    #             ...
+    #             return cleaned_data
+    #         """,
+    #         input_variables=["user_instructions", "data_head", "data_description", "data_info"]
+    #     )
+        
+    #     return create_code_from_data(
+    #         state=state,
+    #         task_name="data_cleaner",
+    #         prompt_template=data_cleaning_prompt,
+    #         log_path="./logs/",  # Example log path
+    #         log=True
+    #     )
     
     def create_data_cleaner_code(state: GraphState):
         print("---DATA CLEANING AGENT----")
@@ -217,6 +261,7 @@ def data_cleaning_agent(model, log=False, log_path=None):
             result_key="messages",
             error_key="data_cleaner_error",
             llm=llm,  
+            role="data_cleaning_agent",
             explanation_prompt_template="""
             Explain the data cleaning steps that the data cleaning agent performed in this function. 
             Keep the summary succinct and to the point.\n\n# Data Cleaning Agent:\n\n{code}

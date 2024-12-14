@@ -9,6 +9,52 @@ from langchain_core.messages import AIMessage
 
 from ai_data_science_team.tools.parsers import PythonOutputParser
 
+
+# def create_code_from_data(state, task_name, prompt_template, log_path=None, log=False):
+#     """
+#     A generic function to create Python code from data for various tasks.
+
+#     Parameters:
+#     - state (GraphState): The application state containing relevant data.
+#     - task_name (str): A descriptive name for the task (e.g., "data_cleaner").
+#     - prompt_template (PromptTemplate): The prompt template for the task.
+#     - log_path (str): Path to save the generated code, if logging is enabled.
+#     - log (bool): Whether to log the generated code to a file.
+
+#     Returns:
+#     - dict: A dictionary containing the generated function as a string.
+#     """
+#     print(f"---{task_name.upper()} AGENT----")
+#     print(f"    * CREATE {task_name.upper()} CODE")
+    
+#     # Extract data and other necessary state information
+#     data_raw = state.get("data_raw")
+#     user_instructions = state.get("user_instructions", "")
+    
+#     df = pd.DataFrame.from_dict(data_raw)
+#     buffer = io.StringIO()
+#     df.info(buf=buffer)
+#     info_text = buffer.getvalue()
+
+#     # Create the agent with the prompt
+#     agent = prompt_template | llm | PythonOutputParser()
+#     response = agent.invoke({
+#         "user_instructions": user_instructions,
+#         "data_head": df.head().to_string(), 
+#         "data_description": df.describe().to_string(), 
+#         "data_info": info_text
+#     })
+    
+#     # Log the generated code if logging is enabled
+#     if log and log_path:
+#         file_name = f"{log_path}{task_name}.py"
+#         with open(file_name, 'w') as file:
+#             file.write(response)
+#         print(f"Code logged to {file_name}")
+
+#     return {f"{task_name}_function": response}
+
+
 def execute_agent_code_on_data(
     state: Any, 
     data_key: str, 
@@ -176,6 +222,7 @@ def explain_agent_code(
     result_key: str,
     error_key: str,
     llm: Any, 
+    role: str,
     explanation_prompt_template: str,
     success_prefix: str = "# Agent Explanation:\n\n",
     error_message: str = "The agent encountered an error during execution and cannot be explained."
@@ -195,6 +242,8 @@ def explain_agent_code(
         The key in `state` where any error messages related to the code snippet are stored.
     llm : Any
         The language model used to explain the code. Should support `.invoke(prompt)`.
+    role : str
+        The role of the agent explaining the code snippet. Examples: "Data Scientist", "Data Engineer", etc.
     explanation_prompt_template : str
         A prompt template that can be used to explain the code. It should contain a placeholder 
         for inserting the agent code snippet. For example:
@@ -227,7 +276,7 @@ def explain_agent_code(
         response = llm.invoke(prompt)
         
         # Prepare the success message
-        message = AIMessage(content=f"{success_prefix}{response.content}")
+        message = AIMessage(content=f"{success_prefix}{response.content}", role=role)
         return {"messages": [message]}
     else:
         # Return an error message if there was a problem with the code
