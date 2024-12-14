@@ -26,7 +26,7 @@ LOG_PATH = os.path.join(os.getcwd(), "logs/")
 
 # * Data Cleaning Agent
 
-def data_cleaning_agent(model, log=False, log_path=None):
+def make_data_cleaning_agent(model, log=False, log_path=None):
     """
     Creates a data cleaning agent that can be run on a dataset. The agent can be used to clean a dataset in a variety of
     ways, such as removing columns with more than 40% missing values, imputing missing
@@ -56,7 +56,7 @@ def data_cleaning_agent(model, log=False, log_path=None):
     
     llm = ChatOpenAI(model = "gpt-4o-mini")
 
-    data_cleaning_agent = data_cleaning_agent(llm)
+    data_cleaning_agent = make_data_cleaning_agent(llm)
     
     df = pd.read_csv("https://raw.githubusercontent.com/business-science/ai-data-science-team/refs/heads/master/data/churn_data.csv")
     
@@ -260,7 +260,7 @@ def data_cleaning_agent(model, log=False, log_path=None):
 
 # * Feature Engineering Agent
 
-def feature_engineering_agent(model, log=False, log_path=None):
+def make_feature_engineering_agent(model, log=False, log_path=None):
     """
     Creates a feature engineering agent that can be run on a dataset. The agent applies various feature engineering
     techniques, such as encoding categorical variables, scaling numeric variables, creating interaction terms,
@@ -286,12 +286,13 @@ def feature_engineering_agent(model, log=False, log_path=None):
 
     llm = ChatOpenAI(model="gpt-4o-mini")
 
-    feature_engineering_agent = feature_engineering_agent(llm)
+    feature_engineering_agent = make_feature_engineering_agent(llm)
 
     df = pd.read_csv("https://raw.githubusercontent.com/business-science/ai-data-science-team/refs/heads/master/data/churn_data.csv")
 
     response = feature_engineering_agent.invoke({
-        "user_instructions": "Generate polynomial features for all numeric columns and encode categorical columns.",
+        "user_instructions": None,
+        "target_variable": "Churn",
         "data_raw": df.to_dict(),
         "max_retries": 3,
         "retry_count": 0
@@ -344,6 +345,7 @@ def feature_engineering_agent(model, log=False, log_path=None):
             - If a target variable is provided:
                 - If a categorical target variable is provided, encode it using LabelEncoding
                 - All other target variables should be converted to numeric and unscaled
+            - Convert any boolean True/False values to 1/0
             - Return a single data frame containing the transformed features and target variable, if one is provided.
             - Any specific instructions provided by the user
             
@@ -363,19 +365,27 @@ def feature_engineering_agent(model, log=False, log_path=None):
             Data Info:
             {data_info}
             
+            Return code to provide the feature engineering function:
+            
+            def feature_engineer(data_raw):
+                import pandas as pd
+                import numpy as np
+                ...
+                return data_engineered
+            
             Best Practices and Error Preventions:
             - Handle missing values in numeric and categorical features before transformations.
             - Avoid creating highly correlated features unless explicitly instructed.
             
             Avoid the following errors:
             
-                name 'OneHotEncoder' is not defined
+            - name 'OneHotEncoder' is not defined
             
-                Shape of passed values is (7043, 48), indices imply (7043, 47)
+            - Shape of passed values is (7043, 48), indices imply (7043, 47)
             
-                name 'numeric_features' is not defined
+            - name 'numeric_features' is not defined
             
-                name 'categorical_features' is not defined
+            - name 'categorical_features' is not defined
 
 
             """,
