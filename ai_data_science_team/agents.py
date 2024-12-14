@@ -17,6 +17,7 @@ import pandas as pd
 
 from ai_data_science_team.templates.agent_templates import execute_agent_code_on_data, fix_agent_code, explain_agent_code
 from ai_data_science_team.tools.parsers import PythonOutputParser
+from ai_data_science_team.tools.regex import relocate_imports_inside_function
 
 # Setup
 
@@ -163,6 +164,8 @@ def data_cleaning_agent(model, log=False, log_path=None):
             "data_description": df.describe().to_string(), 
             "data_info": info_text
         })
+        
+        response = relocate_imports_inside_function(response)
         
         # For logging: store the code generated:
         if log:
@@ -316,6 +319,7 @@ def feature_engineering_agent(model, log=False, log_path=None):
         messages: Annotated[Sequence[BaseMessage], operator.add]
         user_instructions: str
         data_raw: dict
+        target_variable: str
         feature_engineer_function: str
         feature_engineer_error: str
         data_engineered: dict
@@ -331,17 +335,24 @@ def feature_engineering_agent(model, log=False, log_path=None):
             You are a Feature Engineering Agent. Your job is to create a feature_engineer() function that generates and applies new features for the given data.
             
             The function should consider:
-            - Encoding categorical variables using OneHotEncoding or LabelEncoding
-            - Scaling numeric variables using StandardScaler or MinMaxScaler
-            - Creating polynomial features for numeric columns
-            - Generating interaction terms between relevant variables
-            - Creating datetime-based features if datetime columns are present
+            - Remove string or categorical features with unique values equal to the size of the dataset
+            - Remove constant features with the same value in all rows
+            - High cardinality categorical features should be encoded by a threshold <= 5 percent of the dataset, by converting infrequent values to "other"
+            - Encoding categorical variables using OneHotEncoding
+            - Numeric features should be left untransformed
+            - Create datetime-based features if datetime columns are present
+            - If a target variable is provided:
+                - If a categorical target variable is provided, encode it using LabelEncoding
+                - All other target variables should be converted to numeric and unscaled
+            - Return a single data frame containing the transformed features and target variable, if one is provided.
             - Any specific instructions provided by the user
             
             User instructions:
             {user_instructions}
             
             Return Python code in ```python``` format with a single function definition, feature_engineer(data_raw), including all imports inside the function.
+            
+            Target Variable: {target_variable}
             
             Sample Data (first 100 rows):
             {data_head}
@@ -355,9 +366,20 @@ def feature_engineering_agent(model, log=False, log_path=None):
             Best Practices and Error Preventions:
             - Handle missing values in numeric and categorical features before transformations.
             - Avoid creating highly correlated features unless explicitly instructed.
+            
+            Avoid the following errors:
+            
+                name 'OneHotEncoder' is not defined
+            
+                Shape of passed values is (7043, 48), indices imply (7043, 47)
+            
+                name 'numeric_features' is not defined
+            
+                name 'categorical_features' is not defined
+
 
             """,
-            input_variables=["user_instructions", "data_head", "data_description", "data_info"]
+            input_variables=["user_instructions", "target_variable", "data_head", "data_description", "data_info"]
         )
 
         feature_engineering_agent = feature_engineering_prompt | llm | PythonOutputParser()
@@ -371,10 +393,13 @@ def feature_engineering_agent(model, log=False, log_path=None):
 
         response = feature_engineering_agent.invoke({
             "user_instructions": state.get("user_instructions"),
+            "target_variable": state.get("target_variable"),
             "data_head": df.head().to_string(),
             "data_description": df.describe(include='all').to_string(),
             "data_info": info_text
         })
+        
+        response = relocate_imports_inside_function(response)
 
         # For logging: store the code generated
         if log:
