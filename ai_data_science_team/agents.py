@@ -23,7 +23,6 @@ from ai_data_science_team.tools.regex import relocate_imports_inside_function
 
 LOG_PATH = os.path.join(os.getcwd(), "logs/")
 
-
 # * Data Cleaning Agent
 
 def make_data_cleaning_agent(model, log=False, log_path=None):
