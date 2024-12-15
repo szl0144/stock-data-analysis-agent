@@ -59,7 +59,8 @@ By using this software, you agree to use it solely for learning purposes.
   - [Table of Contents](#table-of-contents)
   - [Installation](#installation)
   - [Usage](#usage)
-    - [Example 1: Cleaning Data with the Data Cleaning Agent](#example-1-cleaning-data-with-the-data-cleaning-agent)
+    - [Example 1: Feature Engineering with the Feature Engineering Agent](#example-1-feature-engineering-with-the-feature-engineering-agent)
+    - [Example 2: Cleaning Data with the Data Cleaning Agent](#example-2-cleaning-data-with-the-data-cleaning-agent)
   - [Contributing](#contributing)
   - [License](#license)
 
@@ -71,12 +72,35 @@ pip install git+https://github.com/business-science/ai-data-science-team.git --u
 
 ## Usage
 
-### Example 1: Cleaning Data with the Data Cleaning Agent
+### Example 1: Feature Engineering with the Feature Engineering Agent
 
-[See the full example here.](https://github.com/business-science/ai-data-science-team/blob/master/examples/data_cleaning_agent.ipynb) 
+[See the full example here.](/examples/feature_engineering_agent.ipynb)
 
 ``` python
-data_cleaning_agent = data_cleaning_agent(model = llm)
+feature_engineering_agent = make_feature_engineering_agent(model = llm)
+
+response = feature_engineering_agent.invoke({
+    "user_instructions": "Make sure to scale and center numeric features",
+    "target_variable": "Churn",
+    "data_raw": df.to_dict(),
+    "max_retries":3, 
+    "retry_count":0
+})
+```
+
+``` bash
+---FEATURE ENGINEERING AGENT----
+    * CREATE FEATURE ENGINEER CODE
+    * EXECUTING AGENT CODE
+    * EXPLAIN AGENT CODE
+```
+
+### Example 2: Cleaning Data with the Data Cleaning Agent
+
+[See the full example here.](/examples/data_cleaning_agent.ipynb) 
+
+``` python
+data_cleaning_agent = make_data_cleaning_agent(model = llm)
 
 response = data_cleaning_agent.invoke({
     "user_instructions": "Don't remove outliers when cleaning the data.",

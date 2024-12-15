@@ -34,6 +34,17 @@ def make_data_cleaning_agent(model, log=False, log_path=None):
     The agent takes in a dataset and some user instructions, and outputs a python
     function that can be used to clean the dataset. The agent also logs the code
     generated and any errors that occur.
+    
+    The agent is instructed to to perform the following data cleaning steps:
+    
+    - Removing columns if more than 40 percent of the data is missing
+    - Imputing missing values with the mean of the column if the column is numeric
+    - Imputing missing values with the mode of the column if the column is categorical
+    - Converting columns to the correct data type
+    - Removing duplicate rows
+    - Removing rows with missing values
+    - Removing rows with extreme outliers (3X the interquartile range)
+    - User instructions can modify, add, or remove any of the above steps
 
     Parameters
     ----------
@@ -265,6 +276,21 @@ def make_feature_engineering_agent(model, log=False, log_path=None):
     techniques, such as encoding categorical variables, scaling numeric variables, creating interaction terms,
     and generating polynomial features. The agent takes in a dataset and user instructions and outputs a Python
     function for feature engineering. It also logs the code generated and any errors that occur.
+    
+    The agent is instructed to apply the following feature engineering techniques:
+    
+    - Remove string or categorical features with unique values equal to the size of the dataset
+    - Remove constant features with the same value in all rows
+    - High cardinality categorical features should be encoded by a threshold <= 5 percent of the dataset, by converting infrequent values to "other"
+    - Encoding categorical variables using OneHotEncoding
+    - Numeric features should be left untransformed
+    - Create datetime-based features if datetime columns are present
+    - If a target variable is provided:
+        - If a categorical target variable is provided, encode it using LabelEncoding
+        - All other target variables should be converted to numeric and unscaled
+    - Convert any boolean True/False values to 1/0
+    - Return a single data frame containing the transformed features and target variable, if one is provided.
+    - Any specific instructions provided by the user
 
     Parameters
     ----------
