@@ -15,6 +15,8 @@ import os
 import io
 import pandas as pd
 
+from pprint import pprint
+
 from ai_data_science_team.templates.agent_templates import execute_agent_code_on_data, fix_agent_code, explain_agent_code
 from ai_data_science_team.tools.parsers import PythonOutputParser
 from ai_data_science_team.tools.regex import relocate_imports_inside_function
@@ -98,6 +100,7 @@ def make_data_cleaning_agent(model, log=False, log_path=None):
     class GraphState(TypedDict):
         messages: Annotated[Sequence[BaseMessage], operator.add]
         user_instructions: str
+        recommended_steps: str
         data_raw: dict
         data_cleaner_function: str
         data_cleaner_error: str
@@ -106,15 +109,23 @@ def make_data_cleaning_agent(model, log=False, log_path=None):
         retry_count: int
 
     
-    def create_data_cleaner_code(state: GraphState):
+    def recommend_cleaning_steps(state: GraphState):
+        """
+        Recommend a series of data cleaning steps based on the input data. 
+        These recommended steps will be appended to the user_instructions.
+        """
         print("---DATA CLEANING AGENT----")
-        print("    * CREATE DATA CLEANER CODE")
-        
-        data_cleaning_prompt = PromptTemplate(
+        print("    * RECOMMEND CLEANING STEPS")
+
+        # Prompt to get recommended steps from the LLM
+        recommend_steps_prompt = PromptTemplate(
             template="""
-            You are a Data Cleaning Agent. Your job is to create a data_cleaner() function to that can be run on the data provided.
+            You are a Data Cleaning Expert. Given the following information about the data, 
+            recommend a series of steps to take to clean and preprocess it. 
+            The steps should be tailored to the data characteristics and should be helpful 
+            for a data cleaning agent that will be implemented.
             
-            Things that should be considered in the data summary function:
+            Things that should be considered in the data cleaning steps:
             
             * Removing columns if more than 40 percent of the data is missing
             * Imputing missing values with the mean of the column if the column is numeric
@@ -129,9 +140,56 @@ def make_data_cleaning_agent(model, log=False, log_path=None):
             User instructions:
             {user_instructions}
             
-            Return Python code in ```python ``` format with a single function definition, data_cleaner(data_raw), that incldues all imports inside the function.
+            Previously Recommended Steps (if any):
+            {recommended_steps}
+            
+            Data Sample (first 5 rows):
+            {data_head}
+            
+            Data Description:
+            {data_description}
+            
+            Data Info:
+            {data_info}
+
+            Return the steps as a bullet point list (no code, just the steps).
+            """,
+            input_variables=["user_instructions", "data_head","data_description","data_info"]
+        )
+
+        data_raw = state.get("data_raw")
+        df = pd.DataFrame.from_dict(data_raw)
+
+        buffer = io.StringIO()
+        df.info(buf=buffer)
+        info_text = buffer.getvalue()
+
+        steps_agent = recommend_steps_prompt | llm
+        recommended_steps = steps_agent.invoke({
+            "user_instructions": state.get("user_instructions"),
+            "recommended_steps": state.get("recommended_steps"),
+            "data_head": df.head().to_string(),
+            "data_description": df.describe().to_string(),
+            "data_info": info_text
+        }) 
+        
+        pprint(recommended_steps.content)
+        
+        return {"recommended_steps": "\n\n# Recommended Steps:\n" + recommended_steps.content.strip()}
+    
+    def create_data_cleaner_code(state: GraphState):
+        print("    * CREATE DATA CLEANER CODE")
+        
+        data_cleaning_prompt = PromptTemplate(
+            template="""
+            You are a Data Cleaning Agent. Your job is to create a data_cleaner() function that can be run on the data provided using the following recommended steps.
+            
+            Recommended Steps:
+            {recommended_steps}
             
             You can use Pandas, Numpy, and Scikit Learn libraries to clean the data.
+            
+            Use this information about the data to help determine how to clean the data:
 
             Sample Data (first 100 rows):
             {data_head}
@@ -142,13 +200,15 @@ def make_data_cleaning_agent(model, log=False, log_path=None):
             Data Info:
             {data_info}
             
+            Return Python code in ```python ``` format with a single function definition, data_cleaner(data_raw), that incldues all imports inside the function. 
+            
             Return code to provide the data cleaning function:
             
             def data_cleaner(data_raw):
                 import pandas as pd
                 import numpy as np
                 ...
-                return data_cleaner
+                return data_cleaned
             
             Best Practices and Error Preventions:
             
@@ -170,6 +230,7 @@ def make_data_cleaning_agent(model, log=False, log_path=None):
         
         response = data_cleaning_agent.invoke({
             "user_instructions": state.get("user_instructions"),
+            "recommended_steps": state.get("recommended_steps"),
             "data_head": df.head().to_string(), 
             "data_description": df.describe().to_string(), 
             "data_info": info_text
@@ -242,12 +303,14 @@ def make_data_cleaning_agent(model, log=False, log_path=None):
     
     workflow = StateGraph(GraphState)
     
+    workflow.add_node("recommend_cleaning_steps", recommend_cleaning_steps)
     workflow.add_node("create_data_cleaner_code", create_data_cleaner_code)
     workflow.add_node("execute_data_cleaner_code", execute_data_cleaner_code)
     workflow.add_node("fix_data_cleaner_code", fix_data_cleaner_code)
     workflow.add_node("explain_data_cleaner_code", explain_data_cleaner_code)
     
-    workflow.set_entry_point("create_data_cleaner_code")
+    workflow.set_entry_point("recommend_cleaning_steps")
+    workflow.add_edge("recommend_cleaning_steps", "create_data_cleaner_code")
     workflow.add_edge("create_data_cleaner_code", "execute_data_cleaner_code")
     
     workflow.add_conditional_edges(
