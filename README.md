@@ -2,7 +2,9 @@
 
 **An AI-powered data science team of copilots that uses agents to help you perform common data science tasks faster**. 
 
-Tasks include data cleaning, preparation, feature engineering, modeling (machine learning), and interpretation of various business problems like:
+---
+
+The AI Data Science Team Copilot specializes in tasks that include data cleaning, preparation, feature engineering, modeling (machine learning), and interpretation of various business problems like:
 
 - Churn Modeling
 - Employee Attrition
@@ -51,10 +53,10 @@ By using this software, you agree to use it solely for learning purposes.
 
 ## Table of Contents
 
-- [AI Data Science Team](#ai-data-science-team)
-  - [Companies That Want An AI Data Science Team](#companies-that-want-an-ai-data-science-team)
+- [AI Data Science Team Copilot](#ai-data-science-team-copilot)
+  - [Companies That Want An AI Data Science Team Copilot](#companies-that-want-an-ai-data-science-team-copilot)
   - [Free Generative AI For Data Scientists Workshop](#free-generative-ai-for-data-scientists-workshop)
-  - [Agents](#agents)
+  - [Data Science Agents](#data-science-agents)
     - [Agents Available Now](#agents-available-now)
     - [Agents Coming Soon](#agents-coming-soon)
   - [Disclaimer](#disclaimer)
