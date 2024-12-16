@@ -1,6 +1,8 @@
-# AI Data Science Team
+# AI Data Science Team Copilot
 
-**An AI-powered data science team that uses agents to perform common data science** tasks including data cleaning, preparation, feature engineering, modeling (machine learning), interpretation on various business problems like:
+**An AI-powered data science team of copilots that uses agents to help you perform common data science tasks faster**. 
+
+Tasks include data cleaning, preparation, feature engineering, modeling (machine learning), and interpretation of various business problems like:
 
 - Churn Modeling
 - Employee Attrition
@@ -9,17 +11,17 @@
 - Credit Card Risk
 - And more
 
-## Companies That Want An AI Data Science Team
+## Companies That Want An AI Data Science Team Copilot
 
-If you are interested in having your own AI Data Science Team built and deployed for your enterprise, send inquiries here: [https://www.business-science.io/contact.html](https://www.business-science.io/contact.html)
+If you are interested in having your own AI Data Science Team Copilot built and deployed for your enterprise, send inquiries here: [https://www.business-science.io/contact.html](https://www.business-science.io/contact.html)
 
 ## Free Generative AI For Data Scientists Workshop
 
-If you want to learn how to build AI Agents for your company that perform Data Science, Business Intelligence, Churn Modeling, Time Series Forecasting, and more, [register for my next Generative AI for Data Scientists workshop here.](https://learn.business-science.io/ai-register)
+If you want to learn how to build AI Agents for your company that performs Data Science, Business Intelligence, Churn Modeling, Time Series Forecasting, and more, [register for my next Generative AI for Data Scientists workshop here.](https://learn.business-science.io/ai-register)
 
-## Agents
+## Data Science Agents
 
-This project is a work in progress. New agents will be released soon.
+This project is a work in progress. New data science agents will be released soon.
 
 ![Data Science Team](/img/ai_data_science_team.jpg)
 
