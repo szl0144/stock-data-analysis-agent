@@ -4,12 +4,16 @@
 # Agents
 
 # Libraries
-from typing import TypedDict, Annotated, Sequence
+from typing import TypedDict, Annotated, Sequence, Literal
 import operator
 
 from langchain.prompts import PromptTemplate
 from langchain_core.messages import BaseMessage
+
 from langgraph.graph import END, StateGraph
+from langgraph.types import interrupt, Command
+from langgraph.checkpoint.memory import MemorySaver
+
 
 import os
 import io
@@ -27,7 +31,7 @@ LOG_PATH = os.path.join(os.getcwd(), "logs/")
 
 # * Data Cleaning Agent
 
-def make_data_cleaning_agent(model, log=False, log_path=None):
+def make_data_cleaning_agent(model, log=False, log_path=None, human_in_the_loop=False):
     """
     Creates a data cleaning agent that can be run on a dataset. The agent can be used to clean a dataset in a variety of
     ways, such as removing columns with more than 40% missing values, imputing missing
@@ -58,6 +62,8 @@ def make_data_cleaning_agent(model, log=False, log_path=None):
     log_path : str, optional
         The path to the directory where the log files should be stored. Defaults to
         "logs/".
+    human_in_the_loop : bool, optional
+        Whether or not to use human in the loop. If True, adds an interput and human in the loop step that asks the user to review the data cleaning instructions. Defaults to False.
         
     Examples
     -------
@@ -121,7 +127,7 @@ def make_data_cleaning_agent(model, log=False, log_path=None):
         recommend_steps_prompt = PromptTemplate(
             template="""
             You are a Data Cleaning Expert. Given the following information about the data, 
-            recommend a series of steps to take to clean and preprocess it. 
+            recommend a series of numbered steps to take to clean and preprocess it. 
             The steps should be tailored to the data characteristics and should be helpful 
             for a data cleaning agent that will be implemented.
             
@@ -135,7 +141,8 @@ def make_data_cleaning_agent(model, log=False, log_path=None):
             * Removing rows with missing values
             * Removing rows with extreme outliers (3X the interquartile range)
             
-            Make sure to take into account any additional user instructions that may negate some of these steps or add new steps. Include comments in your code to explain your reasoning for each step. Include comments if something is not done because a user requested. Include comments if something is done because a user requested.
+            IMPORTANT:
+            Make sure to take into account any additional user instructions that may add, remove or modify some of these steps. Include comments in your code to explain your reasoning for each step. Include comments if something is not done because a user requested. Include comments if something is done because a user requested.
             
             User instructions:
             {user_instructions}
@@ -173,9 +180,37 @@ def make_data_cleaning_agent(model, log=False, log_path=None):
             "data_info": info_text
         }) 
         
-        pprint(recommended_steps.content)
+        # pprint(recommended_steps.content)
         
         return {"recommended_steps": "\n\n# Recommended Steps:\n" + recommended_steps.content.strip()}
+    
+    def human_review(state: GraphState) -> Command[Literal["recommend_cleaning_steps", "create_data_cleaner_code"]]:
+        print("    * HUMAN REVIEW")
+        
+        user_input = interrupt(
+            value=f"Is the following data cleaning instructions correct? (Answer 'yes' or provide modifications to make to make them correct)\n{state.get('recommended_steps')}",
+        )
+        
+        # print(user_input)
+        
+        if user_input.strip().lower() == "yes":
+            goto = "create_data_cleaner_code"
+            update = {}
+        else:
+            goto = "recommend_cleaning_steps"
+            modifications = "Modifications: \n" + user_input
+            if state.get("user_instructions") is None:
+                update = {
+                    "user_instructions": modifications,
+                    # "recommended_steps": None
+                }
+            else:
+                update = {
+                    "user_instructions": state.get("user_instructions") + modifications,
+                    # "recommended_steps": None
+                }
+        
+        return Command(goto=goto, update=update)
     
     def create_data_cleaner_code(state: GraphState):
         print("    * CREATE DATA CLEANER CODE")
@@ -304,13 +339,22 @@ def make_data_cleaning_agent(model, log=False, log_path=None):
     workflow = StateGraph(GraphState)
     
     workflow.add_node("recommend_cleaning_steps", recommend_cleaning_steps)
+    
+    if human_in_the_loop:
+        workflow.add_node("human_review", human_review)
+    
     workflow.add_node("create_data_cleaner_code", create_data_cleaner_code)
     workflow.add_node("execute_data_cleaner_code", execute_data_cleaner_code)
     workflow.add_node("fix_data_cleaner_code", fix_data_cleaner_code)
     workflow.add_node("explain_data_cleaner_code", explain_data_cleaner_code)
     
     workflow.set_entry_point("recommend_cleaning_steps")
-    workflow.add_edge("recommend_cleaning_steps", "create_data_cleaner_code")
+    
+    if human_in_the_loop:
+        workflow.add_edge("recommend_cleaning_steps", "human_review")
+    else:
+        workflow.add_edge("recommend_cleaning_steps", "create_data_cleaner_code")
+        
     workflow.add_edge("create_data_cleaner_code", "execute_data_cleaner_code")
     
     workflow.add_conditional_edges(
@@ -327,7 +371,11 @@ def make_data_cleaning_agent(model, log=False, log_path=None):
     workflow.add_edge("fix_data_cleaner_code", "execute_data_cleaner_code")
     workflow.add_edge("explain_data_cleaner_code", END)
     
-    app = workflow.compile()
+    if human_in_the_loop:
+        checkpointer = MemorySaver()
+        app = workflow.compile(checkpointer=checkpointer)
+    else:
+        app = workflow.compile()
     
     return app
 
