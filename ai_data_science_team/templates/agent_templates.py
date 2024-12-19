@@ -145,7 +145,7 @@ def fix_agent_code(
         A dictionary containing updated code, cleared error, and incremented retry count.
     """
     print("    * FIX AGENT CODE")
-    print("      retry_count:" + state.get(retry_count_key))
+    print("      retry_count:" + str(state.get(retry_count_key)))
     
     # Retrieve the code snippet and the error from the state
     code_snippet = state.get(code_snippet_key)
