@@ -143,7 +143,7 @@ def make_feature_engineering_agent(model, log=False, log_path=None, human_in_the
             * If a target variable is provided:
                 * If a categorical target variable is provided, encode it using LabelEncoding
                 * All other target variables should be converted to numeric and unscaled
-            * Convert any boolean True/False values to 1/0
+            * Convert any Boolean (True/False) values to integer (1/0) values. This should be performed after one-hot encoding.
             
             Custom Steps:
             * Analyze the data to determine if any additional feature engineering steps are needed.
@@ -372,7 +372,7 @@ def make_feature_engineering_agent(model, log=False, log_path=None, human_in_the
     workflow.add_edge("create_feature_engineering_code", "execute_feature_engineering_code")
     
     workflow.add_conditional_edges(
-        "execute_data_cleaner_code", 
+        "execute_feature_engineering_code", 
         lambda state: "fix_code" 
             if (state.get("feature_engineer_error") is not None
                 and state.get("retry_count") is not None
