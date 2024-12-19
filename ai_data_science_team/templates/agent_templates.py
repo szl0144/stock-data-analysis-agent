@@ -3,16 +3,132 @@
 # ***
 # Agent Templates
 
-import pandas as pd
-import io
-from typing import Any, Callable, Dict, Optional
 from langchain_core.messages import AIMessage
+from langgraph.graph import StateGraph, END
+
+import pandas as pd
+
+from typing import Any, Callable, Dict, Type, Optional
 
 from ai_data_science_team.tools.parsers import PythonOutputParser
 
 
+def create_coding_agent_graph(
+    GraphState: Type,
+    node_functions: Dict[str, Callable],
+    recommended_steps_node_name: str,
+    create_code_node_name: str,
+    execute_code_node_name: str,
+    fix_code_node_name: str,
+    explain_code_node_name: str,
+    error_key: str,
+    max_retries_key: str = "max_retries",
+    retry_count_key: str = "retry_count",
+    human_in_the_loop: bool = False,
+    human_review_node_name: str = "human_review",
+    checkpointer: Optional[Callable] = None
+):
+    """
+    Creates a generic agent graph using the provided node functions and node names.
+    
+    Parameters
+    ----------
+    GraphState : Type
+        The TypedDict or class used as state for the workflow.
+    node_functions : dict
+        A dictionary mapping node names to their respective functions.
+        Example: {
+            "recommend_cleaning_steps": recommend_cleaning_steps,
+            "human_review": human_review,
+            "create_data_cleaner_code": create_data_cleaner_code,
+            "execute_data_cleaner_code": execute_data_cleaner_code,
+            "fix_data_cleaner_code": fix_data_cleaner_code,
+            "explain_data_cleaner_code": explain_data_cleaner_code
+        }
+    recommended_steps_node_name : str
+        The node name that recommends steps.
+    create_code_node_name : str
+        The node name that creates the code.
+    execute_code_node_name : str
+        The node name that executes the generated code.
+    fix_code_node_name : str
+        The node name that fixes code if errors occur.
+    explain_code_node_name : str
+        The node name that explains the final code.
+    error_key : str
+        The state key used to check for errors.
+    max_retries_key : str, optional
+        The state key used for the maximum number of retries.
+    retry_count_key : str, optional
+        The state key for the current retry count.
+    human_in_the_loop : bool, optional
+        Whether to include a human review step.
+    human_review_node_name : str, optional
+        The node name for human review if human_in_the_loop is True.
+    checkpointer : callable, optional
+        A checkpointer callable if desired.
+        
+    Returns
+    -------
+    app : langchain.graphs.StateGraph
+        The compiled workflow application.
+    """
 
-def execute_agent_code_on_data(
+    workflow = StateGraph(GraphState)
+    
+    # Add the recommended steps node
+    workflow.add_node(recommended_steps_node_name, node_functions[recommended_steps_node_name])
+    
+    # Optionally add the human review node
+    if human_in_the_loop:
+        workflow.add_node(human_review_node_name, node_functions[human_review_node_name])
+        
+    # Add main nodes
+    workflow.add_node(create_code_node_name, node_functions[create_code_node_name])
+    workflow.add_node(execute_code_node_name, node_functions[execute_code_node_name])
+    workflow.add_node(fix_code_node_name, node_functions[fix_code_node_name])
+    workflow.add_node(explain_code_node_name, node_functions[explain_code_node_name])
+    
+    # Set the entry point
+    workflow.set_entry_point(recommended_steps_node_name)
+    
+    # Add edges depending on human_in_the_loop
+    if human_in_the_loop:
+        workflow.add_edge(recommended_steps_node_name, human_review_node_name)
+    else:
+        workflow.add_edge(recommended_steps_node_name, create_code_node_name)
+    
+    # Connect create_code_node to execution node
+    workflow.add_edge(create_code_node_name, execute_code_node_name)
+    
+    # Add conditional edges for error handling
+    workflow.add_conditional_edges(
+        execute_code_node_name,
+        lambda state: "fix_code" if (
+            state.get(error_key) is not None and
+            state.get(retry_count_key) is not None and
+            state.get(max_retries_key) is not None and
+            state.get(retry_count_key) < state.get(max_retries_key)
+        ) else "explain_code",
+        {"fix_code": fix_code_node_name, "explain_code": explain_code_node_name},
+    )
+    
+    # From fix_code_node_name back to execution node
+    workflow.add_edge(fix_code_node_name, execute_code_node_name)
+    
+    # explain_code_node_name leads to end
+    workflow.add_edge(explain_code_node_name, END)
+    
+    # Compile workflow, optionally with checkpointer
+    if human_in_the_loop and checkpointer is not None:
+        app = workflow.compile(checkpointer=checkpointer)
+    else:
+        app = workflow.compile()
+    
+    return app
+
+
+def node_func_execute_agent_code_on_data(
     state: Any, 
     data_key: str, 
     code_snippet_key: str, 
@@ -102,7 +218,7 @@ def execute_agent_code_on_data(
     output = {result_key: result, error_key: agent_error}
     return output
 
-def fix_agent_code(
+def node_func_fix_agent_code(
     state: Any, 
     code_snippet_key: str, 
     error_key: str, 
@@ -172,7 +288,7 @@ def fix_agent_code(
         retry_count_key: state.get(retry_count_key) + 1
     }
 
-def explain_agent_code(
+def node_func_explain_agent_code(
     state: Any, 
     code_snippet_key: str,
     result_key: str,

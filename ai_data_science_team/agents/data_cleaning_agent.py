@@ -10,7 +10,6 @@ import operator
 from langchain.prompts import PromptTemplate
 from langchain_core.messages import BaseMessage
 
-from langgraph.graph import END, StateGraph
 from langgraph.types import interrupt, Command
 from langgraph.checkpoint.memory import MemorySaver
 
@@ -18,9 +17,12 @@ import os
 import io
 import pandas as pd
 
-from pprint import pprint
-
-from ai_data_science_team.templates.agent_templates import execute_agent_code_on_data, fix_agent_code, explain_agent_code
+from ai_data_science_team.templates.agent_templates import(
+    node_func_execute_agent_code_on_data, 
+    node_func_fix_agent_code, 
+    node_func_explain_agent_code, 
+    create_coding_agent_graph
+)
 from ai_data_science_team.tools.parsers import PythonOutputParser
 from ai_data_science_team.tools.regex import relocate_imports_inside_function
 
@@ -155,7 +157,7 @@ def make_data_cleaning_agent(model, log=False, log_path=None, human_in_the_loop=
             Previously Recommended Steps (if any):
             {recommended_steps}
             
-            Data Sample (first 5 rows):
+            Data Sample (first 50 rows):
             {data_head}
             
             Data Description:
@@ -180,12 +182,10 @@ def make_data_cleaning_agent(model, log=False, log_path=None, human_in_the_loop=
         recommended_steps = steps_agent.invoke({
             "user_instructions": state.get("user_instructions"),
             "recommended_steps": state.get("recommended_steps"),
-            "data_head": df.head().to_string(),
+            "data_head": df.head(50).to_string(),
             "data_description": df.describe().to_string(),
             "data_info": info_text
         }) 
-        
-        # pprint(recommended_steps.content)
         
         return {"recommended_steps": "\n\n# Recommended Steps:\n" + recommended_steps.content.strip()}
     
@@ -195,8 +195,6 @@ def make_data_cleaning_agent(model, log=False, log_path=None, human_in_the_loop=
         user_input = interrupt(
             value=f"Is the following data cleaning instructions correct? (Answer 'yes' or provide modifications to make to make them correct)\n{state.get('recommended_steps')}",
         )
-        
-        # print(user_input)
         
         if user_input.strip().lower() == "yes":
             goto = "create_data_cleaner_code"
@@ -286,7 +284,7 @@ def make_data_cleaning_agent(model, log=False, log_path=None, human_in_the_loop=
         return {"data_cleaner_function" : response}
     
     def execute_data_cleaner_code(state):
-        return execute_agent_code_on_data(
+        return node_func_execute_agent_code_on_data(
             state=state,
             data_key="data_raw",
             result_key="data_cleaned",
@@ -313,7 +311,7 @@ def make_data_cleaning_agent(model, log=False, log_path=None, human_in_the_loop=
         {error}
         """
 
-        return fix_agent_code(
+        return node_func_fix_agent_code(
             state=state,
             code_snippet_key="data_cleaner_function",
             error_key="data_cleaner_error",
@@ -325,7 +323,7 @@ def make_data_cleaning_agent(model, log=False, log_path=None, human_in_the_loop=
         )
     
     def explain_data_cleaner_code(state: GraphState):        
-        return explain_agent_code(
+        return node_func_explain_agent_code(
             state=state,
             code_snippet_key="data_cleaner_function",
             result_key="messages",
@@ -340,46 +338,28 @@ def make_data_cleaning_agent(model, log=False, log_path=None, human_in_the_loop=
             error_message="The Data Cleaning Agent encountered an error during data cleaning. Data could not be explained."
         )
         
+    # Define the graph
+    node_functions = {
+        "recommend_cleaning_steps": recommend_cleaning_steps,
+        "human_review": human_review,
+        "create_data_cleaner_code": create_data_cleaner_code,
+        "execute_data_cleaner_code": execute_data_cleaner_code,
+        "fix_data_cleaner_code": fix_data_cleaner_code,
+        "explain_data_cleaner_code": explain_data_cleaner_code
+    }
     
-    workflow = StateGraph(GraphState)
-    
-    workflow.add_node("recommend_cleaning_steps", recommend_cleaning_steps)
-    
-    if human_in_the_loop:
-        workflow.add_node("human_review", human_review)
-    
-    workflow.add_node("create_data_cleaner_code", create_data_cleaner_code)
-    workflow.add_node("execute_data_cleaner_code", execute_data_cleaner_code)
-    workflow.add_node("fix_data_cleaner_code", fix_data_cleaner_code)
-    workflow.add_node("explain_data_cleaner_code", explain_data_cleaner_code)
-    
-    workflow.set_entry_point("recommend_cleaning_steps")
-    
-    if human_in_the_loop:
-        workflow.add_edge("recommend_cleaning_steps", "human_review")
-    else:
-        workflow.add_edge("recommend_cleaning_steps", "create_data_cleaner_code")
-        
-    workflow.add_edge("create_data_cleaner_code", "execute_data_cleaner_code")
-    
-    workflow.add_conditional_edges(
-        "execute_data_cleaner_code", 
-        lambda state: "fix_code" 
-            if (state.get("data_cleaner_error") is not None
-                and state.get("retry_count") is not None
-                and state.get("max_retries") is not None
-                and state.get("retry_count") < state.get("max_retries")) 
-            else "explain_code",
-        {"fix_code": "fix_data_cleaner_code", "explain_code": "explain_data_cleaner_code"},
+    app = create_coding_agent_graph(
+        GraphState=GraphState,
+        node_functions=node_functions,
+        recommended_steps_node_name="recommend_cleaning_steps",
+        create_code_node_name="create_data_cleaner_code",
+        execute_code_node_name="execute_data_cleaner_code",
+        fix_code_node_name="fix_data_cleaner_code",
+        explain_code_node_name="explain_data_cleaner_code",
+        error_key="data_cleaner_error",
+        human_in_the_loop=human_in_the_loop,  # or False
+        human_review_node_name="human_review",
+        checkpointer=MemorySaver() if human_in_the_loop else None
     )
-    
-    workflow.add_edge("fix_data_cleaner_code", "execute_data_cleaner_code")
-    workflow.add_edge("explain_data_cleaner_code", END)
-    
-    if human_in_the_loop:
-        checkpointer = MemorySaver()
-        app = workflow.compile(checkpointer=checkpointer)
-    else:
-        app = workflow.compile()
-    
+        
     return app

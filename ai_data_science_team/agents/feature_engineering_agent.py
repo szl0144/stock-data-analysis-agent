@@ -10,7 +10,6 @@ import operator
 from langchain.prompts import PromptTemplate
 from langchain_core.messages import BaseMessage
 
-from langgraph.graph import END, StateGraph
 from langgraph.types import interrupt, Command
 from langgraph.checkpoint.memory import MemorySaver
 
@@ -18,9 +17,12 @@ import os
 import io
 import pandas as pd
 
-from pprint import pprint
-
-from ai_data_science_team.templates.agent_templates import execute_agent_code_on_data, fix_agent_code, explain_agent_code
+from ai_data_science_team.templates.agent_templates import(
+    node_func_execute_agent_code_on_data, 
+    node_func_fix_agent_code, 
+    node_func_explain_agent_code, 
+    create_coding_agent_graph
+)
 from ai_data_science_team.tools.parsers import PythonOutputParser
 from ai_data_science_team.tools.regex import relocate_imports_inside_function
 
@@ -134,6 +136,7 @@ def make_feature_engineering_agent(model, log=False, log_path=None, human_in_the
             General Steps:
             Things that should be considered in the feature engineering steps:
             
+            * Convert features to the appropriate data types based on their sample data values
             * Remove string or categorical features with unique values equal to the size of the dataset
             * Remove constant features with the same value in all rows
             * High cardinality categorical features should be encoded by a threshold <= 5 percent of the dataset, by converting infrequent values to "other"
@@ -159,7 +162,7 @@ def make_feature_engineering_agent(model, log=False, log_path=None, human_in_the
             Previously Recommended Steps (if any):
             {recommended_steps}
             
-            Data Sample (first 5 rows):
+            Data Sample (first 50 rows):
             {data_head}
             
             Data Description:
@@ -184,7 +187,7 @@ def make_feature_engineering_agent(model, log=False, log_path=None, human_in_the
         recommended_steps = steps_agent.invoke({
             "user_instructions": state.get("user_instructions"),
             "recommended_steps": state.get("recommended_steps"),
-            "data_head": df.head().to_string(),
+            "data_head": df.head(50).to_string(),
             "data_description": df.describe(include='all').to_string(),
             "data_info": info_text
         }) 
@@ -299,7 +302,7 @@ def make_feature_engineering_agent(model, log=False, log_path=None, human_in_the
     
 
     def execute_feature_engineering_code(state):
-        return execute_agent_code_on_data(
+        return node_func_execute_agent_code_on_data(
             state=state,
             data_key="data_raw",
             result_key="data_engineered",
@@ -324,7 +327,7 @@ def make_feature_engineering_agent(model, log=False, log_path=None, human_in_the
         {error}
         """
 
-        return fix_agent_code(
+        return node_func_fix_agent_code(
             state=state,
             code_snippet_key="feature_engineer_function",
             error_key="feature_engineer_error",
@@ -336,7 +339,7 @@ def make_feature_engineering_agent(model, log=False, log_path=None, human_in_the
         )
 
     def explain_feature_engineering_code(state: GraphState):
-        return explain_agent_code(
+        return node_func_explain_agent_code(
             state=state,
             code_snippet_key="feature_engineer_function",
             result_key="messages",
@@ -350,46 +353,28 @@ def make_feature_engineering_agent(model, log=False, log_path=None, human_in_the
             error_message="The Feature Engineering Agent encountered an error during feature engineering. Data could not be explained."
         )
 
-    workflow = StateGraph(GraphState)
-
-    workflow.add_node("recommend_feature_engineering_steps", recommend_feature_engineering_steps)
+    # Create the graph
+    node_functions = {
+        "recommend_feature_engineering_steps": recommend_feature_engineering_steps,
+        "human_review": human_review,
+        "create_feature_engineering_code": create_feature_engineering_code,
+        "execute_feature_engineering_code": execute_feature_engineering_code,
+        "fix_feature_engineering_code": fix_feature_engineering_code,
+        "explain_feature_engineering_code": explain_feature_engineering_code
+    }
     
-    if human_in_the_loop:
-        workflow.add_node("human_review", human_review)
-    
-    workflow.add_node("create_feature_engineering_code", create_feature_engineering_code)
-    workflow.add_node("execute_feature_engineering_code", execute_feature_engineering_code)
-    workflow.add_node("fix_feature_engineering_code", fix_feature_engineering_code)
-    workflow.add_node("explain_feature_engineering_code", explain_feature_engineering_code)
-
-    workflow.set_entry_point("recommend_feature_engineering_steps")
-    
-    if human_in_the_loop:
-        workflow.add_edge("recommend_feature_engineering_steps", "human_review")
-    else:
-        workflow.add_edge("recommend_feature_engineering_steps", "create_feature_engineering_code")
-        
-    workflow.add_edge("create_feature_engineering_code", "execute_feature_engineering_code")
-    
-    workflow.add_conditional_edges(
-        "execute_feature_engineering_code", 
-        lambda state: "fix_code" 
-            if (state.get("feature_engineer_error") is not None
-                and state.get("retry_count") is not None
-                and state.get("max_retries") is not None
-                and state.get("retry_count") < state.get("max_retries")) 
-            else "explain_code",
-        {"fix_code": "fix_feature_engineering_code", "explain_code": "explain_feature_engineering_code"},
+    app = create_coding_agent_graph(
+        GraphState=GraphState,
+        node_functions=node_functions,
+        recommended_steps_node_name="recommend_feature_engineering_steps",
+        create_code_node_name="create_feature_engineering_code",
+        execute_code_node_name="execute_feature_engineering_code",
+        fix_code_node_name="fix_feature_engineering_code",
+        explain_code_node_name="explain_feature_engineering_code",
+        error_key="feature_engineer_error",
+        human_in_the_loop=human_in_the_loop,
+        human_review_node_name="human_review",
+        checkpointer=MemorySaver() if human_in_the_loop else None
     )
-    
-    
-    workflow.add_edge("fix_feature_engineering_code", "execute_feature_engineering_code")
-    workflow.add_edge("explain_feature_engineering_code", END)
-
-    if human_in_the_loop:
-        checkpointer = MemorySaver()
-        app = workflow.compile(checkpointer=checkpointer)
-    else:
-        app = workflow.compile()
 
     return app
