@@ -1,6 +1,8 @@
 # AI Data Science Team Copilot
 
-**An AI-powered data science team of copilots that uses agents to help you perform common data science tasks faster**. 
+**An AI-powered data science team of copilots that uses agents to help you perform common data science tasks faster**.
+
+Star ⭐ This GitHub (Takes 2 seconds and means a lot).
 
 ---
 
