@@ -29,7 +29,7 @@ setup(
         'langchain_community',
         'langchain_openai',
         'langchain_experimental',
-        'langgraph',
+        'langgraph >= 0.2.57',
         'openai',
         'pandas',
         'numpy',
