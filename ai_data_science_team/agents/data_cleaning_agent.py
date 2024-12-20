@@ -19,6 +19,7 @@ import pandas as pd
 
 from ai_data_science_team.templates.agent_templates import(
     node_func_execute_agent_code_on_data, 
+    node_func_human_review,
     node_func_fix_agent_code, 
     node_func_explain_agent_code, 
     create_coding_agent_graph
@@ -189,32 +190,6 @@ def make_data_cleaning_agent(model, log=False, log_path=None, human_in_the_loop=
         
         return {"recommended_steps": "\n\n# Recommended Steps:\n" + recommended_steps.content.strip()}
     
-    def human_review(state: GraphState) -> Command[Literal["recommend_cleaning_steps", "create_data_cleaner_code"]]:
-        print("    * HUMAN REVIEW")
-        
-        user_input = interrupt(
-            value=f"Is the following data cleaning instructions correct? (Answer 'yes' or provide modifications to make to make them correct)\n{state.get('recommended_steps')}",
-        )
-        
-        if user_input.strip().lower() == "yes":
-            goto = "create_data_cleaner_code"
-            update = {}
-        else:
-            goto = "recommend_cleaning_steps"
-            modifications = "Modifications: \n" + user_input
-            if state.get("user_instructions") is None:
-                update = {
-                    "user_instructions": modifications,
-                    # "recommended_steps": None
-                }
-            else:
-                update = {
-                    "user_instructions": state.get("user_instructions") + modifications,
-                    # "recommended_steps": None
-                }
-        
-        return Command(goto=goto, update=update)
-    
     def create_data_cleaner_code(state: GraphState):
         print("    * CREATE DATA CLEANER CODE")
         
@@ -282,6 +257,16 @@ def make_data_cleaning_agent(model, log=False, log_path=None, human_in_the_loop=
                 file.write(response)
    
         return {"data_cleaner_function" : response}
+    
+    def human_review(state: GraphState) -> Command[Literal["recommend_cleaning_steps", "create_data_cleaner_code"]]:
+        return node_func_human_review(
+            state=state,
+            prompt_text="Is the following data cleaning instructions correct? (Answer 'yes' or provide modifications)\n{steps}",
+            yes_goto="create_data_cleaner_code",
+            no_goto="recommend_cleaning_steps",
+            user_instructions_key="user_instructions",
+            recommended_steps_key="recommended_steps"            
+        )
     
     def execute_data_cleaner_code(state):
         return node_func_execute_agent_code_on_data(

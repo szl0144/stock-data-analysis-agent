@@ -19,6 +19,7 @@ import pandas as pd
 
 from ai_data_science_team.templates.agent_templates import(
     node_func_execute_agent_code_on_data, 
+    node_func_human_review,
     node_func_fix_agent_code, 
     node_func_explain_agent_code, 
     create_coding_agent_graph
@@ -193,30 +194,40 @@ def make_feature_engineering_agent(model, log=False, log_path=None, human_in_the
         }) 
         
         return {"recommended_steps": "\n\n# Recommended Steps:\n" + recommended_steps.content.strip()}
-
+    
     def human_review(state: GraphState) -> Command[Literal["recommend_feature_engineering_steps", "create_feature_engineering_code"]]:
-        print("    * HUMAN REVIEW")
-        
-        user_input = interrupt(
-            value=f"Is the following feature engineering instructions correct? (Answer 'yes' or provide modifications to make to make them correct)\n{state.get('recommended_steps')}",
+        return node_func_human_review(
+            state=state,
+            prompt_text="Is the following feature engineering instructions correct? (Answer 'yes' or provide modifications)\n{steps}",
+            yes_goto="create_feature_engineering_code",
+            no_goto="recommend_feature_engineering_steps",
+            user_instructions_key="user_instructions",
+            recommended_steps_key="recommended_steps" 
         )
+
+    # def human_review(state: GraphState) -> Command[Literal["recommend_feature_engineering_steps", "create_feature_engineering_code"]]:
+    #     print("    * HUMAN REVIEW")
         
-        if user_input.strip().lower() == "yes":
-            goto = "create_feature_engineering_code"
-            update = {}
-        else:
-            goto = "recommend_feature_engineering_steps"
-            modifications = "Modifications: \n" + user_input
-            if state.get("user_instructions") is None:
-                update = {
-                    "user_instructions": modifications,
-                }
-            else:
-                update = {
-                    "user_instructions": state.get("user_instructions") + modifications,
-                }
+    #     user_input = interrupt(
+    #         value=f"Is the following feature engineering instructions correct? (Answer 'yes' or provide modifications to make to make them correct)\n{state.get('recommended_steps')}",
+    #     )
         
-        return Command(goto=goto, update=update)
+    #     if user_input.strip().lower() == "yes":
+    #         goto = "create_feature_engineering_code"
+    #         update = {}
+    #     else:
+    #         goto = "recommend_feature_engineering_steps"
+    #         modifications = "Modifications: \n" + user_input
+    #         if state.get("user_instructions") is None:
+    #             update = {
+    #                 "user_instructions": modifications,
+    #             }
+    #         else:
+    #             update = {
+    #                 "user_instructions": state.get("user_instructions") + modifications,
+    #             }
+        
+    #     return Command(goto=goto, update=update)
     
     def create_feature_engineering_code(state: GraphState):
         print("    * CREATE FEATURE ENGINEERING CODE")

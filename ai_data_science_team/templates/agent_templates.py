@@ -5,6 +5,7 @@
 
 from langchain_core.messages import AIMessage
 from langgraph.graph import StateGraph, END
+from langgraph.types import interrupt, Command
 
 import pandas as pd
 
@@ -126,6 +127,57 @@ def create_coding_agent_graph(
         app = workflow.compile()
     
     return app
+
+
+def node_func_human_review(
+    state: Any, 
+    prompt_text: str, 
+    yes_goto: str, 
+    no_goto: str,
+    user_instructions_key: str = "user_instructions",
+    recommended_steps_key: str = "recommended_steps",
+) -> Command[str]:
+    """
+    A generic function to handle human review steps.
+    
+    Parameters
+    ----------
+    state : GraphState
+        The current GraphState.
+    prompt_text : str
+        The text to display to the user before their input.
+    yes_goto : str
+        The node to go to if the user confirms (answers "yes").
+    no_goto : str
+        The node to go to if the user suggests modifications.
+    user_instructions_key : str, optional
+        The key in the state to store user instructions.
+    recommended_steps_key : str, optional
+        The key in the state to store recommended steps.    
+    
+    Returns
+    -------
+    Command[str]
+        A Command object directing the next state and updates to the state.    
+    """
+    print("    * HUMAN REVIEW")
+
+    # Display instructions and get user response
+    user_input = interrupt(value=prompt_text.format(steps=state.get(recommended_steps_key, '')))
+
+    # Decide next steps based on user input
+    if user_input.strip().lower() == "yes":
+        goto = yes_goto
+        update = {}
+    else:
+        goto = no_goto
+        modifications = "Modifications: \n" + user_input
+        if state.get(user_instructions_key) is None:
+            update = {user_instructions_key: modifications}
+        else:
+            update = {user_instructions_key: state.get(user_instructions_key) + modifications}
+
+    return Command(goto=goto, update=update)
 
 
 def node_func_execute_agent_code_on_data(
