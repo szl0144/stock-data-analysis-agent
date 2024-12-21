@@ -48,8 +48,8 @@ This project is a work in progress. New data science agents will be released soo
 - It is not intended to replace your company's data science team
 - No warranties or guarantees provided
 - Creator assumes no liability for financial loss
-- Consult an experienced Generative AI Data Scientist for building your own AI Data Science Team
-- If you want an enterprise-grade AI Data Science Team, [send inquiries here](https://www.business-science.io/contact.html). 
+- Consult an experienced Generative AI Data Scientist for building your own custom AI Data Science Team
+- If you want a custom enterprise-grade AI Data Science Team, [send inquiries here](https://www.business-science.io/contact.html). 
 
 By using this software, you agree to use it solely for learning purposes.
 
