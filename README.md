@@ -17,7 +17,7 @@ The AI Data Science Team of Copilots includes Agents that specialize data cleani
 
 ## Companies That Want An AI Data Science Team Copilot
 
-If you are interested in having your own AI Data Science Team Copilot built and deployed for your enterprise, send inquiries here: [https://www.business-science.io/contact.html](https://www.business-science.io/contact.html)
+If you are interested in having your own custom enteprise-grade AI Data Science Team Copilot built and deployed, send inquiries here: [https://www.business-science.io/contact.html](https://www.business-science.io/contact.html)
 
 ## Free Generative AI For Data Scientists Workshop
 
