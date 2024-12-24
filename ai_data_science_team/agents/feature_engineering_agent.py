@@ -169,6 +169,9 @@ def make_feature_engineering_agent(model, log=False, log_path=None, human_in_the
             {all_datasets_summary}
 
             Return the steps as a numbered list (no code, just the steps).
+            
+            Avoid these:
+            1. Do not include steps to save files.
             """,
             input_variables=["user_instructions", "recommended_steps", "all_datasets_summary"]
         )

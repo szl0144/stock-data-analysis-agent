@@ -162,6 +162,9 @@ def make_data_wrangling_agent(model, log=False, log_path=None, human_in_the_loop
             {all_datasets_summary}
 
             Return your recommended steps as a numbered point list, explaining briefly why each step is needed.
+            
+            Avoid these:
+            1. Do not include steps to save files.
             """,
             input_variables=["user_instructions", "recommended_steps", "all_datasets_summary"]
         )

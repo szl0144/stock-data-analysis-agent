@@ -164,6 +164,9 @@ def make_data_cleaning_agent(model, log=False, log_path=None, human_in_the_loop=
             {all_datasets_summary}
 
             Return the steps as a bullet point list (no code, just the steps).
+            
+            Avoid these:
+            1. Do not include steps to save files.
             """,
             input_variables=["user_instructions", "recommended_steps", "all_datasets_summary"]
         )
