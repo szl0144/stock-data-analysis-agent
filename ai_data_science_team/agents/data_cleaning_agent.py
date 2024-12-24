@@ -10,7 +10,7 @@ import operator
 from langchain.prompts import PromptTemplate
 from langchain_core.messages import BaseMessage
 
-from langgraph.types import interrupt, Command
+from langgraph.types import Command
 from langgraph.checkpoint.memory import MemorySaver
 
 import os

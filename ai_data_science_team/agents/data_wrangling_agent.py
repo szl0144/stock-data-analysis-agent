@@ -1,0 +1,345 @@
+# BUSINESS SCIENCE UNIVERSITY
+# AI DATA SCIENCE TEAM
+# ***
+# * Agents: Data Wrangling Agent
+
+# Libraries
+from typing import TypedDict, Annotated, Sequence, Literal
+import operator
+import os
+import io
+import pandas as pd
+
+from langchain.prompts import PromptTemplate
+from langchain_core.messages import BaseMessage
+from langgraph.types import Command
+from langgraph.checkpoint.memory import MemorySaver
+
+from ai_data_science_team.templates.agent_templates import(
+    node_func_execute_agent_code_on_data, 
+    node_func_human_review,
+    node_func_fix_agent_code, 
+    node_func_explain_agent_code, 
+    create_coding_agent_graph
+)
+from ai_data_science_team.tools.parsers import PythonOutputParser
+from ai_data_science_team.tools.regex import relocate_imports_inside_function
+from ai_data_science_team.tools.data_analysis import summarize_dataframes
+
+# Setup Logging Path
+LOG_PATH = os.path.join(os.getcwd(), "logs/")
+
+def make_data_wrangling_agent(model, log=False, log_path=None, human_in_the_loop=False):
+    """
+    Creates a data wrangling agent that can be run on one or more datasets. The agent can be
+    instructed to perform common data wrangling steps such as:
+    
+    - Joining or merging multiple datasets
+    - Reshaping data (pivoting, melting)
+    - Aggregating data via groupby operations
+    - Encoding categorical variables (one-hot, label encoding)
+    - Creating computed features (e.g., ratio of two columns)
+    - Ensuring consistent data types
+    - Dropping or rearranging columns
+
+    The agent takes in one or more datasets (passed as a dictionary or list of dictionaries if working on multiple dictionaries), user instructions,
+    and outputs a python function that can be used to wrangle the data. If multiple datasets
+    are provided, the agent should combine or transform them according to user instructions.
+
+    Parameters
+    ----------
+    model : langchain.llms.base.LLM
+        The language model to use to generate code.
+    log : bool, optional
+        Whether or not to log the code generated and any errors that occur.
+        Defaults to False.
+    log_path : str, optional
+        The path to the directory where the log files should be stored. Defaults to "logs/".
+    human_in_the_loop : bool, optional
+        Whether or not to use human in the loop. If True, adds an interrupt and human-in-the-loop 
+        step that asks the user to review the data wrangling instructions. Defaults to False.
+
+    Example
+    -------
+    ``` python
+    from langchain_openai import ChatOpenAI
+    import pandas as pd
+    
+    df = pd.DataFrame({
+        'category': ['A', 'B', 'A', 'C'],
+        'value': [10, 20, 15, 5]
+    })
+    
+    llm = ChatOpenAI(model="gpt-4o-mini")
+    
+    data_wrangling_agent = make_data_wrangling_agent(llm)
+
+    response = data_wrangling_agent.invoke({
+        "user_instructions": "Calculate the sum and mean of 'value' by 'category'.",
+        "data_raw": df.to_dict(),
+        "max_retries":3, 
+        "retry_count":0
+    })
+    pd.DataFrame(response['data_wrangled'])
+    ```
+    
+    Returns
+    -------
+    app : langchain.graphs.StateGraph
+        The data wrangling agent as a state graph.
+    """
+    llm = model
+    
+    # Setup Log Directory
+    if log:
+        if log_path is None:
+            log_path = LOG_PATH
+        if not os.path.exists(log_path):
+            os.makedirs(log_path)    
+    
+    class GraphState(TypedDict):
+        messages: Annotated[Sequence[BaseMessage], operator.add]
+        user_instructions: str
+        recommended_steps: str
+        # data_raw should be a dict of {dataset_name: data_dict}, data_dict can be converted to DataFrame
+        data_raw: dict  
+        all_datasets_summary: str
+        data_wrangler_function: str
+        data_wrangler_error: str
+        data_wrangled: dict
+        max_retries: int
+        retry_count: int
+
+    def recommend_wrangling_steps(state: GraphState):
+        print("---DATA WRANGLING AGENT----")
+        print("    * RECOMMEND WRANGLING STEPS")
+
+        data_raw = state.get("data_raw")
+
+        if isinstance(data_raw, dict):
+            # Single dataset scenario
+            primary_dataset_name = "main"
+            datasets = {primary_dataset_name: data_raw}
+        elif isinstance(data_raw, list) and all(isinstance(item, dict) for item in data_raw):
+            # Multiple datasets scenario
+            datasets = {f"dataset_{i}": d for i, d in enumerate(data_raw, start=1)}
+            primary_dataset_name = "dataset_1"
+        else:
+            raise ValueError("data_raw must be a dict or a list of dicts.")
+
+        # Convert all datasets to DataFrames for inspection
+        dataframes = {name: pd.DataFrame.from_dict(d) for name, d in datasets.items()}
+
+        # Create a summary for all datasets
+        # We'll include a short sample and info for each dataset
+        all_datasets_summary = summarize_dataframes(dataframes)
+
+        # Join all datasets summaries into one big text block
+        all_datasets_summary_str = "\n\n".join(all_datasets_summary)
+
+        # Prepare the prompt:
+        # We now include summaries for all datasets, not just the primary dataset.
+        # The LLM can then use all this info to recommend steps that consider merging/joining.
+        recommend_steps_prompt = PromptTemplate(
+            template="""
+            You are a Data Wrangling Expert. Given the following data (one or multiple datasets) and user instructions, 
+            recommend a series of numbered steps to wrangle the data based on a user's needs. 
+            
+            You can use any common data wrangling techniques such as joining, reshaping, aggregating, encoding, etc. 
+            
+            Also consider any special transformations requested by the user. If the user instructions 
+            say to do something else or not to do certain steps, follow those instructions.
+            
+            User instructions:
+            {user_instructions}
+
+            Previously Recommended Steps (if any):
+            {recommended_steps}
+
+            Below are summaries of all datasets provided:
+            {all_datasets_summary}
+
+            Return your recommended steps as a numbered point list, explaining briefly why each step is needed.
+            """,
+            input_variables=["user_instructions", "recommended_steps", "all_datasets_summary"]
+        )
+
+        steps_agent = recommend_steps_prompt | llm
+        recommended_steps = steps_agent.invoke({
+            "user_instructions": state.get("user_instructions"),
+            "recommended_steps": state.get("recommended_steps"),
+            "all_datasets_summary": all_datasets_summary_str,
+        }) 
+
+        return {
+            "recommended_steps": "\n\n# Recommended Wrangling Steps:\n" + recommended_steps.content.strip(),
+            "all_datasets_summary": all_datasets_summary_str
+        }
+
+    
+    def create_data_wrangler_code(state: GraphState):
+        print("    * CREATE DATA WRANGLER CODE")
+        
+        data_wrangling_prompt = PromptTemplate(
+            template="""
+            You are a Data Wrangling Coding Agent. Your job is to create a data_wrangler() function that can be run on the provided data. 
+            
+            Follow these recommended steps:
+            {recommended_steps}
+            
+            Assume `data_raw` can be one of two forms:
+            1. A single dataset provided as a pandas data frame.
+            2. Multiple datasets provided as a list of data frames.
+            
+            If multiple datasets are provided, you may need to merge or join them. Make sure to handle that scenario based on the recommended steps and user instructions.
+            
+            Below are summaries of all datasets provided:
+            {all_datasets_summary}
+            
+            Return Python code in ```python``` format with a single function definition, data_wrangler(data_raw: pd.DataFrame, list), that includes all imports inside the function. And returns a pandas data frame or a list of pandas data frames.:
+
+            ```python
+            def data_wrangler(data_raw: pd.DataFrame, list):
+                '''
+                Wrangle the data provided in data_raw.
+                
+                data_raw: pandas data frame or list of pandas data frames containing the raw data to be wrangled.
+                '''
+                import pandas as pd
+                import numpy as np
+                # Implement the wrangling steps here
+                
+                # Return either a single DataFrame or a list of DataFrames
+                return data_wrangled
+            ```
+            
+            Make sure to explain any non-trivial steps with inline comments. Follow user instructions. Comment code thoroughly.
+            """,
+            input_variables=["recommended_steps", "all_datasets_summary"]
+        )
+
+        data_wrangling_agent = data_wrangling_prompt | llm | PythonOutputParser()
+
+        response = data_wrangling_agent.invoke({
+            "recommended_steps": state.get("recommended_steps"),
+            "all_datasets_summary": state.get("all_datasets_summary")
+        })
+        
+        response = relocate_imports_inside_function(response)
+        
+        # For logging: store the code generated
+        if log:
+            with open(log_path + 'data_wrangler.py', 'w') as file:
+                file.write(response)
+
+        return {"data_wrangler_function" : response}
+
+    
+    def human_review(state: GraphState) -> Command[Literal["recommend_wrangling_steps", "create_data_wrangler_code"]]:
+        return node_func_human_review(
+            state=state,
+            prompt_text="Are the following data wrangling steps correct? (Answer 'yes' or provide modifications)\n{steps}",
+            yes_goto="create_data_wrangler_code",
+            no_goto="recommend_wrangling_steps",
+            user_instructions_key="user_instructions",
+            recommended_steps_key="recommended_steps"            
+        )
+    
+    def execute_data_wrangler_code(state: GraphState):
+        # Similar execution logic as the data cleaning agent, 
+        # but here we handle multiple datasets if provided.
+        # We'll combine them into a dictionary of {name: DataFrame} and pass it to the code.
+        
+        # def pre_processing(data_raw):
+        #     # data_raw is {name: dict_of_data}, convert each to pd.DataFrame
+        #     data_dict = {}
+        #     for name, d in data_raw.items():
+        #         data_dict[name] = pd.DataFrame.from_dict(d)
+        #     return data_dict
+        
+        # def post_processing(df):
+        #     return df.to_dict()
+
+        return node_func_execute_agent_code_on_data(
+            state=state,
+            data_key="data_raw",
+            result_key="data_wrangled",
+            error_key="data_wrangler_error",
+            code_snippet_key="data_wrangler_function",
+            agent_function_name="data_wrangler",
+            # pre_processing=pre_processing,
+            # post_processing=post_processing,
+            error_message_prefix="An error occurred during data wrangling: "
+        )
+        
+    def fix_data_wrangler_code(state: GraphState):
+        data_wrangler_prompt = """
+        You are a Data Wrangling Agent. Your job is to create a data_wrangler() function that can be run on the data provided. The function is currently broken and needs to be fixed.
+        
+        Make sure to only return the function definition for data_wrangler().
+        
+        Return Python code in ```python``` format with a single function definition, data_wrangler(data_raw), that includes all imports inside the function.
+        
+        This is the broken code (please fix): 
+        {code_snippet}
+
+        Last Known Error:
+        {error}
+        """
+
+        return node_func_fix_agent_code(
+            state=state,
+            code_snippet_key="data_wrangler_function",
+            error_key="data_wrangler_error",
+            llm=llm,  
+            prompt_template=data_wrangler_prompt,
+            log=log,
+            log_path=log_path,
+            log_file_name="data_wrangler.py"
+        )
+    
+    def explain_data_wrangler_code(state: GraphState):        
+        return node_func_explain_agent_code(
+            state=state,
+            code_snippet_key="data_wrangler_function",
+            result_key="messages",
+            error_key="data_wrangler_error",
+            llm=llm,  
+            role="data_wrangling_agent",
+            explanation_prompt_template="""
+            Explain the data wrangling steps that the data wrangling agent performed in this function. 
+            Keep the summary succinct and to the point.\n\n# Data Wrangling Agent:\n\n{code}
+            """,
+            success_prefix="# Data Wrangling Agent:\n\n ",
+            error_message="The Data Wrangling Agent encountered an error during data wrangling. Data could not be explained."
+        )
+        
+    # Define the graph
+    node_functions = {
+        "recommend_wrangling_steps": recommend_wrangling_steps,
+        "human_review": human_review,
+        "create_data_wrangler_code": create_data_wrangler_code,
+        "execute_data_wrangler_code": execute_data_wrangler_code,
+        "fix_data_wrangler_code": fix_data_wrangler_code,
+        "explain_data_wrangler_code": explain_data_wrangler_code
+    }
+    
+    app = create_coding_agent_graph(
+        GraphState=GraphState,
+        node_functions=node_functions,
+        recommended_steps_node_name="recommend_wrangling_steps",
+        create_code_node_name="create_data_wrangler_code",
+        execute_code_node_name="execute_data_wrangler_code",
+        fix_code_node_name="fix_data_wrangler_code",
+        explain_code_node_name="explain_data_wrangler_code",
+        error_key="data_wrangler_error",
+        human_in_the_loop=human_in_the_loop,
+        human_review_node_name="human_review",
+        checkpointer=MemorySaver() if human_in_the_loop else None
+    )
+        
+    return app
+
+
+
+

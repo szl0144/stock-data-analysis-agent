@@ -234,8 +234,11 @@ def node_func_execute_agent_code_on_data(
     if pre_processing is None:
         if isinstance(data, dict):
             df = pd.DataFrame.from_dict(data)
+        elif isinstance(data, list):
+            for i in range(len(data)):
+                data[i] = pd.DataFrame.from_dict(data[i])
         else:
-            raise ValueError("Data is not a dictionary and no pre_processing function was provided.")
+            raise ValueError("Data is not a dictionary or list and no pre_processing function was provided.")
     else:
         df = pre_processing(data)
     
