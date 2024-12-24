@@ -26,6 +26,7 @@ from ai_data_science_team.templates.agent_templates import(
 )
 from ai_data_science_team.tools.parsers import PythonOutputParser
 from ai_data_science_team.tools.regex import relocate_imports_inside_function
+from ai_data_science_team.tools.data_analysis import summarize_dataframes
 
 # Setup
 
@@ -112,6 +113,7 @@ def make_feature_engineering_agent(model, log=False, log_path=None, human_in_the
         recommended_steps: str
         data_raw: dict
         target_variable: str
+        all_datasets_summary: str
         feature_engineer_function: str
         feature_engineer_error: str
         data_engineered: dict
@@ -163,37 +165,32 @@ def make_feature_engineering_agent(model, log=False, log_path=None, human_in_the
             Previously Recommended Steps (if any):
             {recommended_steps}
             
-            Data Sample (first 50 rows):
-            {data_head}
-            
-            Data Description:
-            {data_description}
-            
-            Data Info:
-            {data_info}
+            Below are summaries of all datasets provided:
+            {all_datasets_summary}
 
-            Return the steps as a bullet point list (no code, just the steps).
+            Return the steps as a numbered list (no code, just the steps).
             """,
-            input_variables=["user_instructions", "data_head", "data_description", "data_info"]
+            input_variables=["user_instructions", "recommended_steps", "all_datasets_summary"]
         )
 
         data_raw = state.get("data_raw")
         df = pd.DataFrame.from_dict(data_raw)
-
-        buffer = io.StringIO()
-        df.info(buf=buffer)
-        info_text = buffer.getvalue()
+        
+        all_datasets_summary = summarize_dataframes([df])
+        
+        all_datasets_summary_str = "\n\n".join(all_datasets_summary)
 
         steps_agent = recommend_steps_prompt | llm
         recommended_steps = steps_agent.invoke({
             "user_instructions": state.get("user_instructions"),
             "recommended_steps": state.get("recommended_steps"),
-            "data_head": df.head(50).to_string(),
-            "data_description": df.describe(include='all').to_string(),
-            "data_info": info_text
+            "all_datasets_summary": all_datasets_summary_str
         }) 
         
-        return {"recommended_steps": "\n\n# Recommended Steps:\n" + recommended_steps.content.strip()}
+        return {
+            "recommended_steps": "\n\n# Recommended Feature Engineering Steps:\n" + recommended_steps.content.strip(),
+            "all_datasets_summary": all_datasets_summary_str
+        }
     
     def human_review(state: GraphState) -> Command[Literal["recommend_feature_engineering_steps", "create_feature_engineering_code"]]:
         return node_func_human_review(
@@ -204,30 +201,6 @@ def make_feature_engineering_agent(model, log=False, log_path=None, human_in_the
             user_instructions_key="user_instructions",
             recommended_steps_key="recommended_steps" 
         )
-
-    # def human_review(state: GraphState) -> Command[Literal["recommend_feature_engineering_steps", "create_feature_engineering_code"]]:
-    #     print("    * HUMAN REVIEW")
-        
-    #     user_input = interrupt(
-    #         value=f"Is the following feature engineering instructions correct? (Answer 'yes' or provide modifications to make to make them correct)\n{state.get('recommended_steps')}",
-    #     )
-        
-    #     if user_input.strip().lower() == "yes":
-    #         goto = "create_feature_engineering_code"
-    #         update = {}
-    #     else:
-    #         goto = "recommend_feature_engineering_steps"
-    #         modifications = "Modifications: \n" + user_input
-    #         if state.get("user_instructions") is None:
-    #             update = {
-    #                 "user_instructions": modifications,
-    #             }
-    #         else:
-    #             update = {
-    #                 "user_instructions": state.get("user_instructions") + modifications,
-    #             }
-        
-    #     return Command(goto=goto, update=update)
     
     def create_feature_engineering_code(state: GraphState):
         print("    * CREATE FEATURE ENGINEERING CODE")
@@ -242,16 +215,10 @@ def make_feature_engineering_agent(model, log=False, log_path=None, human_in_the
             
             Use this information about the data to help determine how to feature engineer the data:
             
-            Target Variable: {target_variable}
+            Target Variable (if provided): {target_variable}
             
-            Sample Data (first 100 rows):
-            {data_head}
-            
-            Data Description:
-            {data_description}
-            
-            Data Info:
-            {data_info}
+            Below are summaries of all datasets provided. Use this information about the data to help determine how to feature engineer the data:
+            {all_datasets_summary}
             
             You can use Pandas, Numpy, and Scikit Learn libraries to feature engineer the data.
             
@@ -268,6 +235,7 @@ def make_feature_engineering_agent(model, log=False, log_path=None, human_in_the
             Best Practices and Error Preventions:
             - Handle missing values in numeric and categorical features before transformations.
             - Avoid creating highly correlated features unless explicitly instructed.
+            - Convert Boolean to integer values (0/1) after one-hot encoding unless otherwise instructed.
             
             Avoid the following errors:
             
@@ -281,7 +249,7 @@ def make_feature_engineering_agent(model, log=False, log_path=None, human_in_the
 
 
             """,
-            input_variables=["recommeded_steps", "target_variable", "data_head", "data_description", "data_info"]
+            input_variables=["recommeded_steps", "target_variable", "all_datasets_summary"]
         )
 
         feature_engineering_agent = feature_engineering_prompt | llm | PythonOutputParser()
@@ -296,9 +264,7 @@ def make_feature_engineering_agent(model, log=False, log_path=None, human_in_the
         response = feature_engineering_agent.invoke({
             "recommended_steps": state.get("recommended_steps"),
             "target_variable": state.get("target_variable"),
-            "data_head": df.head().to_string(),
-            "data_description": df.describe(include='all').to_string(),
-            "data_info": info_text
+            "all_datasets_summary": state.get("all_datasets_summary"),
         })
         
         response = relocate_imports_inside_function(response)

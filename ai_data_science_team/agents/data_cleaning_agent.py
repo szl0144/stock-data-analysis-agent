@@ -184,7 +184,7 @@ def make_data_cleaning_agent(model, log=False, log_path=None, human_in_the_loop=
         
         return {
             "recommended_steps": "\n\n# Recommended Data Cleaning Steps:\n" + recommended_steps.content.strip(),
-            "all_datasets_summary": all_datasets_summary
+            "all_datasets_summary": all_datasets_summary_str
         }
     
     def create_data_cleaner_code(state: GraphState):
