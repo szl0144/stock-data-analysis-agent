@@ -26,6 +26,7 @@ from ai_data_science_team.templates.agent_templates import(
 )
 from ai_data_science_team.tools.parsers import PythonOutputParser
 from ai_data_science_team.tools.regex import relocate_imports_inside_function
+from ai_data_science_team.tools.data_analysis import summarize_dataframes
 
 # Setup
 
@@ -110,6 +111,7 @@ def make_data_cleaning_agent(model, log=False, log_path=None, human_in_the_loop=
         user_instructions: str
         recommended_steps: str
         data_raw: dict
+        all_datasets_summary: str
         data_cleaner_function: str
         data_cleaner_error: str
         data_cleaned: dict
@@ -154,41 +156,36 @@ def make_data_cleaning_agent(model, log=False, log_path=None, human_in_the_loop=
             
             User instructions:
             {user_instructions}
-            
+
             Previously Recommended Steps (if any):
             {recommended_steps}
-            
-            Data Sample (first 50 rows):
-            {data_head}
-            
-            Data Description:
-            {data_description}
-            
-            Data Info:
-            {data_info}
+
+            Below are summaries of all datasets provided:
+            {all_datasets_summary}
 
             Return the steps as a bullet point list (no code, just the steps).
             """,
-            input_variables=["user_instructions", "data_head","data_description","data_info"]
+            input_variables=["user_instructions", "recommended_steps", "all_datasets_summary"]
         )
 
         data_raw = state.get("data_raw")
         df = pd.DataFrame.from_dict(data_raw)
 
-        buffer = io.StringIO()
-        df.info(buf=buffer)
-        info_text = buffer.getvalue()
+        all_datasets_summary = summarize_dataframes([df])
+        
+        all_datasets_summary_str = "\n\n".join(all_datasets_summary)
 
         steps_agent = recommend_steps_prompt | llm
         recommended_steps = steps_agent.invoke({
             "user_instructions": state.get("user_instructions"),
             "recommended_steps": state.get("recommended_steps"),
-            "data_head": df.head(50).to_string(),
-            "data_description": df.describe().to_string(),
-            "data_info": info_text
+            "all_datasets_summary": all_datasets_summary_str
         }) 
         
-        return {"recommended_steps": "\n\n# Recommended Steps:\n" + recommended_steps.content.strip()}
+        return {
+            "recommended_steps": "\n\n# Recommended Data Cleaning Steps:\n" + recommended_steps.content.strip(),
+            "all_datasets_summary": all_datasets_summary
+        }
     
     def create_data_cleaner_code(state: GraphState):
         print("    * CREATE DATA CLEANER CODE")
@@ -202,16 +199,9 @@ def make_data_cleaning_agent(model, log=False, log_path=None, human_in_the_loop=
             
             You can use Pandas, Numpy, and Scikit Learn libraries to clean the data.
             
-            Use this information about the data to help determine how to clean the data:
+            Below are summaries of all datasets provided. Use this information about the data to help determine how to clean the data:
 
-            Sample Data (first 100 rows):
-            {data_head}
-            
-            Data Description:
-            {data_description}
-            
-            Data Info:
-            {data_info}
+            {all_datasets_summary}
             
             Return Python code in ```python ``` format with a single function definition, data_cleaner(data_raw), that incldues all imports inside the function. 
             
@@ -228,25 +218,14 @@ def make_data_cleaning_agent(model, log=False, log_path=None, human_in_the_loop=
             Always ensure that when assigning the output of fit_transform() from SimpleImputer to a Pandas DataFrame column, you call .ravel() or flatten the array, because fit_transform() returns a 2D array while a DataFrame column is 1D.
             
             """,
-            input_variables=["recommended_steps", "data_head", "data_description", "data_info"]
+            input_variables=["recommended_steps", "all_datasets_summary"]
         )
 
         data_cleaning_agent = data_cleaning_prompt | llm | PythonOutputParser()
         
-        data_raw = state.get("data_raw")
-        
-        df = pd.DataFrame.from_dict(data_raw)
-        
-        buffer = io.StringIO()
-        df.info(buf=buffer)
-        info_text = buffer.getvalue()
-        
         response = data_cleaning_agent.invoke({
-            "user_instructions": state.get("user_instructions"),
             "recommended_steps": state.get("recommended_steps"),
-            "data_head": df.head().to_string(), 
-            "data_description": df.describe().to_string(), 
-            "data_info": info_text
+            "all_datasets_summary": state.get("all_datasets_summary")
         })
         
         response = relocate_imports_inside_function(response)
