@@ -1,8 +1,3 @@
-# BUSINESS SCIENCE UNIVERSITY
-# AI DATA SCIENCE TEAM
-# ***
-# Agent Templates
-
 from langchain_core.messages import AIMessage
 from langgraph.graph import StateGraph, END
 from langgraph.types import interrupt, Command
@@ -235,8 +230,7 @@ def node_func_execute_agent_code_on_data(
         if isinstance(data, dict):
             df = pd.DataFrame.from_dict(data)
         elif isinstance(data, list):
-            for i in range(len(data)):
-                data[i] = pd.DataFrame.from_dict(data[i])
+            df = [pd.DataFrame.from_dict(item) for item in data]
         else:
             raise ValueError("Data is not a dictionary or list and no pre_processing function was provided.")
     else:

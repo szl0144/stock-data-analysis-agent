@@ -4,7 +4,7 @@
 # * Agents: Data Wrangling Agent
 
 # Libraries
-from typing import TypedDict, Annotated, Sequence, Literal
+from typing import TypedDict, Annotated, Sequence, Literal, Union
 import operator
 import os
 import io
@@ -101,8 +101,8 @@ def make_data_wrangling_agent(model, log=False, log_path=None, human_in_the_loop
         messages: Annotated[Sequence[BaseMessage], operator.add]
         user_instructions: str
         recommended_steps: str
-        # data_raw should be a dict of {dataset_name: data_dict}, data_dict can be converted to DataFrame
-        data_raw: dict  
+        # data_raw should be a dict for a single dataset or a list of dicts for multiple datasets
+        data_raw: Union[dict, list]
         all_datasets_summary: str
         data_wrangler_function: str
         data_wrangler_error: str
@@ -147,6 +147,8 @@ def make_data_wrangling_agent(model, log=False, log_path=None, human_in_the_loop
             
             You can use any common data wrangling techniques such as joining, reshaping, aggregating, encoding, etc. 
             
+            If multiple datasets are provided, you may need to recommend how to merge or join them. 
+            
             Also consider any special transformations requested by the user. If the user instructions 
             say to do something else or not to do certain steps, follow those instructions.
             
@@ -173,7 +175,7 @@ def make_data_wrangling_agent(model, log=False, log_path=None, human_in_the_loop
 
         return {
             "recommended_steps": "\n\n# Recommended Wrangling Steps:\n" + recommended_steps.content.strip(),
-            "all_datasets_summary": all_datasets_summary_str
+            "all_datasets_summary": all_datasets_summary_str,
         }
 
     
@@ -187,33 +189,35 @@ def make_data_wrangling_agent(model, log=False, log_path=None, human_in_the_loop
             Follow these recommended steps:
             {recommended_steps}
             
-            Assume `data_raw` can be one of two forms:
-            1. A single dataset provided as a pandas data frame.
-            2. Multiple datasets provided as a list of data frames.
-            
             If multiple datasets are provided, you may need to merge or join them. Make sure to handle that scenario based on the recommended steps and user instructions.
             
-            Below are summaries of all datasets provided:
+            Below are summaries of all datasets provided. If more than one dataset is provided, you may need to merge or join them.:
             {all_datasets_summary}
             
-            Return Python code in ```python``` format with a single function definition, data_wrangler(data_raw: pd.DataFrame, list), that includes all imports inside the function. And returns a pandas data frame or a list of pandas data frames.:
+            Return Python code in ```python``` format with a single function definition, data_wrangler(), that includes all imports inside the function. And returns a single pandas data frame.
 
             ```python
-            def data_wrangler(data_raw: pd.DataFrame, list):
+            def data_wrangler(data_list):
                 '''
-                Wrangle the data provided in data_raw.
+                Wrangle the data provided in data.
                 
-                data_raw: pandas data frame or list of pandas data frames containing the raw data to be wrangled.
+                data_list: A list of one or more pandas data frames containing the raw data to be wrangled.
                 '''
                 import pandas as pd
                 import numpy as np
                 # Implement the wrangling steps here
                 
-                # Return either a single DataFrame or a list of DataFrames
+                # Return a single DataFrame 
                 return data_wrangled
             ```
             
+            Avoid Errors:
+            1. If the incoming data is not a list. Convert it to a list first. 
+            2. Do not specify data types inside the function arguments.
+            
             Make sure to explain any non-trivial steps with inline comments. Follow user instructions. Comment code thoroughly.
+            
+            
             """,
             input_variables=["recommended_steps", "all_datasets_summary"]
         )
@@ -246,16 +250,13 @@ def make_data_wrangling_agent(model, log=False, log_path=None, human_in_the_loop
         )
     
     def execute_data_wrangler_code(state: GraphState):
-        # Similar execution logic as the data cleaning agent, 
-        # but here we handle multiple datasets if provided.
-        # We'll combine them into a dictionary of {name: DataFrame} and pass it to the code.
         
-        # def pre_processing(data_raw):
-        #     # data_raw is {name: dict_of_data}, convert each to pd.DataFrame
-        #     data_dict = {}
-        #     for name, d in data_raw.items():
-        #         data_dict[name] = pd.DataFrame.from_dict(d)
-        #     return data_dict
+        # Handle multiple datasets as lists 
+        # def pre_processing(data):
+        #     df = []
+        #     for i in range(len(data)):
+        #         df[i] = pd.DataFrame.from_dict(data[i])
+        #     return df
         
         # def post_processing(df):
         #     return df.to_dict()
