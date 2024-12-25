@@ -31,15 +31,16 @@ This project is a work in progress. New data science agents will be released soo
 
 ### Agents Available Now
 
-1. **Data Cleaning Agent:** Performs Data Preparation steps including handling missing values, outliers, and data type conversions.
-2. **Feature Engineering Agent:** Converts the prepared data into ML-ready data. Adds features to increase predictive accuracy of ML models.
+1. **Data Wrangling Agent:** Merges, Joins, Preps and Wrangles data into a format that is ready for data analysis.
+2. **Data Cleaning Agent:** Performs Data Preparation steps including handling missing values, outliers, and data type conversions.
+3. **Feature Engineering Agent:** Converts the prepared data into ML-ready data. Adds features to increase predictive accuracy of ML models.
 
 ### Agents Coming Soon
 
-1. **Supervisor:** Forms task list. Moderates sub-agents. Returns completed assignment. 
-2. **Exploratory Data Analyst:** Analyzes data structure, creates exploratory visualizations, and performs correlation analysis to identify relationships.
-3. **Machine Learning Agent:** Builds and logs the machine learning models.
-4. **Interpretability Agent:** Performs Interpretable ML to explain why the model returned predictions including which features were the most important to the model.
+1. **Data Analyst:** Analyzes data structure, creates exploratory visualizations, and performs correlation analysis to identify relationships.
+2. **Machine Learning Agent:** Builds and logs the machine learning models.
+3. **Interpretability Agent:** Performs Interpretable ML to explain why the model returned predictions including which features were the most important to the model.
+4. **Supervisor:** Forms task list. Moderates sub-agents. Returns completed assignment. 
 
 ## Disclaimer
 
