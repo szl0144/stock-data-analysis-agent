@@ -162,7 +162,7 @@ cython_debug/
 .idea/
 
 # Mac
-.DS_Store/
+.DS_Store
 
 # Temp
 /temp
