@@ -10,7 +10,7 @@ import operator
 from langchain.prompts import PromptTemplate
 from langchain_core.messages import BaseMessage
 
-from langgraph.types import interrupt, Command
+from langgraph.types import Command
 from langgraph.checkpoint.memory import MemorySaver
 
 import os
@@ -30,7 +30,7 @@ from ai_data_science_team.tools.data_analysis import summarize_dataframes
 from ai_data_science_team.tools.logging import log_ai_function
 
 # Setup
-
+AGENT_NAME = "feature_engineering_agent"
 LOG_PATH = os.path.join(os.getcwd(), "logs/")
 
 # * Feature Engineering Agent
@@ -270,7 +270,7 @@ def make_feature_engineering_agent(model, log=False, log_path=None, overwrite = 
         })
         
         response = relocate_imports_inside_function(response)
-        response = add_comments_to_top(response, agent_name="feature_engineer")
+        response = add_comments_to_top(response, agent_name=AGENT_NAME)
 
         # For logging: store the code generated
         file_name, file_path = log_ai_function(
@@ -321,7 +321,7 @@ def make_feature_engineering_agent(model, log=False, log_path=None, overwrite = 
             error_key="feature_engineer_error",
             llm=llm,
             prompt_template=feature_engineer_prompt,
-            agent_name="feature_engineer",
+            agent_name=AGENT_NAME,
             log=log,
             file_path=state.get("feature_engineer_function_path"),
         )
@@ -333,7 +333,7 @@ def make_feature_engineering_agent(model, log=False, log_path=None, overwrite = 
             result_key="messages",
             error_key="feature_engineer_error",
             llm=llm,
-            role="feature_engineering_agent",
+            role=AGENT_NAME,
             explanation_prompt_template="""
             Explain the feature engineering steps performed by this function. Keep the explanation clear and concise.\n\n# Feature Engineering Agent:\n\n{code}
             """,

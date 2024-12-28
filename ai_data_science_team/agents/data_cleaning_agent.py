@@ -30,7 +30,7 @@ from ai_data_science_team.tools.data_analysis import summarize_dataframes
 from ai_data_science_team.tools.logging import log_ai_function
 
 # Setup
-
+AGENT_NAME = "data_cleaning_agent"
 LOG_PATH = os.path.join(os.getcwd(), "logs/")
 
 # Agent
@@ -238,7 +238,7 @@ def make_data_cleaning_agent(model, log=False, log_path=None, overwrite = True, 
         })
         
         response = relocate_imports_inside_function(response)
-        response = add_comments_to_top(response, agent_name="data_clearner")
+        response = add_comments_to_top(response, agent_name=AGENT_NAME)
         
         # For logging: store the code generated:
         file_name, file_path = log_ai_function(
@@ -299,7 +299,7 @@ def make_data_cleaning_agent(model, log=False, log_path=None, overwrite = True, 
             error_key="data_cleaner_error",
             llm=llm,  
             prompt_template=data_cleaner_prompt,
-            agent_name="data_cleaner",
+            agent_name=AGENT_NAME,
             log=log,
             file_path=state.get("data_cleaner_function_path"),
         )
@@ -311,7 +311,7 @@ def make_data_cleaning_agent(model, log=False, log_path=None, overwrite = True, 
             result_key="messages",
             error_key="data_cleaner_error",
             llm=llm,  
-            role="data_cleaning_agent",
+            role=AGENT_NAME,
             explanation_prompt_template="""
             Explain the data cleaning steps that the data cleaning agent performed in this function. 
             Keep the summary succinct and to the point.\n\n# Data Cleaning Agent:\n\n{code}

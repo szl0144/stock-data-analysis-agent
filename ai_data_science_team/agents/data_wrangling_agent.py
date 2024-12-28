@@ -28,6 +28,7 @@ from ai_data_science_team.tools.data_analysis import summarize_dataframes
 from ai_data_science_team.tools.logging import log_ai_function
 
 # Setup Logging Path
+AGENT_NAME = "data_wrangling_agent"
 LOG_PATH = os.path.join(os.getcwd(), "logs/")
 
 def make_data_wrangling_agent(model, log=False, log_path=None, overwrite = True, human_in_the_loop=False):
@@ -239,7 +240,7 @@ def make_data_wrangling_agent(model, log=False, log_path=None, overwrite = True,
         })
         
         response = relocate_imports_inside_function(response)
-        response = add_comments_to_top(response, agent_name="data_wrangler")
+        response = add_comments_to_top(response, agent_name=AGENT_NAME)
         
         # For logging: store the code generated
         file_name, file_path = log_ai_function(
@@ -312,7 +313,7 @@ def make_data_wrangling_agent(model, log=False, log_path=None, overwrite = True,
             error_key="data_wrangler_error",
             llm=llm,  
             prompt_template=data_wrangler_prompt,
-            agent_name="data_wrangler",
+            agent_name=AGENT_NAME,
             log=log,
             file_path=state.get("data_wrangler_function_path"),
         )
@@ -324,7 +325,7 @@ def make_data_wrangling_agent(model, log=False, log_path=None, overwrite = True,
             result_key="messages",
             error_key="data_wrangler_error",
             llm=llm,  
-            role="data_wrangling_agent",
+            role=AGENT_NAME,
             explanation_prompt_template="""
             Explain the data wrangling steps that the data wrangling agent performed in this function. 
             Keep the summary succinct and to the point.\n\n# Data Wrangling Agent:\n\n{code}

@@ -332,7 +332,7 @@ def node_func_fix_agent_code(
     if log:
         with open(file_path, 'w') as file:
             file.write(response)
-            print(f"File saved to: {file_path}")
+            print(f"      File saved to: {file_path}")
     
     # Return updated results
     return {

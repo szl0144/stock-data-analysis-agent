@@ -53,7 +53,7 @@ def log_ai_function(response: str, file_name: str, log: bool = True, log_path: s
         with open(file_path, 'w', encoding='utf-8') as file:
             file.write(response)
 
-        print(f"File saved to: {file_path}")
+        print(f"      File saved to: {file_path}")
         
         return (file_path, file_name)
     
