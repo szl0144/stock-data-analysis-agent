@@ -243,7 +243,7 @@ def make_data_wrangling_agent(model, log=False, log_path=None, overwrite = True,
         response = add_comments_to_top(response, agent_name=AGENT_NAME)
         
         # For logging: store the code generated
-        file_name, file_path = log_ai_function(
+        file_path, file_name = log_ai_function(
             response=response,
             file_name="data_wrangler.py",
             log=log,
