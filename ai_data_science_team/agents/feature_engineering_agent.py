@@ -25,8 +25,9 @@ from ai_data_science_team.templates.agent_templates import(
     create_coding_agent_graph
 )
 from ai_data_science_team.tools.parsers import PythonOutputParser
-from ai_data_science_team.tools.regex import relocate_imports_inside_function
+from ai_data_science_team.tools.regex import relocate_imports_inside_function, add_comments_to_top
 from ai_data_science_team.tools.data_analysis import summarize_dataframes
+from ai_data_science_team.tools.logging import log_ai_function
 
 # Setup
 
@@ -34,7 +35,7 @@ LOG_PATH = os.path.join(os.getcwd(), "logs/")
 
 # * Feature Engineering Agent
 
-def make_feature_engineering_agent(model, log=False, log_path=None, human_in_the_loop=False):
+def make_feature_engineering_agent(model, log=False, log_path=None, overwrite = True, human_in_the_loop=False):
     """
     Creates a feature engineering agent that can be run on a dataset. The agent applies various feature engineering
     techniques, such as encoding categorical variables, scaling numeric variables, creating interaction terms,
@@ -65,6 +66,9 @@ def make_feature_engineering_agent(model, log=False, log_path=None, human_in_the
         Defaults to False.
     log_path : str, optional
         The path to the directory where the log files should be stored. Defaults to "logs/".
+    overwrite : bool, optional
+        Whether or not to overwrite the log file if it already exists. If False, a unique file name will be created. 
+        Defaults to True.
     human_in_the_loop : bool, optional
         Whether or not to use human in the loop. If True, adds an interput and human in the loop step that asks the user to review the feature engineering instructions. Defaults to False.
 
@@ -112,11 +116,13 @@ def make_feature_engineering_agent(model, log=False, log_path=None, human_in_the
         user_instructions: str
         recommended_steps: str
         data_raw: dict
+        data_engineered: dict
         target_variable: str
         all_datasets_summary: str
         feature_engineer_function: str
+        feature_engineer_function_path: str
+        feature_engineer_function_name: str
         feature_engineer_error: str
-        data_engineered: dict
         max_retries: int
         retry_count: int
 
@@ -257,13 +263,6 @@ def make_feature_engineering_agent(model, log=False, log_path=None, human_in_the
 
         feature_engineering_agent = feature_engineering_prompt | llm | PythonOutputParser()
 
-        data_raw = state.get("data_raw")
-        df = pd.DataFrame.from_dict(data_raw)
-
-        buffer = io.StringIO()
-        df.info(buf=buffer)
-        info_text = buffer.getvalue()
-
         response = feature_engineering_agent.invoke({
             "recommended_steps": state.get("recommended_steps"),
             "target_variable": state.get("target_variable"),
@@ -271,13 +270,22 @@ def make_feature_engineering_agent(model, log=False, log_path=None, human_in_the
         })
         
         response = relocate_imports_inside_function(response)
+        response = add_comments_to_top(response, agent_name="feature_engineer")
 
         # For logging: store the code generated
-        if log:
-            with open(log_path + 'feature_engineer.py', 'w') as file:
-                file.write(response)
+        file_name, file_path = log_ai_function(
+            response=response,
+            file_name="feature_engineer.py",
+            log=log,
+            log_path=log_path,
+            overwrite=overwrite
+        )
 
-        return {"feature_engineer_function": response}
+        return {
+            "feature_engineer_function": response,
+            "feature_engineer_function_path": file_path,
+            "feature_engineer_function_name": file_name
+        }
 
     
 
@@ -313,9 +321,9 @@ def make_feature_engineering_agent(model, log=False, log_path=None, human_in_the
             error_key="feature_engineer_error",
             llm=llm,
             prompt_template=feature_engineer_prompt,
+            agent_name="feature_engineer",
             log=log,
-            log_path=log_path,
-            log_file_name="feature_engineer.py"
+            file_path=state.get("feature_engineer_function_path"),
         )
 
     def explain_feature_engineering_code(state: GraphState):

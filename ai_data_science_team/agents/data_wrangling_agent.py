@@ -23,13 +23,14 @@ from ai_data_science_team.templates.agent_templates import(
     create_coding_agent_graph
 )
 from ai_data_science_team.tools.parsers import PythonOutputParser
-from ai_data_science_team.tools.regex import relocate_imports_inside_function
+from ai_data_science_team.tools.regex import relocate_imports_inside_function, add_comments_to_top
 from ai_data_science_team.tools.data_analysis import summarize_dataframes
+from ai_data_science_team.tools.logging import log_ai_function
 
 # Setup Logging Path
 LOG_PATH = os.path.join(os.getcwd(), "logs/")
 
-def make_data_wrangling_agent(model, log=False, log_path=None, human_in_the_loop=False):
+def make_data_wrangling_agent(model, log=False, log_path=None, overwrite = True, human_in_the_loop=False):
     """
     Creates a data wrangling agent that can be run on one or more datasets. The agent can be
     instructed to perform common data wrangling steps such as:
@@ -55,6 +56,9 @@ def make_data_wrangling_agent(model, log=False, log_path=None, human_in_the_loop
         Defaults to False.
     log_path : str, optional
         The path to the directory where the log files should be stored. Defaults to "logs/".
+    overwrite : bool, optional
+        Whether or not to overwrite the log file if it already exists. If False, a unique file name will be created. 
+        Defaults to True.
     human_in_the_loop : bool, optional
         Whether or not to use human in the loop. If True, adds an interrupt and human-in-the-loop 
         step that asks the user to review the data wrangling instructions. Defaults to False.
@@ -103,10 +107,12 @@ def make_data_wrangling_agent(model, log=False, log_path=None, human_in_the_loop
         recommended_steps: str
         # data_raw should be a dict for a single dataset or a list of dicts for multiple datasets
         data_raw: Union[dict, list]
+        data_wrangled: dict
         all_datasets_summary: str
         data_wrangler_function: str
+        data_wrangler_function_path: str
+        data_wrangler_function_name: str
         data_wrangler_error: str
-        data_wrangled: dict
         max_retries: int
         retry_count: int
 
@@ -233,13 +239,22 @@ def make_data_wrangling_agent(model, log=False, log_path=None, human_in_the_loop
         })
         
         response = relocate_imports_inside_function(response)
+        response = add_comments_to_top(response, agent_name="data_wrangler")
         
         # For logging: store the code generated
-        if log:
-            with open(log_path + 'data_wrangler.py', 'w') as file:
-                file.write(response)
+        file_name, file_path = log_ai_function(
+            response=response,
+            file_name="data_wrangler.py",
+            log=log,
+            log_path=log_path,
+            overwrite=overwrite
+        )
 
-        return {"data_wrangler_function" : response}
+        return {
+            "data_wrangler_function" : response,
+            "data_wrangler_function_path": file_path,
+            "data_wrangler_function_name": file_name
+        }
 
     
     def human_review(state: GraphState) -> Command[Literal["recommend_wrangling_steps", "create_data_wrangler_code"]]:
@@ -297,9 +312,9 @@ def make_data_wrangling_agent(model, log=False, log_path=None, human_in_the_loop
             error_key="data_wrangler_error",
             llm=llm,  
             prompt_template=data_wrangler_prompt,
+            agent_name="data_wrangler",
             log=log,
-            log_path=log_path,
-            log_file_name="data_wrangler.py"
+            file_path=state.get("data_wrangler_function_path"),
         )
     
     def explain_data_wrangler_code(state: GraphState):        

@@ -7,7 +7,7 @@ import pandas as pd
 from typing import Any, Callable, Dict, Type, Optional
 
 from ai_data_science_team.tools.parsers import PythonOutputParser
-
+from ai_data_science_team.tools.regex import relocate_imports_inside_function, add_comments_to_top
 
 def create_coding_agent_graph(
     GraphState: Type,
@@ -273,10 +273,10 @@ def node_func_fix_agent_code(
     error_key: str, 
     llm: Any, 
     prompt_template: str,
+    agent_name: str,
     retry_count_key: str = "retry_count",
     log: bool = False,
-    log_path: str = "logs/",
-    log_file_name: str = "fixed_code.py"
+    file_path: str = "logs/agent_function.py",
 ) -> dict:
     """
     Generic function to fix a given piece of agent code using an LLM and a prompt template.
@@ -295,14 +295,14 @@ def node_func_fix_agent_code(
     prompt_template : str
         A string template for the prompt that will be sent to the LLM. It should contain
         placeholders `{code_snippet}` and `{error}` which will be formatted with the actual values.
+    agent_name : str
+        The name of the agent being fixed. This is used to add comments to the top of the code.
     retry_count_key : str, optional
         The key in the state that tracks how many times we've retried fixing the code.
     log : bool, optional
         Whether to log the returned code to a file.
-    log_path : str, optional
-        Directory path for the log file.
-    log_file_name : str, optional
-        File name for logging the fixed code.
+    file_path : str, optional
+        The path to the file where the code will be logged.
     
     Returns
     -------
@@ -325,10 +325,14 @@ def node_func_fix_agent_code(
     # Execute the prompt with the LLM
     response = (llm | PythonOutputParser()).invoke(prompt)
     
+    response = relocate_imports_inside_function(response)
+    response = add_comments_to_top(response, agent_name="data_wrangler")
+    
     # Log the response if requested
     if log:
-        with open(log_path + log_file_name, 'w') as file:
+        with open(file_path, 'w') as file:
             file.write(response)
+            print(f"File saved to: {file_path}")
     
     # Return updated results
     return {

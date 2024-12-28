@@ -25,8 +25,9 @@ from ai_data_science_team.templates.agent_templates import(
     create_coding_agent_graph
 )
 from ai_data_science_team.tools.parsers import PythonOutputParser
-from ai_data_science_team.tools.regex import relocate_imports_inside_function
+from ai_data_science_team.tools.regex import relocate_imports_inside_function, add_comments_to_top
 from ai_data_science_team.tools.data_analysis import summarize_dataframes
+from ai_data_science_team.tools.logging import log_ai_function
 
 # Setup
 
@@ -34,7 +35,7 @@ LOG_PATH = os.path.join(os.getcwd(), "logs/")
 
 # Agent
 
-def make_data_cleaning_agent(model, log=False, log_path=None, human_in_the_loop=False):
+def make_data_cleaning_agent(model, log=False, log_path=None, overwrite = True, human_in_the_loop=False):
     """
     Creates a data cleaning agent that can be run on a dataset. The agent can be used to clean a dataset in a variety of
     ways, such as removing columns with more than 40% missing values, imputing missing
@@ -65,6 +66,9 @@ def make_data_cleaning_agent(model, log=False, log_path=None, human_in_the_loop=
     log_path : str, optional
         The path to the directory where the log files should be stored. Defaults to
         "logs/".
+    overwrite : bool, optional
+        Whether or not to overwrite the log file if it already exists. If False, a unique file name will be created. 
+        Defaults to True.
     human_in_the_loop : bool, optional
         Whether or not to use human in the loop. If True, adds an interput and human in the loop step that asks the user to review the data cleaning instructions. Defaults to False.
         
@@ -111,10 +115,12 @@ def make_data_cleaning_agent(model, log=False, log_path=None, human_in_the_loop=
         user_instructions: str
         recommended_steps: str
         data_raw: dict
+        data_cleaned: dict
         all_datasets_summary: str
         data_cleaner_function: str
+        data_cleaner_function_path: str
+        data_cleaner_function_name: str
         data_cleaner_error: str
-        data_cleaned: dict
         max_retries: int
         retry_count: int
 
@@ -232,13 +238,22 @@ def make_data_cleaning_agent(model, log=False, log_path=None, human_in_the_loop=
         })
         
         response = relocate_imports_inside_function(response)
+        response = add_comments_to_top(response, agent_name="data_clearner")
         
         # For logging: store the code generated:
-        if log:
-            with open(log_path + 'data_cleaner.py', 'w') as file:
-                file.write(response)
+        file_name, file_path = log_ai_function(
+            response=response,
+            file_name="data_cleaner.py",
+            log=log,
+            log_path=log_path,
+            overwrite=overwrite
+        )
    
-        return {"data_cleaner_function" : response}
+        return {
+            "data_cleaner_function" : response,
+            "data_cleaner_function_path": file_path,
+            "data_cleaner_function_name": file_name
+        }
     
     def human_review(state: GraphState) -> Command[Literal["recommend_cleaning_steps", "create_data_cleaner_code"]]:
         return node_func_human_review(
@@ -284,9 +299,9 @@ def make_data_cleaning_agent(model, log=False, log_path=None, human_in_the_loop=
             error_key="data_cleaner_error",
             llm=llm,  
             prompt_template=data_cleaner_prompt,
+            agent_name="data_cleaner",
             log=log,
-            log_path=log_path,
-            log_file_name="data_cleaner.py"
+            file_path=state.get("data_cleaner_function_path"),
         )
     
     def explain_data_cleaner_code(state: GraphState):        
