@@ -117,7 +117,7 @@ def _summarize_dataframe(df: pd.DataFrame, dataset_name: str) -> str:
     return summary_text.strip()
 
 
-def get_database_metadata(connection, n_values=10):
+def get_database_metadata(connection: Union[sql.engine.base.Connection, sql.engine.base.Engine], n_values: int=10):
     """
     Collects metadata and sample data from a database.
 
@@ -130,7 +130,7 @@ def get_database_metadata(connection, n_values=10):
 
     Returns:
     --------
-        str: Formatted text with database metadata.
+    str: Formatted text with database metadata.
     """
     # If a connection is passed, use it; if an engine is passed, connect to it
     is_engine = isinstance(connection, sql.engine.base.Engine)
