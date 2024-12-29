@@ -26,7 +26,7 @@ from ai_data_science_team.templates.agent_templates import(
 )
 from ai_data_science_team.tools.parsers import PythonOutputParser
 from ai_data_science_team.tools.regex import relocate_imports_inside_function, add_comments_to_top
-from ai_data_science_team.tools.data_analysis import summarize_dataframes
+from ai_data_science_team.tools.metadata import get_dataframe_summary
 from ai_data_science_team.tools.logging import log_ai_function
 
 # Setup
@@ -180,7 +180,7 @@ def make_data_cleaning_agent(model, log=False, log_path=None, overwrite = True, 
         data_raw = state.get("data_raw")
         df = pd.DataFrame.from_dict(data_raw)
 
-        all_datasets_summary = summarize_dataframes([df])
+        all_datasets_summary = get_dataframe_summary([df])
         
         all_datasets_summary_str = "\n\n".join(all_datasets_summary)
 

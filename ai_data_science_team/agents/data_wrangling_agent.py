@@ -24,7 +24,7 @@ from ai_data_science_team.templates.agent_templates import(
 )
 from ai_data_science_team.tools.parsers import PythonOutputParser
 from ai_data_science_team.tools.regex import relocate_imports_inside_function, add_comments_to_top
-from ai_data_science_team.tools.data_analysis import summarize_dataframes
+from ai_data_science_team.tools.metadata import get_dataframe_summary
 from ai_data_science_team.tools.logging import log_ai_function
 
 # Setup Logging Path
@@ -139,7 +139,7 @@ def make_data_wrangling_agent(model, log=False, log_path=None, overwrite = True,
 
         # Create a summary for all datasets
         # We'll include a short sample and info for each dataset
-        all_datasets_summary = summarize_dataframes(dataframes)
+        all_datasets_summary = get_dataframe_summary(dataframes)
 
         # Join all datasets summaries into one big text block
         all_datasets_summary_str = "\n\n".join(all_datasets_summary)
