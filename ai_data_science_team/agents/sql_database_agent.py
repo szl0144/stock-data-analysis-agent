@@ -279,19 +279,11 @@ def sql_database_pipeline(connection):
             llm=llm,
             role=AGENT_NAME,
             explanation_prompt_template="""
-            You are a SQL Database Agent code explainer. Your job is to explain the code in the sql_database_pipeline(connection) function.
-            
-            Explain the code in the sql_database_pipeline(connection) function. The connection object is a SQLAlchemy connection object. 
-            
-            Make sure to explain the SQL Code steps and the SQL Query that is being run.
-            
-            This is the code to explain: 
-            
-            # SQL Database Pipeline Function
-            {code}
+            Explain the SQL steps that the SQL Database agent performed in this function. 
+            Keep the summary succinct and to the point.\n\n# SQL Database Agent:\n\n{code}
             """,
             success_prefix="# SQL Database Agent:\n\n",  
-            error_message="The SQL Database Agent encountered an error during SQL Query Analysis. Data could not be explained."
+            error_message="The SQL Database Agent encountered an error during SQL Query Analysis. No SQL function explanation is returned."
         )
         
     # Create the graph
