@@ -15,7 +15,7 @@ import pandas as pd
 import sqlalchemy as sql
 
 from ai_data_science_team.templates.agent_templates import(
-    node_func_execute_agent_code_on_data, 
+    node_func_execute_agent_from_sql_connection,
     node_func_human_review,
     node_func_fix_agent_code, 
     node_func_explain_agent_code, 
@@ -62,7 +62,7 @@ def make_sql_database_agent(model, connection, log=False, log_path=None, overwri
     def recommend_sql_steps(state: GraphState):
         
         print("---SQL DATABASE AGENT---")
-        print("    * RECOMMEND CLEANING STEPS")
+        print("    * RECOMMEND SQL QUERY STEPS")
         
         
         # Prompt to get recommended steps from the LLM
@@ -115,9 +115,9 @@ def make_sql_database_agent(model, connection, log=False, log_path=None, overwri
         
         steps_agent = recommend_steps_prompt | llm
         
-        recommended_steps = steps_agent({
-            "user_instructions": state["user_instructions"],
-            "recommended_steps": state["recommended_steps"],
+        recommended_steps = steps_agent.invoke({
+            "user_instructions": state.get("user_instructions"),
+            "recommended_steps": state.get("recommended_steps"),
             "all_sql_database_summary": all_sql_database_summary
         })
         
@@ -185,19 +185,19 @@ def make_sql_database_agent(model, connection, log=False, log_path=None, overwri
         print("    * CREATE PYTHON FUNCTION TO RUN SQL CODE")
         
         response = f"""
-        def sql_database_pipeline(connection):
-            import pandas as pd
-            import sqlalchemy as sql
-            
-            # Create a connection if needed
-            is_engine = isinstance(connection, sql.engine.base.Engine)
-            conn = connection.connect() if is_engine else connection
+def sql_database_pipeline(connection):
+    import pandas as pd
+    import sqlalchemy as sql
+    
+    # Create a connection if needed
+    is_engine = isinstance(connection, sql.engine.base.Engine)
+    conn = connection.connect() if is_engine else connection
 
-            sql_query = '''
-            {sql_query_code}
-            '''
-            
-            return pd.read_sql(sql_query, connection)
+    sql_query = '''
+    {sql_query_code}
+    '''
+    
+    return pd.read_sql(sql_query, connection)
         """
         
         response = add_comments_to_top(response, AGENT_NAME)
@@ -233,7 +233,7 @@ def make_sql_database_agent(model, connection, log=False, log_path=None, overwri
         is_engine = isinstance(connection, sql.engine.base.Engine)
         conn = connection.connect() if is_engine else connection
         
-        return node_func_execute_agent_code_on_data(
+        return node_func_execute_agent_from_sql_connection(
             state=state,
             connection=conn,
             result_key="data_sql",
