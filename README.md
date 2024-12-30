@@ -79,6 +79,8 @@ pip install git+https://github.com/business-science/ai-data-science-team.git --u
 
 ## Usage
 
+[See all examples here.](/examples)
+
 ### Example 1: Feature Engineering with the Feature Engineering Agent
 
 [See the full example here.](/examples/feature_engineering_agent.ipynb)
