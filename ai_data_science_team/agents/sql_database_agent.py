@@ -182,7 +182,8 @@ def make_sql_database_agent(model, connection, log=False, log_path=None, overwri
         }
         
     def create_sql_query_code(state: GraphState):
-        
+        if bypass_recommended_steps:
+            print("---SQL DATABASE AGENT---")
         print("    * CREATE SQL QUERY CODE")
         
         # Prompt to get the SQL code from the LLM

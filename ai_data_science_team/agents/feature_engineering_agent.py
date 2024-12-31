@@ -216,6 +216,8 @@ def make_feature_engineering_agent(model, log=False, log_path=None, overwrite = 
         )
     
     def create_feature_engineering_code(state: GraphState):
+        if bypass_recommended_steps:
+            print("---FEATURE ENGINEERING AGENT----")
         print("    * CREATE FEATURE ENGINEERING CODE")
 
         feature_engineering_prompt = PromptTemplate(

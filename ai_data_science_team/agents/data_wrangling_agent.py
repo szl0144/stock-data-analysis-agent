@@ -194,6 +194,8 @@ def make_data_wrangling_agent(model, log=False, log_path=None, overwrite = True,
 
     
     def create_data_wrangler_code(state: GraphState):
+        if bypass_recommended_steps:
+            print("---DATA WRANGLING AGENT----")
         print("    * CREATE DATA WRANGLER CODE")
         
         data_wrangling_prompt = PromptTemplate(
