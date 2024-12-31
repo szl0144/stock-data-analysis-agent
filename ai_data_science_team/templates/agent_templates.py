@@ -260,6 +260,10 @@ def node_func_execute_agent_code_on_data(
         # Apply post-processing if provided
         if post_processing is not None:
             result = post_processing(result)
+        else:
+            if isinstance(result, pd.DataFrame):
+                result = result.to_dict()   
+        
     except Exception as e:
         print(e)
         agent_error = f"{error_message_prefix}{str(e)}"
