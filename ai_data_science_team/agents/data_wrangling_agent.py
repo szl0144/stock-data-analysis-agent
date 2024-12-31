@@ -269,17 +269,6 @@ def make_data_wrangling_agent(model, log=False, log_path=None, overwrite = True,
         )
     
     def execute_data_wrangler_code(state: GraphState):
-        
-        # Handle multiple datasets as lists 
-        # def pre_processing(data):
-        #     df = []
-        #     for i in range(len(data)):
-        #         df[i] = pd.DataFrame.from_dict(data[i])
-        #     return df
-        
-        # def post_processing(df):
-        #     return df.to_dict()
-
         return node_func_execute_agent_code_on_data(
             state=state,
             data_key="data_raw",
@@ -288,7 +277,7 @@ def make_data_wrangling_agent(model, log=False, log_path=None, overwrite = True,
             code_snippet_key="data_wrangler_function",
             agent_function_name="data_wrangler",
             # pre_processing=pre_processing,
-            # post_processing=post_processing,
+            post_processing=lambda df: df.to_dict() if isinstance(df, pd.DataFrame) else df,
             error_message_prefix="An error occurred during data wrangling: "
         )
         

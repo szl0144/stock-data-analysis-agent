@@ -298,7 +298,7 @@ def make_feature_engineering_agent(model, log=False, log_path=None, overwrite = 
             code_snippet_key="feature_engineer_function",
             agent_function_name="feature_engineer",
             pre_processing=lambda data: pd.DataFrame.from_dict(data),
-            post_processing=lambda df: df.to_dict(),
+            post_processing=lambda df: df.to_dict() if isinstance(df, pd.DataFrame) else df,
             error_message_prefix="An error occurred during feature engineering: "
         )
 

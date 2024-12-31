@@ -240,7 +240,7 @@ def sql_database_pipeline(connection):
             error_key="sql_database_error",
             code_snippet_key="sql_database_function",
             agent_function_name="sql_database_pipeline",
-            # post_processing=post_processing,
+            post_processing=lambda df: df.to_dict() if isinstance(df, pd.DataFrame) else df,
             error_message_prefix="An error occurred during executing the sql database pipeline: "
         )
     

@@ -274,7 +274,7 @@ def make_data_cleaning_agent(model, log=False, log_path=None, overwrite = True, 
             code_snippet_key="data_cleaner_function",
             agent_function_name="data_cleaner",
             pre_processing=lambda data: pd.DataFrame.from_dict(data),
-            post_processing=lambda df: df.to_dict(),
+            post_processing=lambda df: df.to_dict() if isinstance(df, pd.DataFrame) else df,
             error_message_prefix="An error occurred during data cleaning: "
         )
         
