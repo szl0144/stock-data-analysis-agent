@@ -35,7 +35,7 @@ LOG_PATH = os.path.join(os.getcwd(), "logs/")
 
 # Agent
 
-def make_data_cleaning_agent(model, log=False, log_path=None, overwrite = True, human_in_the_loop=False):
+def make_data_cleaning_agent(model, log=False, log_path=None, overwrite = True, human_in_the_loop=False, bypass_recommended_steps=False, bypass_explain_code=False):
     """
     Creates a data cleaning agent that can be run on a dataset. The agent can be used to clean a dataset in a variety of
     ways, such as removing columns with more than 40% missing values, imputing missing
@@ -71,6 +71,10 @@ def make_data_cleaning_agent(model, log=False, log_path=None, overwrite = True, 
         Defaults to True.
     human_in_the_loop : bool, optional
         Whether or not to use human in the loop. If True, adds an interput and human in the loop step that asks the user to review the data cleaning instructions. Defaults to False.
+    bypass_recommended_steps : bool, optional
+        Bypass the recommendation step, by default False
+    bypass_explain_code : bool, optional
+        Bypass the code explanation step, by default False.
         
     Examples
     -------
@@ -341,7 +345,9 @@ def make_data_cleaning_agent(model, log=False, log_path=None, overwrite = True, 
         error_key="data_cleaner_error",
         human_in_the_loop=human_in_the_loop,  # or False
         human_review_node_name="human_review",
-        checkpointer=MemorySaver() if human_in_the_loop else None
+        checkpointer=MemorySaver() if human_in_the_loop else None,
+        bypass_recommended_steps=bypass_recommended_steps,
+        bypass_explain_code=bypass_explain_code,
     )
         
     return app

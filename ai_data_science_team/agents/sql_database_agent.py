@@ -31,7 +31,62 @@ AGENT_NAME = "sql_database_agent"
 LOG_PATH = os.path.join(os.getcwd(), "logs/")
 
 
-def make_sql_database_agent(model, connection, log=False, log_path=None, overwrite = True, human_in_the_loop=False):
+def make_sql_database_agent(model, connection, log=False, log_path=None, overwrite = True, human_in_the_loop=False, bypass_recommended_steps=False, bypass_explain_code=False):
+    """
+    Creates a SQL Database Agent that can recommend SQL steps and generate SQL code to query a database. 
+    
+    Parameters
+    ----------
+    model : ChatOpenAI
+        The language model to use for the agent.
+    connection : sqlalchemy.engine.base.Engine
+        The connection to the SQL database.
+    log : bool, optional
+        Whether to log the generated code, by default False
+    log_path : str, optional
+        The path to the log directory, by default None
+    overwrite : bool, optional
+        Whether to overwrite the existing log file, by default True
+    human_in_the_loop : bool, optional
+        Whether or not to use human in the loop. If True, adds an interput and human in the loop step that asks the user to review the feature engineering instructions. Defaults to False.
+    bypass_recommended_steps : bool, optional
+        Bypass the recommendation step, by default False
+    bypass_explain_code : bool, optional
+        Bypass the code explanation step, by default False.
+    
+    Returns
+    -------
+    app : langchain.graphs.StateGraph
+        The data cleaning agent as a state graph.
+        
+    Examples
+    --------
+    ```python
+    from ai_data_science_team.agents import make_sql_database_agent
+    import sqlalchemy as sql
+    from langchain_openai import ChatOpenAI
+
+    sql_engine = sql.create_engine("sqlite:///data/leads_scored.db")
+
+    conn = sql_engine.connect()
+
+    llm = ChatOpenAI(model="gpt-4o-mini")
+    
+    sql_agent = make_sql_database_agent(
+        model=llm, 
+        connection=conn
+    )
+
+    sql_agent
+
+    response = sql_agent.invoke({
+        "user_instructions": "List the tables in the database",
+        "max_retries":3, 
+        "retry_count":0
+    })
+    ```
+    
+    """
     
     is_engine = isinstance(connection, sql.engine.base.Engine)
     conn = connection.connect() if is_engine else connection
@@ -177,8 +232,8 @@ def make_sql_database_agent(model, connection, log=False, log_path=None, overwri
         sql_query_code_agent = sql_query_code_prompt | llm | SQLOutputParser()
         
         sql_query_code = sql_query_code_agent.invoke({
-            "user_instructions": state["user_instructions"],
-            "recommended_steps": state["recommended_steps"],
+            "user_instructions": state.get("user_instructions"),
+            "recommended_steps": state.get("recommended_steps"),
             "all_sql_database_summary": all_sql_database_summary
         })
         
@@ -307,7 +362,9 @@ def sql_database_pipeline(connection):
         error_key="sql_database_error",
         human_in_the_loop=human_in_the_loop,
         human_review_node_name="human_review",
-        checkpointer=MemorySaver() if human_in_the_loop else None
+        checkpointer=MemorySaver() if human_in_the_loop else None,
+        bypass_recommended_steps=bypass_recommended_steps,
+        bypass_explain_code=bypass_explain_code,
     )
         
     return app

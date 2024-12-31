@@ -31,7 +31,7 @@ from ai_data_science_team.tools.logging import log_ai_function
 AGENT_NAME = "data_wrangling_agent"
 LOG_PATH = os.path.join(os.getcwd(), "logs/")
 
-def make_data_wrangling_agent(model, log=False, log_path=None, overwrite = True, human_in_the_loop=False):
+def make_data_wrangling_agent(model, log=False, log_path=None, overwrite = True, human_in_the_loop=False, bypass_recommended_steps=False, bypass_explain_code=False):
     """
     Creates a data wrangling agent that can be run on one or more datasets. The agent can be
     instructed to perform common data wrangling steps such as:
@@ -63,6 +63,10 @@ def make_data_wrangling_agent(model, log=False, log_path=None, overwrite = True,
     human_in_the_loop : bool, optional
         Whether or not to use human in the loop. If True, adds an interrupt and human-in-the-loop 
         step that asks the user to review the data wrangling instructions. Defaults to False.
+    bypass_recommended_steps : bool, optional
+        Bypass the recommendation step, by default False
+    bypass_explain_code : bool, optional
+        Bypass the code explanation step, by default False.
 
     Example
     -------
@@ -344,7 +348,9 @@ def make_data_wrangling_agent(model, log=False, log_path=None, overwrite = True,
         error_key="data_wrangler_error",
         human_in_the_loop=human_in_the_loop,
         human_review_node_name="human_review",
-        checkpointer=MemorySaver() if human_in_the_loop else None
+        checkpointer=MemorySaver() if human_in_the_loop else None,
+        bypass_recommended_steps=bypass_recommended_steps,
+        bypass_explain_code=bypass_explain_code,
     )
         
     return app

@@ -58,4 +58,4 @@ def log_ai_function(response: str, file_name: str, log: bool = True, log_path: s
         return (file_path, file_name)
     
     else:
-        return None
+        return (None, None)

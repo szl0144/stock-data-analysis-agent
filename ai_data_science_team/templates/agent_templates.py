@@ -23,7 +23,9 @@ def create_coding_agent_graph(
     retry_count_key: str = "retry_count",
     human_in_the_loop: bool = False,
     human_review_node_name: str = "human_review",
-    checkpointer: Optional[Callable] = None
+    checkpointer: Optional[Callable] = None,
+    bypass_recommended_steps: bool = False,
+    bypass_explain_code: bool = False,
 ):
     """
     Creates a generic agent graph using the provided node functions and node names.
@@ -64,7 +66,11 @@ def create_coding_agent_graph(
         The node name for human review if human_in_the_loop is True.
     checkpointer : callable, optional
         A checkpointer callable if desired.
-        
+    bypass_recommended_steps : bool, optional
+        Whether to skip the recommended steps node.
+    bypass_explain_code : bool, optional
+        Whether to skip the final explain code node.
+
     Returns
     -------
     app : langchain.graphs.StateGraph
@@ -73,56 +79,83 @@ def create_coding_agent_graph(
 
     workflow = StateGraph(GraphState)
     
-    # Add the recommended steps node
-    workflow.add_node(recommended_steps_node_name, node_functions[recommended_steps_node_name])
+    # Conditionally add the recommended-steps node
+    if not bypass_recommended_steps:
+        workflow.add_node(recommended_steps_node_name, node_functions[recommended_steps_node_name])
     
-    # Optionally add the human review node
-    if human_in_the_loop:
-        workflow.add_node(human_review_node_name, node_functions[human_review_node_name])
-        
-    # Add main nodes
+    # Always add create, execute, and fix nodes
     workflow.add_node(create_code_node_name, node_functions[create_code_node_name])
     workflow.add_node(execute_code_node_name, node_functions[execute_code_node_name])
     workflow.add_node(fix_code_node_name, node_functions[fix_code_node_name])
-    workflow.add_node(explain_code_node_name, node_functions[explain_code_node_name])
+    
+    # Conditionally add the explanation node
+    if not bypass_explain_code:
+        workflow.add_node(explain_code_node_name, node_functions[explain_code_node_name])
     
     # Set the entry point
-    workflow.set_entry_point(recommended_steps_node_name)
+    entry_point = create_code_node_name if bypass_recommended_steps else recommended_steps_node_name
+    workflow.set_entry_point(entry_point)
     
-    # Add edges depending on human_in_the_loop
-    if human_in_the_loop:
-        workflow.add_edge(recommended_steps_node_name, human_review_node_name)
-    else:
-        workflow.add_edge(recommended_steps_node_name, create_code_node_name)
+    # Add edges for recommended steps
+    if not bypass_recommended_steps:
+        if human_in_the_loop:
+            workflow.add_edge(recommended_steps_node_name, human_review_node_name)
+        else:
+            workflow.add_edge(recommended_steps_node_name, create_code_node_name)
+    elif human_in_the_loop:
+        # Skip recommended steps but still include human review
+        workflow.add_edge(create_code_node_name, human_review_node_name)
     
-    # Connect create_code_node to execution node
+    # Create -> Execute
     workflow.add_edge(create_code_node_name, execute_code_node_name)
     
-    # Add conditional edges for error handling
-    workflow.add_conditional_edges(
-        execute_code_node_name,
-        lambda state: "fix_code" if (
-            state.get(error_key) is not None and
-            state.get(retry_count_key) is not None and
-            state.get(max_retries_key) is not None and
-            state.get(retry_count_key) < state.get(max_retries_key)
-        ) else "explain_code",
-        {"fix_code": fix_code_node_name, "explain_code": explain_code_node_name},
-    )
+    # Define a helper to check if we have an error & can still retry
+    def error_and_can_retry(state):
+        return (
+            state.get(error_key) is not None
+            and state.get(retry_count_key) is not None
+            and state.get(max_retries_key) is not None
+            and state[retry_count_key] < state[max_retries_key]
+        )
     
-    # From fix_code_node_name back to execution node
-    workflow.add_edge(fix_code_node_name, execute_code_node_name)
+    # ---- Split into two branches for bypass_explain_code ----
+    if not bypass_explain_code:
+        # If we are NOT bypassing explain, the next node is fix_code if error,
+        # else explain_code. Then we wire explain_code -> END afterward.
+        workflow.add_conditional_edges(
+            execute_code_node_name,
+            lambda s: "fix_code" if error_and_can_retry(s) else "explain_code",
+            {
+                "fix_code": fix_code_node_name,
+                "explain_code": explain_code_node_name,
+            },
+        )
+        # Fix code -> Execute again
+        workflow.add_edge(fix_code_node_name, execute_code_node_name)
+        # explain_code -> END
+        workflow.add_edge(explain_code_node_name, END)
+    else:
+        # If we ARE bypassing explain_code, the next node is fix_code if error,
+        # else straight to END.
+        workflow.add_conditional_edges(
+            execute_code_node_name,
+            lambda s: "fix_code" if error_and_can_retry(s) else "END",
+            {
+                "fix_code": fix_code_node_name,
+                "END": END,
+            },
+        )
+        # Fix code -> Execute again
+        workflow.add_edge(fix_code_node_name, execute_code_node_name)
     
-    # explain_code_node_name leads to end
-    workflow.add_edge(explain_code_node_name, END)
-    
-    # Compile workflow, optionally with checkpointer
+    # Finally, compile
     if human_in_the_loop and checkpointer is not None:
         app = workflow.compile(checkpointer=checkpointer)
     else:
         app = workflow.compile()
     
     return app
+
 
 
 def node_func_human_review(
