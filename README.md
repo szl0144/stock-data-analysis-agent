@@ -34,6 +34,7 @@ This project is a work in progress. New data science agents will be released soo
 1. **Data Wrangling Agent:** Merges, Joins, Preps and Wrangles data into a format that is ready for data analysis.
 2. **Data Cleaning Agent:** Performs Data Preparation steps including handling missing values, outliers, and data type conversions.
 3. **Feature Engineering Agent:** Converts the prepared data into ML-ready data. Adds features to increase predictive accuracy of ML models.
+4. **SQL Database Agent:** Connects to SQL databases to pull data into the data science environment. Creates pipelins to automate data extraction. Performs Joins, Aggregations, and other SQL Query operations.
 
 ### Agents Coming Soon
 
