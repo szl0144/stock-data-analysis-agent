@@ -31,7 +31,7 @@ AGENT_NAME = "sql_database_agent"
 LOG_PATH = os.path.join(os.getcwd(), "logs/")
 
 
-def make_sql_database_agent(model, connection, log=False, log_path=None, overwrite = True, human_in_the_loop=False, bypass_recommended_steps=False, bypass_explain_code=False):
+def make_sql_database_agent(model, connection, n_samples = 10, log=False, log_path=None, overwrite = True, human_in_the_loop=False, bypass_recommended_steps=False, bypass_explain_code=False):
     """
     Creates a SQL Database Agent that can recommend SQL steps and generate SQL code to query a database. 
     
@@ -41,6 +41,10 @@ def make_sql_database_agent(model, connection, log=False, log_path=None, overwri
         The language model to use for the agent.
     connection : sqlalchemy.engine.base.Engine
         The connection to the SQL database.
+    n_samples : int, optional
+        The number of samples to retrieve for each column, by default 10. 
+        If you get an error due to maximum tokens, try reducing this number.
+        > "This model's maximum context length is 128000 tokens. However, your messages resulted in 333858 tokens. Please reduce the length of the messages."
     log : bool, optional
         Whether to log the generated code, by default False
     log_path : str, optional
@@ -166,7 +170,7 @@ def make_sql_database_agent(model, connection, log=False, log_path=None, overwri
         conn = connection.connect() if is_engine else connection
         
         # Get the database metadata
-        all_sql_database_summary = get_database_metadata(conn, n_values=10)
+        all_sql_database_summary = get_database_metadata(conn, n_samples=n_samples)
         
         steps_agent = recommend_steps_prompt | llm
         
@@ -228,7 +232,7 @@ def make_sql_database_agent(model, connection, log=False, log_path=None, overwri
         conn = connection.connect() if is_engine else connection
         
         # Get the database metadata
-        all_sql_database_summary = get_database_metadata(conn, n_values=10)
+        all_sql_database_summary = get_database_metadata(conn, n_samples=n_samples)
         
         sql_query_code_agent = sql_query_code_prompt | llm | SQLOutputParser()
         

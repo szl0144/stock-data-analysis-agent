@@ -119,7 +119,7 @@ def _summarize_dataframe(df: pd.DataFrame, dataset_name: str) -> str:
 
 
 def get_database_metadata(connection: Union[sql.engine.base.Connection, sql.engine.base.Engine],
-                          n_values: int = 10) -> str:
+                          n_samples: int = 10) -> str:
     """
     Collects metadata and sample data from a database, with safe identifier quoting and
     basic dialect-aware row limiting. Prevents issues with spaces/reserved words in identifiers.
@@ -128,7 +128,7 @@ def get_database_metadata(connection: Union[sql.engine.base.Connection, sql.engi
     ----------
     connection : Union[sql.engine.base.Connection, sql.engine.base.Engine]
         An active SQLAlchemy connection or engine.
-    n_values : int
+    n_samples : int
         Number of sample values to retrieve for each column.
 
     Returns
@@ -194,12 +194,12 @@ def get_database_metadata(connection: Union[sql.engine.base.Connection, sql.engi
                 col_name_quoted = preparer.quote_identifier(col_name)
 
                 # Build a dialect-aware query with safe quoting
-                query = build_query(col_name_quoted, table_name_quoted, n_values)
+                query = build_query(col_name_quoted, table_name_quoted, n_samples)
 
                 # Read a few sample values
                 df = pd.read_sql(sql.text(query), conn)
                 first_values = df[col_name].tolist()
-                output.append(f"    First {n_values} Values: {first_values}")
+                output.append(f"    First {n_samples} Values: {first_values}")
 
     finally:
         # Close connection if created inside the function
