@@ -218,7 +218,7 @@ def make_data_cleaning_agent(model, log=False, log_path=None, overwrite = True, 
 
             {all_datasets_summary}
             
-            Return Python code in ```python ``` format with a single function definition, data_cleaner(data_raw), that incldues all imports inside the function. 
+            Return Python code in ```python ``` format with a single function definition, data_cleaner(data_raw), that includes all imports inside the function. 
             
             Return code to provide the data cleaning function:
             
