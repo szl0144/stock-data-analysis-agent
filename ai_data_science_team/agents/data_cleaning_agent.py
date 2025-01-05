@@ -17,7 +17,7 @@ import os
 import io
 import pandas as pd
 
-from ai_data_science_team.templates.agent_templates import(
+from ai_data_science_team.templates import(
     node_func_execute_agent_code_on_data, 
     node_func_human_review,
     node_func_fix_agent_code, 
@@ -35,7 +35,15 @@ LOG_PATH = os.path.join(os.getcwd(), "logs/")
 
 # Agent
 
-def make_data_cleaning_agent(model, log=False, log_path=None, overwrite = True, human_in_the_loop=False, bypass_recommended_steps=False, bypass_explain_code=False):
+def make_data_cleaning_agent(
+    model, 
+    log=False, 
+    log_path=None, 
+    overwrite = True, 
+    human_in_the_loop=False, 
+    bypass_recommended_steps=False, 
+    bypass_explain_code=False
+):
     """
     Creates a data cleaning agent that can be run on a dataset. The agent can be used to clean a dataset in a variety of
     ways, such as removing columns with more than 40% missing values, imputing missing
