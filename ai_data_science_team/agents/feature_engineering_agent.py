@@ -35,7 +35,16 @@ LOG_PATH = os.path.join(os.getcwd(), "logs/")
 
 # * Feature Engineering Agent
 
-def make_feature_engineering_agent(model, log=False, log_path=None, overwrite = True, human_in_the_loop=False, bypass_recommended_steps=False, bypass_explain_code=False):
+def make_feature_engineering_agent(
+    model, 
+    n_samples=30,
+    log=False, 
+    log_path=None, 
+    overwrite = True, 
+    human_in_the_loop=False, 
+    bypass_recommended_steps=False, 
+    bypass_explain_code=False,
+):
     """
     Creates a feature engineering agent that can be run on a dataset. The agent applies various feature engineering
     techniques, such as encoding categorical variables, scaling numeric variables, creating interaction terms,
@@ -61,6 +70,8 @@ def make_feature_engineering_agent(model, log=False, log_path=None, overwrite = 
     ----------
     model : langchain.llms.base.LLM
         The language model to use to generate code.
+    n_samples : int, optional
+        The number of data samples to use for generating the feature engineering code. Defaults to 30.
     log : bool, optional
         Whether or not to log the code generated and any errors that occur.
         Defaults to False.
@@ -189,7 +200,7 @@ def make_feature_engineering_agent(model, log=False, log_path=None, overwrite = 
         data_raw = state.get("data_raw")
         df = pd.DataFrame.from_dict(data_raw)
         
-        all_datasets_summary = get_dataframe_summary([df])
+        all_datasets_summary = get_dataframe_summary([df], n_sample=n_samples)
         
         all_datasets_summary_str = "\n\n".join(all_datasets_summary)
 
@@ -218,6 +229,17 @@ def make_feature_engineering_agent(model, log=False, log_path=None, overwrite = 
     def create_feature_engineering_code(state: GraphState):
         if bypass_recommended_steps:
             print("---FEATURE ENGINEERING AGENT----")
+            
+            data_raw = state.get("data_raw")
+            df = pd.DataFrame.from_dict(data_raw)
+            
+            all_datasets_summary = get_dataframe_summary([df], n_sample=n_samples)
+            
+            all_datasets_summary_str = "\n\n".join(all_datasets_summary)
+            
+        else:
+            all_datasets_summary_str = state.get("all_datasets_summary")
+            
         print("    * CREATE FEATURE ENGINEERING CODE")
 
         feature_engineering_prompt = PromptTemplate(
@@ -272,7 +294,7 @@ def make_feature_engineering_agent(model, log=False, log_path=None, overwrite = 
         response = feature_engineering_agent.invoke({
             "recommended_steps": state.get("recommended_steps"),
             "target_variable": state.get("target_variable"),
-            "all_datasets_summary": state.get("all_datasets_summary"),
+            "all_datasets_summary": all_datasets_summary_str,
         })
         
         response = relocate_imports_inside_function(response)
@@ -290,7 +312,8 @@ def make_feature_engineering_agent(model, log=False, log_path=None, overwrite = 
         return {
             "feature_engineer_function": response,
             "feature_engineer_function_path": file_path,
-            "feature_engineer_function_name": file_name
+            "feature_engineer_function_name": file_name,
+            "all_datasets_summary": all_datasets_summary_str
         }
 
     

@@ -37,6 +37,7 @@ LOG_PATH = os.path.join(os.getcwd(), "logs/")
 
 def make_data_cleaning_agent(
     model, 
+    n_samples = 30, 
     log=False, 
     log_path=None, 
     overwrite = True, 
@@ -192,7 +193,7 @@ def make_data_cleaning_agent(
         data_raw = state.get("data_raw")
         df = pd.DataFrame.from_dict(data_raw)
 
-        all_datasets_summary = get_dataframe_summary([df])
+        all_datasets_summary = get_dataframe_summary([df], n_sample=n_samples)
         
         all_datasets_summary_str = "\n\n".join(all_datasets_summary)
 
@@ -209,8 +210,20 @@ def make_data_cleaning_agent(
         }
     
     def create_data_cleaner_code(state: GraphState):
+        
         if bypass_recommended_steps:
             print("---DATA CLEANING AGENT----")
+            
+            data_raw = state.get("data_raw")
+            df = pd.DataFrame.from_dict(data_raw)
+
+            all_datasets_summary = get_dataframe_summary([df], n_sample=n_samples)
+            
+            all_datasets_summary_str = "\n\n".join(all_datasets_summary)
+        else:
+            all_datasets_summary_str = state.get("all_datasets_summary")
+            
+            
         print("    * CREATE DATA CLEANER CODE")
         
         data_cleaning_prompt = PromptTemplate(
@@ -248,7 +261,7 @@ def make_data_cleaning_agent(
         
         response = data_cleaning_agent.invoke({
             "recommended_steps": state.get("recommended_steps"),
-            "all_datasets_summary": state.get("all_datasets_summary")
+            "all_datasets_summary": all_datasets_summary_str
         })
         
         response = relocate_imports_inside_function(response)
@@ -266,7 +279,8 @@ def make_data_cleaning_agent(
         return {
             "data_cleaner_function" : response,
             "data_cleaner_function_path": file_path,
-            "data_cleaner_function_name": file_name
+            "data_cleaner_function_name": file_name,
+            "all_datasets_summary": all_datasets_summary_str
         }
     
     def human_review(state: GraphState) -> Command[Literal["recommend_cleaning_steps", "create_data_cleaner_code"]]:

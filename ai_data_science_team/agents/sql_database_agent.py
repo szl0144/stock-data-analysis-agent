@@ -31,7 +31,15 @@ AGENT_NAME = "sql_database_agent"
 LOG_PATH = os.path.join(os.getcwd(), "logs/")
 
 
-def make_sql_database_agent(model, connection, n_samples = 10, log=False, log_path=None, overwrite = True, human_in_the_loop=False, bypass_recommended_steps=False, bypass_explain_code=False):
+def make_sql_database_agent(
+    model, connection, 
+    n_samples = 10, 
+    log=False, 
+    log_path=None, 
+    overwrite = True, 
+    human_in_the_loop=False, bypass_recommended_steps=False, 
+    bypass_explain_code=False
+):
     """
     Creates a SQL Database Agent that can recommend SQL steps and generate SQL code to query a database. 
     
@@ -160,6 +168,8 @@ def make_sql_database_agent(model, connection, n_samples = 10, log=False, log_pa
             2. Do not include steps to modify existing tables, create new tables or modify the database schema.
             3. Do not include steps that alter the existing data in the database.
             4. Make sure not to include unsafe code that could cause data loss or corruption or SQL injections.
+            5. Make sure to not include irrelevant steps that do not help in the SQL agent's data collection and processing. Examples include steps to create new tables, modify the schema, save files, create charts, etc.
+  
             
             """,
             input_variables=["user_instructions", "recommended_steps", "all_sql_database_summary"]
@@ -275,7 +285,8 @@ def sql_database_pipeline(connection):
             "sql_query_code": sql_query_code,
             "sql_database_function": response,
             "sql_database_function_path": file_path,
-            "sql_database_function_name": file_name
+            "sql_database_function_name": file_name,
+            "all_sql_database_summary": all_sql_database_summary
         }
         
     def human_review(state: GraphState) -> Command[Literal["recommend_sql_steps", "create_sql_query_code"]]:

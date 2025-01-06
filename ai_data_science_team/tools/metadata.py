@@ -4,7 +4,9 @@ import sqlalchemy as sql
 from typing import Union, List, Dict
 
 def get_dataframe_summary(
-    dataframes: Union[pd.DataFrame, List[pd.DataFrame], Dict[str, pd.DataFrame]]
+    dataframes: Union[pd.DataFrame, List[pd.DataFrame], Dict[str, pd.DataFrame]],
+    n_sample: int = 30,
+    skip_stats: bool = False,
 ) -> List[str]:
     """
     Generate a summary for one or more DataFrames. Accepts a single DataFrame, a list of DataFrames,
@@ -16,6 +18,10 @@ def get_dataframe_summary(
         - Single DataFrame: produce a single summary (returned within a one-element list).
         - List of DataFrames: produce a summary for each DataFrame, using index-based names.
         - Dictionary of DataFrames: produce a summary for each DataFrame, using dictionary keys as names.
+    n_sample : int, default 30
+        Number of rows to display in the "Data (first 30 rows)" section.
+    skip_stats : bool, default False
+        If True, skip the descriptive statistics and DataFrame info sections.
         
     Example:
     --------
@@ -49,17 +55,17 @@ def get_dataframe_summary(
     # --- Dictionary Case ---
     if isinstance(dataframes, dict):
         for dataset_name, df in dataframes.items():
-            summaries.append(_summarize_dataframe(df, dataset_name))
+            summaries.append(_summarize_dataframe(df, dataset_name, n_sample, skip_stats))
 
     # --- Single DataFrame Case ---
     elif isinstance(dataframes, pd.DataFrame):
-        summaries.append(_summarize_dataframe(dataframes, "Single_Dataset"))
+        summaries.append(_summarize_dataframe(dataframes, "Single_Dataset", n_sample, skip_stats))
 
     # --- List of DataFrames Case ---
     elif isinstance(dataframes, list):
         for idx, df in enumerate(dataframes):
             dataset_name = f"Dataset_{idx}"
-            summaries.append(_summarize_dataframe(df, dataset_name))
+            summaries.append(_summarize_dataframe(df, dataset_name, n_sample, skip_stats))
 
     else:
         raise TypeError(
@@ -69,7 +75,7 @@ def get_dataframe_summary(
     return summaries
 
 
-def _summarize_dataframe(df: pd.DataFrame, dataset_name: str) -> str:
+def _summarize_dataframe(df: pd.DataFrame, dataset_name: str, n_sample=30, skip_stats=False) -> str:
     """Generate a summary string for a single DataFrame."""
     # 1. Convert dictionary-type cells to strings
     #    This prevents unhashable dict errors during df.nunique().
@@ -91,29 +97,44 @@ def _summarize_dataframe(df: pd.DataFrame, dataset_name: str) -> str:
     unique_counts = df.nunique()  # Will no longer fail on unhashable dict
     unique_counts_summary = "\n".join([f"{col}: {count}" for col, count in unique_counts.items()])
 
-    summary_text = f"""
-    Dataset Name: {dataset_name}
-    ----------------------------
-    Shape: {df.shape[0]} rows x {df.shape[1]} columns
+    # 6. Generate the summary text
+    if not skip_stats:
+        summary_text = f"""
+        Dataset Name: {dataset_name}
+        ----------------------------
+        Shape: {df.shape[0]} rows x {df.shape[1]} columns
 
-    Column Data Types:
-    {column_types}
+        Column Data Types:
+        {column_types}
 
-    Missing Value Percentage:
-    {missing_summary}
+        Missing Value Percentage:
+        {missing_summary}
 
-    Unique Value Counts:
-    {unique_counts_summary}
+        Unique Value Counts:
+        {unique_counts_summary}
 
-    Data (first 30 rows):
-    {df.head(30).to_string()}
+        Data (first {n_sample} rows):
+        {df.head(n_sample).to_string()}
 
-    Data Description:
-    {df.describe().to_string()}
+        Data Description:
+        {df.describe().to_string()}
 
-    Data Info:
-    {info_text}
-    """
+        Data Info:
+        {info_text}
+        """
+    else:
+        summary_text = f"""
+        Dataset Name: {dataset_name}
+        ----------------------------
+        Shape: {df.shape[0]} rows x {df.shape[1]} columns
+
+        Column Data Types:
+        {column_types}
+
+        Data (first {n_sample} rows):
+        {df.head(n_sample).to_string()}
+        """
+        
     return summary_text.strip()
 
 

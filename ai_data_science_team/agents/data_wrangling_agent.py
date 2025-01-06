@@ -31,7 +31,16 @@ from ai_data_science_team.tools.logging import log_ai_function
 AGENT_NAME = "data_wrangling_agent"
 LOG_PATH = os.path.join(os.getcwd(), "logs/")
 
-def make_data_wrangling_agent(model, log=False, log_path=None, overwrite = True, human_in_the_loop=False, bypass_recommended_steps=False, bypass_explain_code=False):
+def make_data_wrangling_agent(
+    model, 
+    n_samples=30,
+    log=False, 
+    log_path=None, 
+    overwrite = True, 
+    human_in_the_loop=False, 
+    bypass_recommended_steps=False, 
+    bypass_explain_code=False
+):
     """
     Creates a data wrangling agent that can be run on one or more datasets. The agent can be
     instructed to perform common data wrangling steps such as:
@@ -52,6 +61,8 @@ def make_data_wrangling_agent(model, log=False, log_path=None, overwrite = True,
     ----------
     model : langchain.llms.base.LLM
         The language model to use to generate code.
+    n_samples : int, optional
+        The number of samples to show in the data summary. Defaults to 30.
     log : bool, optional
         Whether or not to log the code generated and any errors that occur.
         Defaults to False.
@@ -143,7 +154,7 @@ def make_data_wrangling_agent(model, log=False, log_path=None, overwrite = True,
 
         # Create a summary for all datasets
         # We'll include a short sample and info for each dataset
-        all_datasets_summary = get_dataframe_summary(dataframes)
+        all_datasets_summary = get_dataframe_summary(dataframes, n_sample=n_samples)
 
         # Join all datasets summaries into one big text block
         all_datasets_summary_str = "\n\n".join(all_datasets_summary)
@@ -196,6 +207,33 @@ def make_data_wrangling_agent(model, log=False, log_path=None, overwrite = True,
     def create_data_wrangler_code(state: GraphState):
         if bypass_recommended_steps:
             print("---DATA WRANGLING AGENT----")
+            
+            data_raw = state.get("data_raw")
+
+            if isinstance(data_raw, dict):
+                # Single dataset scenario
+                primary_dataset_name = "main"
+                datasets = {primary_dataset_name: data_raw}
+            elif isinstance(data_raw, list) and all(isinstance(item, dict) for item in data_raw):
+                # Multiple datasets scenario
+                datasets = {f"dataset_{i}": d for i, d in enumerate(data_raw, start=1)}
+                primary_dataset_name = "dataset_1"
+            else:
+                raise ValueError("data_raw must be a dict or a list of dicts.")
+
+            # Convert all datasets to DataFrames for inspection
+            dataframes = {name: pd.DataFrame.from_dict(d) for name, d in datasets.items()}
+
+            # Create a summary for all datasets
+            # We'll include a short sample and info for each dataset
+            all_datasets_summary = get_dataframe_summary(dataframes, n_sample=n_samples)
+
+            # Join all datasets summaries into one big text block
+            all_datasets_summary_str = "\n\n".join(all_datasets_summary)
+        
+        else:
+            all_datasets_summary_str = state.get("all_datasets_summary")
+            
         print("    * CREATE DATA WRANGLER CODE")
         
         data_wrangling_prompt = PromptTemplate(
@@ -242,7 +280,7 @@ def make_data_wrangling_agent(model, log=False, log_path=None, overwrite = True,
 
         response = data_wrangling_agent.invoke({
             "recommended_steps": state.get("recommended_steps"),
-            "all_datasets_summary": state.get("all_datasets_summary")
+            "all_datasets_summary": all_datasets_summary_str
         })
         
         response = relocate_imports_inside_function(response)
@@ -260,7 +298,8 @@ def make_data_wrangling_agent(model, log=False, log_path=None, overwrite = True,
         return {
             "data_wrangler_function" : response,
             "data_wrangler_function_path": file_path,
-            "data_wrangler_function_name": file_name
+            "data_wrangler_function_name": file_name,
+            "all_datasets_summary": all_datasets_summary_str
         }
 
     
