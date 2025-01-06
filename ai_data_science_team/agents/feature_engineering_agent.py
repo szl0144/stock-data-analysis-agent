@@ -306,7 +306,7 @@ def make_feature_engineering_agent(
         response = add_comments_to_top(response, agent_name=AGENT_NAME)
 
         # For logging: store the code generated
-        file_path, file_name = log_ai_function(
+        file_path, file_name_2 = log_ai_function(
             response=response,
             file_name=file_name,
             log=log,
@@ -317,7 +317,7 @@ def make_feature_engineering_agent(
         return {
             "feature_engineer_function": response,
             "feature_engineer_function_path": file_path,
-            "feature_engineer_function_name": file_name,
+            "feature_engineer_function_name": file_name_2,
             "all_datasets_summary": all_datasets_summary_str
         }
 

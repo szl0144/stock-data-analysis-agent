@@ -275,7 +275,7 @@ def make_data_cleaning_agent(
         response = add_comments_to_top(response, agent_name=AGENT_NAME)
         
         # For logging: store the code generated:
-        file_path, file_name = log_ai_function(
+        file_path, file_name_2 = log_ai_function(
             response=response,
             file_name=file_name,
             log=log,
@@ -286,7 +286,7 @@ def make_data_cleaning_agent(
         return {
             "data_cleaner_function" : response,
             "data_cleaner_function_path": file_path,
-            "data_cleaner_function_name": file_name,
+            "data_cleaner_function_name": file_name_2,
             "all_datasets_summary": all_datasets_summary_str
         }
     

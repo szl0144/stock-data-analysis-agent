@@ -276,7 +276,7 @@ def sql_database_pipeline(connection):
         response = add_comments_to_top(response, AGENT_NAME)
             
         # For logging: store the code generated
-        file_path, file_name = log_ai_function(
+        file_path, file_name_2 = log_ai_function(
             response=response,
             file_name=file_name,
             log=log,
@@ -288,7 +288,7 @@ def sql_database_pipeline(connection):
             "sql_query_code": sql_query_code,
             "sql_database_function": response,
             "sql_database_function_path": file_path,
-            "sql_database_function_name": file_name,
+            "sql_database_function_name": file_name_2,
             "all_sql_database_summary": all_sql_database_summary
         }
         
