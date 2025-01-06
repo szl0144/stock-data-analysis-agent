@@ -40,6 +40,7 @@ def make_feature_engineering_agent(
     n_samples=30,
     log=False, 
     log_path=None, 
+    file_name="feature_engineer.py",
     overwrite = True, 
     human_in_the_loop=False, 
     bypass_recommended_steps=False, 
@@ -72,11 +73,15 @@ def make_feature_engineering_agent(
         The language model to use to generate code.
     n_samples : int, optional
         The number of data samples to use for generating the feature engineering code. Defaults to 30.
+        If you get an error due to maximum tokens, try reducing this number.
+        > "This model's maximum context length is 128000 tokens. However, your messages resulted in 333858 tokens. Please reduce the length of the messages."
     log : bool, optional
         Whether or not to log the code generated and any errors that occur.
         Defaults to False.
     log_path : str, optional
         The path to the directory where the log files should be stored. Defaults to "logs/".
+    file_name : str, optional
+        The name of the file to save the log to. Defaults to "feature_engineer.py".
     overwrite : bool, optional
         Whether or not to overwrite the log file if it already exists. If False, a unique file name will be created. 
         Defaults to True.
@@ -303,7 +308,7 @@ def make_feature_engineering_agent(
         # For logging: store the code generated
         file_path, file_name = log_ai_function(
             response=response,
-            file_name="feature_engineer.py",
+            file_name=file_name,
             log=log,
             log_path=log_path,
             overwrite=overwrite

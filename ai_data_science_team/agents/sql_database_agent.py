@@ -36,6 +36,7 @@ def make_sql_database_agent(
     n_samples = 10, 
     log=False, 
     log_path=None, 
+    file_name="sql_database.py",
     overwrite = True, 
     human_in_the_loop=False, bypass_recommended_steps=False, 
     bypass_explain_code=False
@@ -57,6 +58,8 @@ def make_sql_database_agent(
         Whether to log the generated code, by default False
     log_path : str, optional
         The path to the log directory, by default None
+    file_name : str, optional
+        The name of the file to save the generated code, by default "sql_database.py"
     overwrite : bool, optional
         Whether to overwrite the existing log file, by default True
     human_in_the_loop : bool, optional
@@ -275,7 +278,7 @@ def sql_database_pipeline(connection):
         # For logging: store the code generated
         file_path, file_name = log_ai_function(
             response=response,
-            file_name="sql_database.py",
+            file_name=file_name,
             log=log,
             log_path=log_path,
             overwrite=overwrite
