@@ -198,6 +198,7 @@ def make_feature_engineering_agent(
             
             Avoid these:
             1. Do not include steps to save files.
+            2. Do not include unrelated user instructions that are not related to the feature engineering.
             """,
             input_variables=["user_instructions", "recommended_steps", "all_datasets_summary"]
         )

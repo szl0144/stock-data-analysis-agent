@@ -192,6 +192,7 @@ def make_data_wrangling_agent(
             
             Avoid these:
             1. Do not include steps to save files.
+            2. Do not include unrelated user instructions that are not related to the data wrangling.
             """,
             input_variables=["user_instructions", "recommended_steps", "all_datasets_summary"]
         )

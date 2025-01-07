@@ -193,6 +193,7 @@ def make_data_cleaning_agent(
             
             Avoid these:
             1. Do not include steps to save files.
+            2. Do not include unrelated user instructions that are not related to the data cleaning.
             """,
             input_variables=["user_instructions", "recommended_steps", "all_datasets_summary"]
         )
@@ -218,6 +219,8 @@ def make_data_cleaning_agent(
     
     def create_data_cleaner_code(state: GraphState):
         
+        print("    * CREATE DATA CLEANER CODE")
+        
         if bypass_recommended_steps:
             print(format_agent_name(AGENT_NAME))
             
@@ -229,9 +232,6 @@ def make_data_cleaning_agent(
             all_datasets_summary_str = "\n\n".join(all_datasets_summary)
         else:
             all_datasets_summary_str = state.get("all_datasets_summary")
-            
-            
-        print("    * CREATE DATA CLEANER CODE")
         
         data_cleaning_prompt = PromptTemplate(
             template="""
