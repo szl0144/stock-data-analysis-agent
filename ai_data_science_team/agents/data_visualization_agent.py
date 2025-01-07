@@ -10,7 +10,7 @@ from typing import TypedDict, Annotated, Sequence, Literal
 import operator
 
 from langchain.prompts import PromptTemplate
-from langchain.output_parsers import StrOutputParser
+from langchain_core.output_parsers import StrOutputParser
 from langchain_core.messages import BaseMessage
 
 from langgraph.types import Command
@@ -127,11 +127,11 @@ def make_data_visualization_agent(
         data_raw = state.get("data_raw")
         df = pd.DataFrame.from_dict(data_raw)
 
-        all_datasets_summary = get_dataframe_summary([df], n_sample=n_samples, skip_stats=True)
+        all_datasets_summary = get_dataframe_summary([df], n_sample=n_samples, skip_stats=False)
         
         all_datasets_summary_str = "\n\n".join(all_datasets_summary)
 
-        chart_instructor = recommend_steps_prompt | llm | StrOutputParser()
+        chart_instructor = recommend_steps_prompt | llm 
         
         recommended_steps = chart_instructor.invoke({
             "user_instructions": state.get("user_instructions"),
@@ -155,7 +155,7 @@ def make_data_visualization_agent(
             data_raw = state.get("data_raw")
             df = pd.DataFrame.from_dict(data_raw)
 
-            all_datasets_summary = get_dataframe_summary([df], n_sample=n_samples, skip_stats=True)
+            all_datasets_summary = get_dataframe_summary([df], n_sample=n_samples, skip_stats=False)
             
             all_datasets_summary_str = "\n\n".join(all_datasets_summary)
             
