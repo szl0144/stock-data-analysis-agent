@@ -158,14 +158,174 @@ def make_data_visualization_agent(
             all_datasets_summary = get_dataframe_summary([df], n_sample=n_samples, skip_stats=True)
             
             all_datasets_summary_str = "\n\n".join(all_datasets_summary)
+            
+            chart_generator_instructions = state.get("user_instructions")
+            
         else:
             all_datasets_summary_str = state.get("all_datasets_summary")
+            chart_generator_instructions = state.get("recommended_steps")
         
-        
-        
-        
-        return
+        prompt_template = PromptTemplate(
+            template="""
+            You are a chart generator agent that is an expert in generating plotly charts. You must use plotly or plotly.express to produce plots.
+    
+            Your job is to produce python code to generate visualizations.
             
+            You will take instructions from a Chart Instructor and generate a plotly chart from the data provided.
             
+            CHART INSTRUCTIONS: 
+            {chart_generator_instructions}
+            
+            DATA: 
+            {all_datasets_summary}
+            
+            RETURN:
+            
+            Return Python code in ```python ``` format with a single function definition, data_visualization(data_raw), that includes all imports inside the function.
+            
+            Return the plotly chart as a dictionary.
+            
+            Return code to provide the data visualization function:
+            
+            def data_visualization(data_raw):
+                import pandas as pd
+                import numpy as np
+                import json
+                import plotly.graph_objects as go
+                import plotly.io as pio
+                
+                ...
+                
+                fig_json = pio.to_json(fig)
+                fig_dict = json.loads(fig_json)
+                
+                return fig_dict
+            
+            Avoid these:
+            1. Do not include steps to save files.
+            2. Do not include unrelated user instructions that are not related to the chart generation.
+            
+            """,
+            input_variables=["chart_generator_instructions", "all_datasets_summary"]
+        )
         
+        data_visualization_agent = prompt_template | llm | PythonOutputParser()
+        
+        response = data_visualization_agent.invoke({
+            "chart_generator_instructions": chart_generator_instructions,
+            "all_datasets_summary": all_datasets_summary_str
+        })
+        
+        response = relocate_imports_inside_function(response)
+        response = add_comments_to_top(response, agent_name=AGENT_NAME)
+        
+        # For logging: store the code generated:
+        file_path, file_name_2 = log_ai_function(
+            response=response,
+            file_name=file_name,
+            log=log,
+            log_path=log_path,
+            overwrite=overwrite
+        )
+        
+        return {
+            "data_visualization_function": response,
+            "data_visualization_function_path": file_path,
+            "data_visualization_function_name": file_name_2,
+            "all_datasets_summary": all_datasets_summary_str
+        }
+            
+    def human_review(state: GraphState) -> Command[Literal["chart_instructor", "chart_generator"]]:
+        return node_func_human_review(
+            state=state,
+            prompt_text="Is the following data visualization instructions correct? (Answer 'yes' or provide modifications)\n{steps}",
+            yes_goto="chart_generator",
+            no_goto="chart_instructor",
+            user_instructions_key="user_instructions",
+            recommended_steps_key="recommended_steps"            
+        )
+    
+        
+    def execute_data_visualization_code(state):
+        return node_func_execute_agent_code_on_data(
+            state=state,
+            data_key="data_raw",
+            result_key="plotly_graph",
+            error_key="data_visualization_error",
+            code_snippet_key="data_visualization_function",
+            agent_function_name="data_visualization",
+            pre_processing=lambda data: pd.DataFrame.from_dict(data),
+            # post_processing=lambda df: df.to_dict() if isinstance(df, pd.DataFrame) else df,
+            error_message_prefix="An error occurred during data visualization: "
+        )
+    
+    def fix_data_visualization_code(state: GraphState):
+        prompt = """
+        You are a Data Visualization Agent. Your job is to create a data_visualization() function that can be run on the data provided. The function is currently broken and needs to be fixed.
+        
+        Make sure to only return the function definition for data_visualization().
+        
+        Return Python code in ```python``` format with a single function definition, data_visualization(data_raw), that includes all imports inside the function.
+        
+        This is the broken code (please fix): 
+        {code_snippet}
+
+        Last Known Error:
+        {error}
+        """
+
+        return node_func_fix_agent_code(
+            state=state,
+            code_snippet_key="data_visualization_function",
+            error_key="data_visualization_error",
+            llm=llm,  
+            prompt_template=prompt,
+            agent_name=AGENT_NAME,
+            log=log,
+            file_path=state.get("data_visualization_function_path"),
+        )
+    
+    def explain_data_visualization_code(state: GraphState):        
+        return node_func_explain_agent_code(
+            state=state,
+            code_snippet_key="data_visualization_function",
+            result_key="messages",
+            error_key="data_visualization_error",
+            llm=llm,  
+            role=AGENT_NAME,
+            explanation_prompt_template="""
+            Explain the data visualization steps that the data visualization agent performed in this function. 
+            Keep the summary succinct and to the point.\n\n# Data Visualization Agent:\n\n{code}
+            """,
+            success_prefix="# Data Visualization Agent:\n\n ",
+            error_message="The Data Visualization Agent encountered an error during data visualization. No explanation could be provided."
+        )
+        
+    # Define the graph
+    node_functions = {
+        "chart_instructor": chart_instructor,
+        "human_review": human_review,
+        "chart_generator": chart_generator,
+        "execute_data_visualization_code": execute_data_visualization_code,
+        "fix_data_visualization_code": fix_data_visualization_code,
+        "explain_data_visualization_code": explain_data_visualization_code
+    }
+    
+    app = create_coding_agent_graph(
+        GraphState=GraphState,
+        node_functions=node_functions,
+        recommended_steps_node_name="chart_instructor",
+        create_code_node_name="chart_generator",
+        execute_code_node_name="execute_data_visualization_code",
+        fix_code_node_name="fix_data_visualization_code",
+        explain_code_node_name="explain_data_visualization_code",
+        error_key="data_visualization_error",
+        human_in_the_loop=human_in_the_loop,  # or False
+        human_review_node_name="human_review",
+        checkpointer=MemorySaver() if human_in_the_loop else None,
+        bypass_recommended_steps=bypass_recommended_steps,
+        bypass_explain_code=bypass_explain_code,
+    )
+        
+    return app
     
