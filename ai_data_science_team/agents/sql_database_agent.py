@@ -22,7 +22,7 @@ from ai_data_science_team.templates import(
     create_coding_agent_graph
 )
 from ai_data_science_team.tools.parsers import PythonOutputParser, SQLOutputParser  
-from ai_data_science_team.tools.regex import relocate_imports_inside_function, add_comments_to_top
+from ai_data_science_team.tools.regex import relocate_imports_inside_function, add_comments_to_top, format_agent_name
 from ai_data_science_team.tools.metadata import get_database_metadata
 from ai_data_science_team.tools.logging import log_ai_function
 
@@ -131,8 +131,8 @@ def make_sql_database_agent(
     
     def recommend_sql_steps(state: GraphState):
         
-        print("---SQL DATABASE AGENT---")
-        print("    * RECOMMEND SQL QUERY STEPS")
+        print(format_agent_name(AGENT_NAME))
+        print("    * RECOMMEND STEPS")
         
         
         # Prompt to get recommended steps from the LLM
@@ -200,7 +200,7 @@ def make_sql_database_agent(
         
     def create_sql_query_code(state: GraphState):
         if bypass_recommended_steps:
-            print("---SQL DATABASE AGENT---")
+            print(format_agent_name(AGENT_NAME))
         print("    * CREATE SQL QUERY CODE")
         
         # Prompt to get the SQL code from the LLM

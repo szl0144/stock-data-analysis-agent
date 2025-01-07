@@ -25,7 +25,7 @@ from ai_data_science_team.templates import(
     create_coding_agent_graph
 )
 from ai_data_science_team.tools.parsers import PythonOutputParser
-from ai_data_science_team.tools.regex import relocate_imports_inside_function, add_comments_to_top
+from ai_data_science_team.tools.regex import relocate_imports_inside_function, add_comments_to_top, format_agent_name
 from ai_data_science_team.tools.metadata import get_dataframe_summary
 from ai_data_science_team.tools.logging import log_ai_function
 
@@ -151,7 +151,7 @@ def make_feature_engineering_agent(
         Recommend a series of feature engineering steps based on the input data.
         These recommended steps will be appended to the user_instructions.
         """
-        print("---FEATURE ENGINEERING AGENT----")
+        print(format_agent_name(AGENT_NAME))
         print("    * RECOMMEND FEATURE ENGINEERING STEPS")
 
         # Prompt to get recommended steps from the LLM
@@ -233,7 +233,7 @@ def make_feature_engineering_agent(
     
     def create_feature_engineering_code(state: GraphState):
         if bypass_recommended_steps:
-            print("---FEATURE ENGINEERING AGENT----")
+            print(format_agent_name(AGENT_NAME))
             
             data_raw = state.get("data_raw")
             df = pd.DataFrame.from_dict(data_raw)

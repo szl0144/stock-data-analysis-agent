@@ -71,3 +71,9 @@ def add_comments_to_top(code_text, agent_name="data_wrangler"):
     # Join the header with newlines, then prepend to the existing code_text
     header_block = "\n".join(header_comments)
     return header_block + code_text
+
+def format_agent_name(agent_name: str) -> str:
+    
+    formatted_name = agent_name.strip().replace("_", " ").upper()
+    
+    return f"---{formatted_name}----"
