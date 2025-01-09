@@ -17,6 +17,24 @@ The AI Data Science Team of Copilots includes Agents that specialize data cleani
 - Credit Card Risk
 - And more
 
+## Table of Contents
+
+- [Your AI Data Science Team (An Army Of Copilots)](#your-ai-data-science-team-an-army-of-copilots)
+  - [Table of Contents](#table-of-contents)
+  - [Companies That Want An AI Data Science Team Copilot](#companies-that-want-an-ai-data-science-team-copilot)
+  - [Free Generative AI For Data Scientists Workshop](#free-generative-ai-for-data-scientists-workshop)
+  - [Data Science Agents](#data-science-agents)
+    - [Coming Soon: Multi-Agents](#coming-soon-multi-agents)
+    - [Agents Available Now](#agents-available-now)
+    - [Agents Coming Soon](#agents-coming-soon)
+  - [Disclaimer](#disclaimer)
+  - [Installation](#installation)
+  - [Usage](#usage)
+    - [Example 1: Feature Engineering with the Feature Engineering Agent](#example-1-feature-engineering-with-the-feature-engineering-agent)
+    - [Example 2: Cleaning Data with the Data Cleaning Agent](#example-2-cleaning-data-with-the-data-cleaning-agent)
+  - [Contributing](#contributing)
+  - [License](#license)
+
 ## Companies That Want An AI Data Science Team Copilot
 
 If you are interested in having your own custom enteprise-grade AI Data Science Team Copilot, send inquiries here: [https://www.business-science.io/contact.html](https://www.business-science.io/contact.html)
@@ -63,24 +81,6 @@ This is the internals of the Business Intelligence SQL Agent I'm working on:
 - If you want a custom enterprise-grade AI Data Science Team, [send inquiries here](https://www.business-science.io/contact.html). 
 
 By using this software, you agree to use it solely for learning purposes.
-
-## Table of Contents
-
-- [Your AI Data Science Team (An Army Of Copilots)](#your-ai-data-science-team-an-army-of-copilots)
-  - [Companies That Want An AI Data Science Team Copilot](#companies-that-want-an-ai-data-science-team-copilot)
-  - [Free Generative AI For Data Scientists Workshop](#free-generative-ai-for-data-scientists-workshop)
-  - [Data Science Agents](#data-science-agents)
-    - [Coming Soon: Multi-Agents](#coming-soon-multi-agents)
-    - [Agents Available Now](#agents-available-now)
-    - [Agents Coming Soon](#agents-coming-soon)
-  - [Disclaimer](#disclaimer)
-  - [Table of Contents](#table-of-contents)
-  - [Installation](#installation)
-  - [Usage](#usage)
-    - [Example 1: Feature Engineering with the Feature Engineering Agent](#example-1-feature-engineering-with-the-feature-engineering-agent)
-    - [Example 2: Cleaning Data with the Data Cleaning Agent](#example-2-cleaning-data-with-the-data-cleaning-agent)
-  - [Contributing](#contributing)
-  - [License](#license)
 
 ## Installation
 
