@@ -103,6 +103,10 @@ class DataCleaningAgent(BaseAgent):
         Retrieves the generated Python function used for cleaning the data.
     get_recommended_cleaning_steps()
         Retrieves the agent's recommended cleaning steps.
+    get_response()
+        Returns the response from the agent as a dictionary.
+    show()
+        Displays the agent's mermaid diagram.
 
     Examples
     --------
