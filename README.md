@@ -31,6 +31,12 @@ This project is a work in progress. New data science agents will be released soo
 
 ![Data Science Team](/img/ai_data_science_team.jpg)
 
+### Coming Soon: Multi-Agents
+
+This is the internals of the Business Intelligence SQL Agent I'm working on:
+
+![Business Intelligence SQL Agent](/img/multi_agent_business_intelligence.jpg)
+
 ### Agents Available Now
 
 1. **Data Wrangling Agent:** Merges, Joins, Preps and Wrangles data into a format that is ready for data analysis.
@@ -64,6 +70,7 @@ By using this software, you agree to use it solely for learning purposes.
   - [Companies That Want An AI Data Science Team Copilot](#companies-that-want-an-ai-data-science-team-copilot)
   - [Free Generative AI For Data Scientists Workshop](#free-generative-ai-for-data-scientists-workshop)
   - [Data Science Agents](#data-science-agents)
+    - [Coming Soon: Multi-Agents](#coming-soon-multi-agents)
     - [Agents Available Now](#agents-available-now)
     - [Agents Coming Soon](#agents-coming-soon)
   - [Disclaimer](#disclaimer)
