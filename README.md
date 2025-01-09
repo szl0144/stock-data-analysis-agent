@@ -2,7 +2,9 @@
 
 **An AI-powered data science team of copilots that uses agents to help you perform common data science tasks 10X faster**.
 
-Star ⭐ This GitHub (Takes 2 seconds and means a lot).
+**Star ⭐ This GitHub (Takes 2 seconds and means a lot).**
+
+*Beta - This Python library is under active development. There may be breaking changes that occur until release of 0.1.0.* 
 
 ---
 
