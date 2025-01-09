@@ -53,7 +53,7 @@ This project is a work in progress. New data science agents will be released soo
 
 This is the internals of the Business Intelligence SQL Agent I'm working on:
 
-![Business Intelligence SQL Agent](/img/multi_agent_business_intelligence.jpg)
+![Business Intelligence SQL Agent](/img/multi_agent_sql_data_visualization.jpg)
 
 ### Agents Available Now
 
