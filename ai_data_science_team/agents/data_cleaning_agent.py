@@ -101,6 +101,8 @@ class DataCleaningAgent(BaseAgent):
         Retrieves the raw dataset as a pandas DataFrame.
     get_data_cleaner_function()
         Retrieves the generated Python function used for cleaning the data.
+    get_recommended_cleaning_steps()
+        Retrieves the agent's recommended cleaning steps.
 
     Examples
     --------
@@ -262,6 +264,16 @@ class DataCleaningAgent(BaseAgent):
                 return Markdown(f"```python\n{self.response.get('data_cleaner_function')}\n```")
             else:
                 return self.response.get("data_cleaner_function")
+            
+    def get_recommended_cleaning_steps(self, markdown=False):
+        """
+        Retrieves the agent's recommended cleaning steps
+        """
+        if self.response:
+            if markdown:
+                return Markdown(self.response.get('recommended_steps'))
+            else:
+                return self.response.get('recommended_steps')
 
 
 
