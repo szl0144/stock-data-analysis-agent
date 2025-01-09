@@ -13,18 +13,19 @@ from langchain_core.messages import BaseMessage
 from langgraph.types import Command
 from langgraph.checkpoint.memory import MemorySaver
 
-from langgraph.graph.state import CompiledStateGraph
-
 import os
 import io
 import pandas as pd
+
+from IPython.display import Image, display, Markdown
 
 from ai_data_science_team.templates import(
     node_func_execute_agent_code_on_data, 
     node_func_human_review,
     node_func_fix_agent_code, 
     node_func_explain_agent_code, 
-    create_coding_agent_graph
+    create_coding_agent_graph,
+    BaseAgent,
 )
 from ai_data_science_team.tools.parsers import PythonOutputParser
 from ai_data_science_team.tools.regex import relocate_imports_inside_function, add_comments_to_top, format_agent_name
@@ -36,13 +37,104 @@ AGENT_NAME = "data_cleaning_agent"
 LOG_PATH = os.path.join(os.getcwd(), "logs/")
 
 
+
 # Class
-class DataCleaningAgent(CompiledStateGraph):
+class DataCleaningAgent(BaseAgent):
     """
-    Wraps a compiled data cleaning agent (CompiledStateGraph) and extends
-    its functionality for data cleaning purposes. All methods not found on
-    this class automatically delegate to self._compiled_graph via __getattr__.
+    Creates a data cleaning agent that can process datasets based on user-defined instructions or default cleaning steps. 
+    The agent generates a Python function to clean the dataset, performs the cleaning, and logs the process, including code 
+    and errors. It is designed to facilitate reproducible and customizable data cleaning workflows.
+
+    The agent performs the following default cleaning steps unless instructed otherwise:
+
+    - Removing columns with more than 40% missing values.
+    - Imputing missing values with the mean for numeric columns.
+    - Imputing missing values with the mode for categorical columns.
+    - Converting columns to appropriate data types.
+    - Removing duplicate rows.
+    - Removing rows with missing values.
+    - Removing rows with extreme outliers (values 3x the interquartile range).
+
+    User instructions can modify, add, or remove any of these steps to tailor the cleaning process.
+
+    Parameters
+    ----------
+    model : langchain.llms.base.LLM
+        The language model used to generate the data cleaning function.
+    n_samples : int, optional
+        Number of samples used when summarizing the dataset. Defaults to 30. Reducing this number can help 
+        avoid exceeding the model's token limits.
+    log : bool, optional
+        Whether to log the generated code and errors. Defaults to False.
+    log_path : str, optional
+        Directory path for storing log files. Defaults to None.
+    file_name : str, optional
+        Name of the file for saving the generated response. Defaults to "data_cleaner.py".
+    overwrite : bool, optional
+        Whether to overwrite the log file if it exists. If False, a unique file name is created. Defaults to True.
+    human_in_the_loop : bool, optional
+        Enables user review of data cleaning instructions. Defaults to False.
+    bypass_recommended_steps : bool, optional
+        If True, skips the default recommended cleaning steps. Defaults to False.
+    bypass_explain_code : bool, optional
+        If True, skips the step that provides code explanations. Defaults to False.
+
+    Methods
+    -------
+    update_params(**kwargs)
+        Updates the agent's parameters and rebuilds the compiled state graph.
+    ainvoke(user_instructions: str, data_raw: pd.DataFrame, max_retries=3, retry_count=0)
+        Cleans the provided dataset asynchronously based on user instructions.
+    invoke(user_instructions: str, data_raw: pd.DataFrame, max_retries=3, retry_count=0)
+        Cleans the provided dataset synchronously based on user instructions.
+    explain_cleaning_steps()
+        Returns an explanation of the cleaning steps performed by the agent.
+    get_log_summary()
+        Retrieves a summary of logged operations if logging is enabled.
+    get_state_keys()
+        Returns a list of keys from the state graph response.
+    get_state_properties()
+        Returns detailed properties of the state graph response.
+    get_data_cleaned()
+        Retrieves the cleaned dataset as a pandas DataFrame.
+    get_data_raw()
+        Retrieves the raw dataset as a pandas DataFrame.
+    get_data_cleaner_function()
+        Retrieves the generated Python function used for cleaning the data.
+
+    Examples
+    --------
+    ```python
+    import pandas as pd
+    from langchain_openai import ChatOpenAI
+    from ai_data_science_team.agents import DataCleaningAgent
+
+    llm = ChatOpenAI(model="gpt-4o-mini")
+
+    data_cleaning_agent = DataCleaningAgent(
+        model=llm, n_samples=50, log=True, log_path="logs", human_in_the_loop=True
+    )
+
+    df = pd.read_csv("https://raw.githubusercontent.com/business-science/ai-data-science-team/refs/heads/master/data/churn_data.csv")
+
+    data_cleaning_agent.invoke(
+        user_instructions="Don't remove outliers when cleaning the data.",
+        data_raw=df,
+        max_retries=3,
+        retry_count=0
+    )
+
+    cleaned_data = data_cleaning_agent.get_data_cleaned()
+    
+    response = data_cleaning_agent.response
+    ```
+    
+    Returns
+    --------
+    DataCleaningAgent : langchain.graphs.CompiledStateGraph 
+        A data cleaning agent implemented as a compiled state graph. 
     """
+    
     def __init__(
         self, 
         model, 
@@ -67,41 +159,109 @@ class DataCleaningAgent(CompiledStateGraph):
             "bypass_explain_code": bypass_explain_code,
         }
         self._compiled_graph = self._make_compiled_graph()
+        self.response = None
 
     def _make_compiled_graph(self):
+        """
+        Create the compiled graph for the data cleaning agent. Running this method will reset the response to None.
+        """
+        self.response=None
         return make_data_cleaning_agent(**self._params)
 
-    def update_params(self, **kwargs):
-        """
-        Update one or more parameters at once, then rebuild the compiled graph.
-        e.g. agent.update_params(model=new_llm, n_samples=100)
-        """
-        self._params.update(kwargs)
-        self._compiled_graph = self._make_compiled_graph()
-
-    def __getattr__(self, name: str):
-        """
-        Delegate attribute access to `_compiled_graph` if `name` is not
-        found in this instance. This 'inherits' methods from the compiled graph.
-        """
-        return getattr(self._compiled_graph, name)
     
-    # def __dir__(self):
-    #     """
-    #     Combine this class’s attributes with those of _compiled_graph
-    #     for improved autocompletion in some IDEs.
-    #     """
-    #     return sorted(
-    #         set(
-    #             dir(type(self)) 
-    #             + super().__dir__()
-    #             + list(self.__dict__.keys()) 
-    #             + dir(self._compiled_graph)
-    #         )
-    #     )
-    #     # return super().__dir__() + [str(k) for k in self.__dict__.keys()]
+    def ainvoke(self, user_instructions: str, data_raw: pd.DataFrame, max_retries=3, retry_count=0):
+        """
+        Asynchronously invokes the agent. The response is stored in the response attribute.
 
+        Parameters:
+        ----------
+            user_instructions (str): Instructions for data cleaning.
+            data_raw (pd.DataFrame): The raw dataset to be cleaned.
+            max_retries (int): Maximum retry attempts for cleaning.
+            retry_count (int): Current retry attempt.
+
+        Returns:
+        --------
+            None. The response is stored in the response attribute.
+        """
+        response = self._compiled_graph.ainvoke({
+            "user_instructions": user_instructions,
+            "data_raw": data_raw.to_dict(),
+            "max_retries": max_retries,
+            "retry_count": retry_count,
+        })
+        self.response = response
+        return None
     
+    def invoke(self, user_instructions: str, data_raw: pd.DataFrame, max_retries=3, retry_count=0):
+        """
+        Invokes the agent. The response is stored in the response attribute.
+
+        Parameters:
+        ----------
+            user_instructions (str): Instructions for data cleaning.
+            data_raw (pd.DataFrame): The raw dataset to be cleaned.
+            max_retries (int): Maximum retry attempts for cleaning.
+            retry_count (int): Current retry attempt.
+
+        Returns:
+        --------
+            None. The response is stored in the response attribute.
+        """
+        response = self._compiled_graph.invoke({
+            "user_instructions": user_instructions,
+            "data_raw": data_raw.to_dict(),
+            "max_retries": max_retries,
+            "retry_count": retry_count,
+        })
+        self.response = response
+        return None
+
+    def explain_cleaning_steps(self):
+        """
+        Provides an explanation of the cleaning steps performed by the agent.
+
+        Returns:
+            str: Explanation of the cleaning steps.
+        """
+        messages = self.response.get("messages", [])
+        return messages
+
+    def get_log_summary(self, markdown=False):
+        """
+        Logs a summary of the agent's operations, if logging is enabled.
+        """
+        if self.response:
+            if self.response.get('data_cleaner_function_path'):
+                log_details = f"Log Path: {self.response.get('data_cleaner_function_path')}"
+                if markdown:
+                    return Markdown(log_details) 
+                else:
+                    return log_details
+    
+    def get_data_cleaned(self):
+        """
+        Retrieves the cleaned data stored after running invoke or clean_data methods.
+        """
+        if self.response:
+            return pd.DataFrame(self.response.get("data_cleaned"))
+        
+    def get_data_raw(self):
+        """
+        Retrieves the raw data.
+        """
+        if self.response:
+            return pd.DataFrame(self.response.get("data_raw"))
+    
+    def get_data_cleaner_function(self, markdown=False):
+        """
+        Retrieves the agent's pipeline function.
+        """
+        if self.response:
+            if markdown:
+                return Markdown(f"```python\n{self.response.get('data_cleaner_function')}\n```")
+            else:
+                return self.response.get("data_cleaner_function")
 
 
 
@@ -126,9 +286,9 @@ def make_data_cleaning_agent(
     The agent takes in a dataset and some user instructions, and outputs a python
     function that can be used to clean the dataset. The agent also logs the code
     generated and any errors that occur.
-    
+
     The agent is instructed to to perform the following data cleaning steps:
-    
+
     - Removing columns if more than 40 percent of the data is missing
     - Imputing missing values with the mean of the column if the column is numeric
     - Imputing missing values with the mode of the column if the column is categorical
@@ -170,26 +330,26 @@ def make_data_cleaning_agent(
     import pandas as pd
     from langchain_openai import ChatOpenAI
     from ai_data_science_team.agents import data_cleaning_agent
-    
+
     llm = ChatOpenAI(model = "gpt-4o-mini")
 
     data_cleaning_agent = make_data_cleaning_agent(llm)
-    
+
     df = pd.read_csv("https://raw.githubusercontent.com/business-science/ai-data-science-team/refs/heads/master/data/churn_data.csv")
-    
+
     response = data_cleaning_agent.invoke({
         "user_instructions": "Don't remove outliers when cleaning the data.",
         "data_raw": df.to_dict(),
         "max_retries":3, 
         "retry_count":0
     })
-    
+
     pd.DataFrame(response['data_cleaned'])
     ```
 
     Returns
     -------
-    app : langchain.graphs.StateGraph
+    app : langchain.graphs.CompiledStateGraph
         The data cleaning agent as a state graph.
     """
     llm = model
@@ -454,3 +614,6 @@ def make_data_cleaning_agent(
     )
         
     return app
+
+
+

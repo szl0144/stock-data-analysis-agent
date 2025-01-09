@@ -1,6 +1,8 @@
 from langchain_core.messages import AIMessage
 from langgraph.graph import StateGraph, END
 from langgraph.types import interrupt, Command
+from langgraph.graph.state import CompiledStateGraph
+
 
 import pandas as pd
 import sqlalchemy as sql
@@ -9,6 +11,85 @@ from typing import Any, Callable, Dict, Type, Optional
 
 from ai_data_science_team.tools.parsers import PythonOutputParser
 from ai_data_science_team.tools.regex import relocate_imports_inside_function, add_comments_to_top
+
+from IPython.display import Image, Markdown, display
+import pandas as pd
+
+class BaseAgent(CompiledStateGraph):
+    """
+    A generic base class for agents that interact with compiled state graphs.
+
+    Provides shared functionality for handling parameters, responses, and state
+    graph operations.
+    """
+
+    def __init__(self, **params):
+        """
+        Initialize the agent with provided parameters.
+
+        Parameters:
+            **params: Arbitrary keyword arguments representing the agent's parameters.
+        """
+        self._params = params
+        self._compiled_graph = self._make_compiled_graph()
+        self.response = None
+
+    def _make_compiled_graph(self):
+        """
+        Subclasses should override this method to create a specific compiled graph.
+        """
+        raise NotImplementedError("Subclasses must implement the `_make_compiled_graph` method.")
+
+    def update_params(self, **kwargs):
+        """
+        Update one or more parameters and rebuild the compiled graph.
+
+        Parameters:
+            **kwargs: Parameters to update.
+        """
+        self._params.update(kwargs)
+        self._compiled_graph = self._make_compiled_graph()
+
+    def __getattr__(self, name: str):
+        """
+        Delegate attribute access to the compiled graph if the attribute is not found.
+
+        Parameters:
+            name (str): The attribute name.
+
+        Returns:
+            Any: The attribute from the compiled graph.
+        """
+        return getattr(self._compiled_graph, name)
+
+    def get_state_keys(self):
+        """
+        Returns a list of keys that the state graph response contains.
+
+        Returns:
+            list: A list of keys in the response.
+        """
+        return list(self.get_output_jsonschema()['properties'].keys())
+
+    def get_state_properties(self):
+        """
+        Returns detailed properties of the state graph response.
+
+        Returns:
+            dict: The properties of the response.
+        """
+        return self.get_output_jsonschema()['properties']
+
+    def show(self, xray: int = 0):
+        """
+        Displays the agent's state graph as a Mermaid diagram.
+
+        Parameters:
+            xray (int): If set to 1, displays subgraph levels. Defaults to 0.
+        """
+        display(Image(self.get_graph(xray=xray).draw_mermaid_png()))
+
+
 
 def create_coding_agent_graph(
     GraphState: Type,
