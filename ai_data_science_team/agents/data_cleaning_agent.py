@@ -13,6 +13,8 @@ from langchain_core.messages import BaseMessage
 from langgraph.types import Command
 from langgraph.checkpoint.memory import MemorySaver
 
+from langgraph.graph.state import CompiledStateGraph
+
 import os
 import io
 import pandas as pd
@@ -32,6 +34,76 @@ from ai_data_science_team.tools.logging import log_ai_function
 # Setup
 AGENT_NAME = "data_cleaning_agent"
 LOG_PATH = os.path.join(os.getcwd(), "logs/")
+
+
+# Class
+class DataCleaningAgent(CompiledStateGraph):
+    """
+    Wraps a compiled data cleaning agent (CompiledStateGraph) and extends
+    its functionality for data cleaning purposes. All methods not found on
+    this class automatically delegate to self._compiled_graph via __getattr__.
+    """
+    def __init__(
+        self, 
+        model, 
+        n_samples=30, 
+        log=False, 
+        log_path=None, 
+        file_name="data_cleaner.py", 
+        overwrite=True, 
+        human_in_the_loop=False, 
+        bypass_recommended_steps=False, 
+        bypass_explain_code=False
+    ):
+        self._params = {
+            "model": model,
+            "n_samples": n_samples,
+            "log": log,
+            "log_path": log_path,
+            "file_name": file_name,
+            "overwrite": overwrite,
+            "human_in_the_loop": human_in_the_loop,
+            "bypass_recommended_steps": bypass_recommended_steps,
+            "bypass_explain_code": bypass_explain_code,
+        }
+        self._compiled_graph = self._make_compiled_graph()
+
+    def _make_compiled_graph(self):
+        return make_data_cleaning_agent(**self._params)
+
+    def update_params(self, **kwargs):
+        """
+        Update one or more parameters at once, then rebuild the compiled graph.
+        e.g. agent.update_params(model=new_llm, n_samples=100)
+        """
+        self._params.update(kwargs)
+        self._compiled_graph = self._make_compiled_graph()
+
+    def __getattr__(self, name: str):
+        """
+        Delegate attribute access to `_compiled_graph` if `name` is not
+        found in this instance. This 'inherits' methods from the compiled graph.
+        """
+        return getattr(self._compiled_graph, name)
+    
+    # def __dir__(self):
+    #     """
+    #     Combine this class’s attributes with those of _compiled_graph
+    #     for improved autocompletion in some IDEs.
+    #     """
+    #     return sorted(
+    #         set(
+    #             dir(type(self)) 
+    #             + super().__dir__()
+    #             + list(self.__dict__.keys()) 
+    #             + dir(self._compiled_graph)
+    #         )
+    #     )
+    #     # return super().__dir__() + [str(k) for k in self.__dict__.keys()]
+
+    
+
+
 
 # Agent
 
