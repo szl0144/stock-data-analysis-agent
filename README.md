@@ -1,6 +1,6 @@
-# Your AI Data Science Team (An Army Of Copilots)
+# Your AI Data Science Team (An Army Of Agents)
 
-**An AI-powered data science team of copilots that uses agents to help you perform common data science tasks 10X faster**.
+**An AI-powered data science team of agents to help you perform common data science tasks 10X faster**.
 
 **Star ⭐ This GitHub (Takes 2 seconds and means a lot).**
 
