@@ -218,7 +218,7 @@ class DataWranglingAgent(BaseAgent):
         ----------
         data_raw : Union[pd.DataFrame, dict, list]
             The raw dataset(s) to be wrangled. 
-            - Can be a single DataFrame, a single dict ({col: list_of_values}), 
+            Can be a single DataFrame, a single dict ({col: list_of_values}), 
               or a list of dicts if multiple datasets are provided.
         user_instructions : str
             Instructions for data wrangling.
@@ -259,7 +259,7 @@ class DataWranglingAgent(BaseAgent):
         ----------
         data_raw : Union[pd.DataFrame, dict, list]
             The raw dataset(s) to be wrangled.
-            - Can be a single DataFrame, a single dict, or a list of dicts.
+            Can be a single DataFrame, a single dict, or a list of dicts.
         user_instructions : str
             Instructions for data wrangling agent.
         max_retries : int
