@@ -115,6 +115,10 @@ feature_engineering_agent.invoke(
     * EXPLAIN AGENT CODE
 ```
 
+``` python
+feature_engineering_agent.get_data_engineered()
+```
+
 ### Example 2: Cleaning Data with the Data Cleaning Agent
 
 [See the full example here.](/examples/data_cleaning_agent.ipynb) 
@@ -135,6 +139,10 @@ response = data_cleaning_agent.invoke(
     * CREATE DATA CLEANER CODE
     * EXECUTING AGENT CODE
     * EXPLAIN AGENT CODE
+```
+
+``` python
+data_cleaning_agent.get_data_cleaned()
 ```
 
 ## Contributing
