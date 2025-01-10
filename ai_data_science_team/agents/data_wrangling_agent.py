@@ -4,11 +4,11 @@
 # * Agents: Data Wrangling Agent
 
 # Libraries
-from typing import TypedDict, Annotated, Sequence, Literal, Union
+from typing import TypedDict, Annotated, Sequence, Literal, Union, Optional
 import operator
 import os
-import io
 import pandas as pd
+from IPython.display import Markdown
 
 from langchain.prompts import PromptTemplate
 from langchain_core.messages import BaseMessage
@@ -20,7 +20,8 @@ from ai_data_science_team.templates import(
     node_func_human_review,
     node_func_fix_agent_code, 
     node_func_explain_agent_code, 
-    create_coding_agent_graph
+    create_coding_agent_graph,
+    BaseAgent,
 )
 from ai_data_science_team.tools.parsers import PythonOutputParser
 from ai_data_science_team.tools.regex import relocate_imports_inside_function, add_comments_to_top, format_agent_name
@@ -30,6 +31,396 @@ from ai_data_science_team.tools.logging import log_ai_function
 # Setup Logging Path
 AGENT_NAME = "data_wrangling_agent"
 LOG_PATH = os.path.join(os.getcwd(), "logs/")
+
+# Class
+
+class DataWranglingAgent(BaseAgent):
+    """
+    Creates a data wrangling agent that can work with one or more datasets, performing operations such as 
+    joining/merging multiple datasets, reshaping, aggregating, encoding, creating computed features, 
+    and ensuring consistent data types. The agent generates a Python function to wrangle the data, 
+    executes the function, and logs the process (if enabled).
+
+    The agent can handle:
+    - A single dataset (provided as a dictionary of {column: list_of_values})
+    - Multiple datasets (provided as a list of such dictionaries)
+    
+    Key wrangling steps can include:
+    - Merging or joining datasets
+    - Pivoting/melting data for reshaping
+    - GroupBy aggregations (sums, means, counts, etc.)
+    - Encoding categorical variables
+    - Computing new columns from existing ones
+    - Dropping or rearranging columns
+    - Any additional user instructions
+
+    Parameters
+    ----------
+    model : langchain.llms.base.LLM
+        The language model used to generate the data wrangling function.
+    n_samples : int, optional
+        Number of samples to show in the data summary for wrangling. Defaults to 30.
+    log : bool, optional
+        Whether to log the generated code and errors. Defaults to False.
+    log_path : str, optional
+        Directory path for storing log files. Defaults to None.
+    file_name : str, optional
+        Name of the file for saving the generated response. Defaults to "data_wrangler.py".
+    overwrite : bool, optional
+        Whether to overwrite the log file if it exists. If False, a unique file name is created. Defaults to True.
+    human_in_the_loop : bool, optional
+        Enables user review of data wrangling instructions. Defaults to False.
+    bypass_recommended_steps : bool, optional
+        If True, skips the step that generates recommended data wrangling steps. Defaults to False.
+    bypass_explain_code : bool, optional
+        If True, skips the step that provides code explanations. Defaults to False.
+
+    Methods
+    -------
+    update_params(**kwargs)
+        Updates the agent's parameters and rebuilds the compiled state graph.
+
+    ainvoke(user_instructions: str, data_raw: Union[dict, list], max_retries=3, retry_count=0)
+        Asynchronously wrangles the provided dataset(s) based on user instructions.
+
+    invoke(user_instructions: str, data_raw: Union[dict, list], max_retries=3, retry_count=0)
+        Synchronously wrangles the provided dataset(s) based on user instructions.
+
+    explain_wrangling_steps()
+        Returns an explanation of the wrangling steps performed by the agent.
+
+    get_log_summary()
+        Retrieves a summary of logged operations if logging is enabled.
+
+    get_data_wrangled()
+        Retrieves the final wrangled dataset (as a dictionary of {column: list_of_values}).
+
+    get_data_raw()
+        Retrieves the raw dataset(s).
+
+    get_data_wrangler_function()
+        Retrieves the generated Python function used for data wrangling.
+
+    get_recommended_wrangling_steps()
+        Retrieves the agent's recommended wrangling steps.
+
+    get_response()
+        Returns the full response dictionary from the agent.
+
+    show()
+        Displays the agent's mermaid diagram for visual inspection of the compiled graph.
+
+    Examples
+    --------
+    ```python
+    import pandas as pd
+    from langchain_openai import ChatOpenAI
+    from ai_data_science_team.agents import DataWranglingAgent
+
+    # Single dataset example
+    llm = ChatOpenAI(model="gpt-4o-mini")
+
+    data_wrangling_agent = DataWranglingAgent(
+        model=llm, 
+        n_samples=30,
+        log=True, 
+        log_path="logs", 
+        human_in_the_loop=True
+    )
+
+    df = pd.read_csv("https://raw.githubusercontent.com/business-science/ai-data-science-team/refs/heads/master/data/churn_data.csv")
+
+    data_wrangling_agent.invoke(
+        user_instructions="Group by 'gender' and compute mean of 'tenure'.",
+        data_raw=df,  # data_raw can be df.to_dict() or just a DataFrame
+        max_retries=3,
+        retry_count=0
+    )
+
+    data_wrangled = data_wrangling_agent.get_data_wrangled()
+    response = data_wrangling_agent.get_response()
+
+    # Multiple dataset example (list of dicts)
+    df1 = pd.DataFrame({'id': [1,2,3], 'val1': [10,20,30]})
+    df2 = pd.DataFrame({'id': [1,2,3], 'val2': [40,50,60]})
+
+    data_wrangling_agent.invoke(
+        user_instructions="Merge these two datasets on 'id' and compute a new column 'val_sum' = val1+val2",
+        data_raw=[df1, df2],   # multiple datasets
+        max_retries=3,
+        retry_count=0
+    )
+
+    data_wrangled = data_wrangling_agent.get_data_wrangled()
+    ```
+    
+    Returns
+    -------
+    DataWranglingAgent : langchain.graphs.CompiledStateGraph
+        A data wrangling agent implemented as a compiled state graph.
+    """
+
+    def __init__(
+        self,
+        model,
+        n_samples=30,
+        log=False,
+        log_path=None,
+        file_name="data_wrangler.py",
+        overwrite=True,
+        human_in_the_loop=False,
+        bypass_recommended_steps=False,
+        bypass_explain_code=False
+    ):
+        self._params = {
+            "model": model,
+            "n_samples": n_samples,
+            "log": log,
+            "log_path": log_path,
+            "file_name": file_name,
+            "overwrite": overwrite,
+            "human_in_the_loop": human_in_the_loop,
+            "bypass_recommended_steps": bypass_recommended_steps,
+            "bypass_explain_code": bypass_explain_code
+        }
+        self._compiled_graph = self._make_compiled_graph()
+        self.response = None
+
+    def _make_compiled_graph(self):
+        """
+        Create the compiled graph for the data wrangling agent. 
+        Running this method will reset the response to None.
+        """
+        self.response = None
+        return make_data_wrangling_agent(**self._params)
+
+    def update_params(self, **kwargs):
+        """
+        Updates the agent's parameters and rebuilds the compiled graph.
+        """
+        for k, v in kwargs.items():
+            self._params[k] = v
+        self._compiled_graph = self._make_compiled_graph()
+
+    def ainvoke(
+        self,
+        user_instructions: str,
+        data_raw: Union[pd.DataFrame, dict, list],
+        max_retries=3,
+        retry_count=0
+    ):
+        """
+        Asynchronously wrangles the provided dataset(s) based on user instructions.
+        The response is stored in the 'response' attribute.
+
+        Parameters
+        ----------
+        user_instructions : str
+            Instructions for data wrangling.
+        data_raw : Union[pd.DataFrame, dict, list]
+            The raw dataset(s) to be wrangled. 
+            - Can be a single DataFrame, a single dict ({col: list_of_values}), 
+              or a list of dicts if multiple datasets are provided.
+        max_retries : int
+            Maximum retry attempts.
+        retry_count : int
+            Current retry attempt count.
+
+        Returns
+        -------
+        None
+        """
+        data_input = self._convert_data_input(data_raw)
+        response = self._compiled_graph.ainvoke({
+            "user_instructions": user_instructions,
+            "data_raw": data_input,
+            "max_retries": max_retries,
+            "retry_count": retry_count
+        })
+        self.response = response
+        return None
+
+    def invoke(
+        self,
+        user_instructions: str,
+        data_raw: Union[pd.DataFrame, dict, list],
+        max_retries=3,
+        retry_count=0
+    ):
+        """
+        Synchronously wrangles the provided dataset(s) based on user instructions.
+        The response is stored in the 'response' attribute.
+
+        Parameters
+        ----------
+        user_instructions : str
+            Instructions for data wrangling.
+        data_raw : Union[pd.DataFrame, dict, list]
+            The raw dataset(s) to be wrangled.
+            - Can be a single DataFrame, a single dict, or a list of dicts.
+        max_retries : int
+            Maximum retry attempts.
+        retry_count : int
+            Current retry attempt count.
+
+        Returns
+        -------
+        None
+        """
+        data_input = self._convert_data_input(data_raw)
+        response = self._compiled_graph.invoke({
+            "user_instructions": user_instructions,
+            "data_raw": data_input,
+            "max_retries": max_retries,
+            "retry_count": retry_count
+        })
+        self.response = response
+        return None
+
+    def explain_wrangling_steps(self):
+        """
+        Provides an explanation of the wrangling steps performed by the agent.
+
+        Returns
+        -------
+        str or list
+            Explanation of the data wrangling steps.
+        """
+        if self.response:
+            return self.response.get("messages", [])
+        return []
+
+    def get_log_summary(self, markdown=False):
+        """
+        Logs a summary of the agent's operations, if logging is enabled.
+
+        Parameters
+        ----------
+        markdown : bool, optional
+            If True, returns the summary in Markdown.
+
+        Returns
+        -------
+        str or None
+            The log details, or None if not available.
+        """
+        if self.response and self.response.get("data_wrangler_function_path"):
+            log_details = f"Log Path: {self.response.get('data_wrangler_function_path')}"
+            if markdown:
+                return Markdown(log_details)
+            else:
+                return log_details
+        return None
+
+    def get_data_wrangled(self) -> Optional[pd.DataFrame]:
+        """
+        Retrieves the wrangled data after running invoke() or ainvoke().
+
+        Returns
+        -------
+        pd.DataFrame or None
+            The wrangled dataset as a pandas DataFrame (if available).
+        """
+        if self.response and "data_wrangled" in self.response:
+            return pd.DataFrame(self.response["data_wrangled"])
+        return None
+
+    def get_data_raw(self) -> Union[dict, list, None]:
+        """
+        Retrieves the original raw data from the last invocation.
+
+        Returns
+        -------
+        Union[dict, list, None]
+            The original dataset(s) as a single dict or a list of dicts, or None if not available.
+        """
+        if self.response and "data_raw" in self.response:
+            return self.response["data_raw"]
+        return None
+
+    def get_data_wrangler_function(self, markdown=False) -> Optional[str]:
+        """
+        Retrieves the generated data wrangling function code.
+
+        Parameters
+        ----------
+        markdown : bool, optional
+            If True, returns the function in Markdown code block format.
+
+        Returns
+        -------
+        str or None
+            The Python function code, or None if not available.
+        """
+        if self.response and "data_wrangler_function" in self.response:
+            code = self.response["data_wrangler_function"]
+            if markdown:
+                return Markdown(f"```python\n{code}\n```")
+            return code
+        return None
+
+    def get_recommended_wrangling_steps(self, markdown=False) -> Optional[str]:
+        """
+        Retrieves the agent's recommended data wrangling steps.
+
+        Parameters
+        ----------
+        markdown : bool, optional
+            If True, returns the steps in Markdown format.
+
+        Returns
+        -------
+        str or None
+            The recommended steps, or None if not available.
+        """
+        if self.response and "recommended_steps" in self.response:
+            steps = self.response["recommended_steps"]
+            if markdown:
+                return Markdown(steps)
+            return steps
+        return None
+
+    @staticmethod
+    def _convert_data_input(data_raw: Union[pd.DataFrame, dict, list]) -> Union[dict, list]:
+        """
+        Internal utility to convert data_raw (which could be a DataFrame, dict, or list of dicts)
+        into the format expected by the underlying agent (dict or list of dicts).
+
+        Parameters
+        ----------
+        data_raw : Union[pd.DataFrame, dict, list]
+            The raw input data to be converted.
+
+        Returns
+        -------
+        Union[dict, list]
+            The data in a dictionary or list-of-dictionaries format.
+        """
+        # If a single DataFrame, convert to dict
+        if isinstance(data_raw, pd.DataFrame):
+            return data_raw.to_dict()
+
+        # If it's already a dict (single dataset)
+        if isinstance(data_raw, dict):
+            return data_raw
+
+        # If it's already a list, check if it's a list of DataFrames or dicts
+        if isinstance(data_raw, list):
+            # Convert any DataFrame item to dict
+            converted_list = []
+            for item in data_raw:
+                if isinstance(item, pd.DataFrame):
+                    converted_list.append(item.to_dict())
+                elif isinstance(item, dict):
+                    converted_list.append(item)
+                else:
+                    raise ValueError("List must contain only DataFrames or dictionaries.")
+            return converted_list
+
+        raise ValueError("data_raw must be a DataFrame, a dict, or a list of dicts/DataFrames.")
+
+
+# Function
 
 def make_data_wrangling_agent(
     model, 
@@ -110,7 +501,7 @@ def make_data_wrangling_agent(
     
     Returns
     -------
-    app : langchain.graphs.StateGraph
+    app : langchain.graphs.CompiledStateGraph
         The data wrangling agent as a state graph.
     """
     llm = model
