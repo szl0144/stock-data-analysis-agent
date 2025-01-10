@@ -14,15 +14,17 @@ from langgraph.types import Command
 from langgraph.checkpoint.memory import MemorySaver
 
 import os
-import io
 import pandas as pd
+
+from IPython.display import Markdown
 
 from ai_data_science_team.templates import(
     node_func_execute_agent_code_on_data, 
     node_func_human_review,
     node_func_fix_agent_code, 
     node_func_explain_agent_code, 
-    create_coding_agent_graph
+    create_coding_agent_graph,
+    BaseAgent,
 )
 from ai_data_science_team.tools.parsers import PythonOutputParser
 from ai_data_science_team.tools.regex import relocate_imports_inside_function, add_comments_to_top, format_agent_name
@@ -32,6 +34,362 @@ from ai_data_science_team.tools.logging import log_ai_function
 # Setup
 AGENT_NAME = "feature_engineering_agent"
 LOG_PATH = os.path.join(os.getcwd(), "logs/")
+
+# Class
+
+class FeatureEngineeringAgent(BaseAgent):
+    """
+    Creates a feature engineering agent that can process datasets based on user-defined instructions or 
+    default feature engineering steps. The agent generates a Python function to engineer features, executes it, 
+    and logs the process, including code and errors. It is designed to facilitate reproducible and 
+    customizable feature engineering workflows.
+
+    The agent can perform the following default feature engineering steps unless instructed otherwise:
+    - Convert features to appropriate data types
+    - Remove features that have unique values for each row
+    - Remove constant features
+    - Encode high-cardinality categoricals (threshold <= 5% of dataset) as 'other'
+    - One-hot-encode categorical variables
+    - Convert booleans to integer (1/0)
+    - Create datetime-based features (if applicable)
+    - Handle target variable encoding if specified
+    - Any user-provided instructions to add, remove, or modify steps
+
+    Parameters
+    ----------
+    model : langchain.llms.base.LLM
+        The language model used to generate the feature engineering function.
+    n_samples : int, optional
+        Number of samples used when summarizing the dataset. Defaults to 30.
+    log : bool, optional
+        Whether to log the generated code and errors. Defaults to False.
+    log_path : str, optional
+        Directory path for storing log files. Defaults to None.
+    file_name : str, optional
+        Name of the file for saving the generated response. Defaults to "feature_engineer.py".
+    overwrite : bool, optional
+        Whether to overwrite the log file if it exists. If False, a unique file name is created. Defaults to True.
+    human_in_the_loop : bool, optional
+        Enables user review of feature engineering instructions. Defaults to False.
+    bypass_recommended_steps : bool, optional
+        If True, skips the default recommended steps. Defaults to False.
+    bypass_explain_code : bool, optional
+        If True, skips the step that provides code explanations. Defaults to False.
+
+    Methods
+    -------
+    update_params(**kwargs)
+        Updates the agent's parameters and rebuilds the compiled state graph.
+    ainvoke(
+        user_instructions: str, 
+        data_raw: pd.DataFrame, 
+        target_variable: str = None, 
+        max_retries=3, 
+        retry_count=0
+    )
+        Engineers features from the provided dataset asynchronously based on user instructions.
+    invoke(
+        user_instructions: str, 
+        data_raw: pd.DataFrame, 
+        target_variable: str = None, 
+        max_retries=3, 
+        retry_count=0
+    )
+        Engineers features from the provided dataset synchronously based on user instructions.
+    explain_feature_engineering_steps()
+        Returns an explanation of the feature engineering steps performed by the agent.
+    get_log_summary()
+        Retrieves a summary of logged operations if logging is enabled.
+    get_data_engineered()
+        Retrieves the feature-engineered dataset as a pandas DataFrame.
+    get_data_raw()
+        Retrieves the raw dataset as a pandas DataFrame.
+    get_feature_engineer_function()
+        Retrieves the generated Python function used for feature engineering.
+    get_recommended_feature_engineering_steps()
+        Retrieves the agent's recommended feature engineering steps.
+    get_response()
+        Returns the response from the agent as a dictionary.
+    show()
+        Displays the agent's mermaid diagram.
+
+    Examples
+    --------
+    ```python
+    import pandas as pd
+    from langchain_openai import ChatOpenAI
+    from ai_data_science_team.agents import FeatureEngineeringAgent
+
+    llm = ChatOpenAI(model="gpt-4o-mini")
+
+    feature_agent = FeatureEngineeringAgent(
+        model=llm, 
+        n_samples=30, 
+        log=True, 
+        log_path="logs", 
+        human_in_the_loop=True
+    )
+
+    df = pd.read_csv("https://raw.githubusercontent.com/business-science/ai-data-science-team/refs/heads/master/data/churn_data.csv")
+
+    feature_agent.invoke(
+        user_instructions="Also encode the 'PaymentMethod' column with one-hot encoding.", 
+        data_raw=df, 
+        target_variable="Churn",
+        max_retries=3,
+        retry_count=0
+    )
+
+    engineered_data = feature_agent.get_data_engineered()
+    response = feature_agent.get_response()
+    ```
+    
+    Returns
+    -------
+    FeatureEngineeringAgent : langchain.graphs.CompiledStateGraph 
+        A feature engineering agent implemented as a compiled state graph.
+    """
+
+    def __init__(
+        self,
+        model,
+        n_samples=30,
+        log=False,
+        log_path=None,
+        file_name="feature_engineer.py",
+        overwrite=True,
+        human_in_the_loop=False,
+        bypass_recommended_steps=False,
+        bypass_explain_code=False
+    ):
+        self._params = {
+            "model": model,
+            "n_samples": n_samples,
+            "log": log,
+            "log_path": log_path,
+            "file_name": file_name,
+            "overwrite": overwrite,
+            "human_in_the_loop": human_in_the_loop,
+            "bypass_recommended_steps": bypass_recommended_steps,
+            "bypass_explain_code": bypass_explain_code
+        }
+        self._compiled_graph = self._make_compiled_graph()
+        self.response = None
+
+    def _make_compiled_graph(self):
+        """
+        Create the compiled graph for the feature engineering agent. 
+        Running this method will reset the response to None.
+        """
+        self.response = None
+        return make_feature_engineering_agent(**self._params)
+
+    def update_params(self, **kwargs):
+        """
+        Updates the agent's parameters and rebuilds the compiled graph.
+        """
+        for k, v in kwargs.items():
+            self._params[k] = v
+        self._compiled_graph = self._make_compiled_graph()
+
+    def ainvoke(
+        self, 
+        user_instructions: str, 
+        data_raw: pd.DataFrame, 
+        target_variable: str = None, 
+        max_retries=3, 
+        retry_count=0
+    ):
+        """
+        Asynchronously engineers features for the provided dataset.
+        The response is stored in the 'response' attribute.
+
+        Parameters
+        ----------
+        user_instructions : str
+            Instructions for feature engineering.
+        data_raw : pd.DataFrame
+            The raw dataset to be processed.
+        target_variable : str, optional
+            The name of the target variable (if any).
+        max_retries : int
+            Maximum retry attempts.
+        retry_count : int
+            Current retry attempt count.
+
+        Returns
+        -------
+        None
+        """
+        response = self._compiled_graph.ainvoke({
+            "user_instructions": user_instructions,
+            "data_raw": data_raw.to_dict(),
+            "target_variable": target_variable,
+            "max_retries": max_retries,
+            "retry_count": retry_count
+        })
+        self.response = response
+        return None
+
+    def invoke(
+        self,
+        user_instructions: str,
+        data_raw: pd.DataFrame,
+        target_variable: str = None,
+        max_retries=3,
+        retry_count=0
+    ):
+        """
+        Synchronously engineers features for the provided dataset.
+        The response is stored in the 'response' attribute.
+
+        Parameters
+        ----------
+        user_instructions : str
+            Instructions for feature engineering.
+        data_raw : pd.DataFrame
+            The raw dataset to be processed.
+        target_variable : str, optional
+            The name of the target variable (if any).
+        max_retries : int
+            Maximum retry attempts.
+        retry_count : int
+            Current retry attempt count.
+
+        Returns
+        -------
+        None
+        """
+        response = self._compiled_graph.invoke({
+            "user_instructions": user_instructions,
+            "data_raw": data_raw.to_dict(),
+            "target_variable": target_variable,
+            "max_retries": max_retries,
+            "retry_count": retry_count
+        })
+        self.response = response
+        return None
+
+    def explain_feature_engineering_steps(self):
+        """
+        Provides an explanation of the feature engineering steps performed by the agent.
+
+        Returns
+        -------
+        str or list
+            Explanation of the feature engineering steps.
+        """
+        if self.response:
+            return self.response.get("messages", [])
+        return []
+
+    def get_log_summary(self, markdown=False):
+        """
+        Logs a summary of the agent's operations, if logging is enabled.
+
+        Parameters
+        ----------
+        markdown : bool, optional
+            If True, returns Markdown-formatted output.
+
+        Returns
+        -------
+        str or None
+            Summary of logs, or None if not available.
+        """
+        if self.response and self.response.get("feature_engineer_function_path"):
+            log_details = f"Log Path: {self.response.get('feature_engineer_function_path')}"
+            if markdown:
+                return Markdown(log_details)
+            else:
+                return log_details
+        return None
+
+    def get_data_engineered(self):
+        """
+        Retrieves the engineered data stored after running invoke/ainvoke.
+
+        Returns
+        -------
+        pd.DataFrame or None
+            The engineered dataset as a pandas DataFrame.
+        """
+        if self.response and "data_engineered" in self.response:
+            return pd.DataFrame(self.response["data_engineered"])
+        return None
+
+    def get_data_raw(self):
+        """
+        Retrieves the raw data.
+
+        Returns
+        -------
+        pd.DataFrame or None
+            The raw dataset as a pandas DataFrame if available.
+        """
+        if self.response and "data_raw" in self.response:
+            return pd.DataFrame(self.response["data_raw"])
+        return None
+
+    def get_feature_engineer_function(self, markdown=False):
+        """
+        Retrieves the feature engineering function generated by the agent.
+
+        Parameters
+        ----------
+        markdown : bool, optional
+            If True, returns the function in Markdown code block format.
+
+        Returns
+        -------
+        str or None
+            The Python function code, or None if unavailable.
+        """
+        if self.response and "feature_engineer_function" in self.response:
+            code = self.response["feature_engineer_function"]
+            if markdown:
+                return Markdown(f"```python\n{code}\n```")
+            return code
+        return None
+
+    def get_recommended_feature_engineering_steps(self, markdown=False):
+        """
+        Retrieves the agent's recommended feature engineering steps.
+
+        Parameters
+        ----------
+        markdown : bool, optional
+            If True, returns the steps in Markdown format.
+
+        Returns
+        -------
+        str or None
+            The recommended steps, or None if not available.
+        """
+        if self.response and "recommended_steps" in self.response:
+            steps = self.response["recommended_steps"]
+            if markdown:
+                return Markdown(steps)
+            return steps
+        return None
+
+    def get_response(self):
+        """
+        Returns the agent's full response dictionary.
+
+        Returns
+        -------
+        dict or None
+            The response dictionary if available, otherwise None.
+        """
+        return self.response
+
+    def show(self):
+        """
+        Displays the agent's mermaid diagram for visual inspection of the compiled graph.
+        """
+        return self._compiled_graph.show()
+
 
 # * Feature Engineering Agent
 
@@ -118,7 +476,7 @@ def make_feature_engineering_agent(
 
     Returns
     -------
-    app : langchain.graphs.StateGraph
+    app : langchain.graphs.CompiledStateGraph
         The feature engineering agent as a state graph.
     """
     llm = model
