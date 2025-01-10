@@ -17,7 +17,7 @@ import os
 import io
 import pandas as pd
 
-from IPython.display import Image, display, Markdown
+from IPython.display import Markdown
 
 from ai_data_science_team.templates import(
     node_func_execute_agent_code_on_data, 
