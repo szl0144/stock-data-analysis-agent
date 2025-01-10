@@ -218,13 +218,13 @@ class FeatureEngineeringAgent(BaseAgent):
         retry_count : int
             Current retry attempt count.
         **kwargs
-            Additional keyword arguments to pass to the compiled graph.
+            Additional keyword arguments to pass to ainvoke().
 
         Returns
         -------
         None
         """
-        response = self._compiled_graph.ainvoke_agent({
+        response = self._compiled_graph.ainvoke({
             "user_instructions": user_instructions,
             "data_raw": data_raw.to_dict(),
             "target_variable": target_variable,
@@ -260,7 +260,7 @@ class FeatureEngineeringAgent(BaseAgent):
         retry_count : int
             Current retry attempt count.
         **kwargs
-            Additional keyword arguments to pass to the compiled graph.
+            Additional keyword arguments to pass to invoke().
 
         Returns
         -------

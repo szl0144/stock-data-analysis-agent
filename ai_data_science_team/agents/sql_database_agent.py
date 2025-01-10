@@ -178,7 +178,7 @@ class SQLDatabaseAgent(BaseAgent):
             self._params[k] = v
         self._compiled_graph = self._make_compiled_graph()
 
-    def ainvoke_agent(self, user_instructions: str=None, max_retries=3, retry_count=0):
+    def ainvoke_agent(self, user_instructions: str=None, max_retries=3, retry_count=0, **kwargs):
         """
         Asynchronously runs the SQL Database Agent based on user instructions.
 
@@ -190,19 +190,21 @@ class SQLDatabaseAgent(BaseAgent):
             Maximum retry attempts. Defaults to 3.
         retry_count : int, optional
             Current retry count. Defaults to 0.
+        kwargs : dict
+            Additional keyword arguments to pass to ainvoke().
 
         Returns
         -------
         None
         """
-        response = self._compiled_graph.ainvoke_agent({
+        response = self._compiled_graph.ainvoke({
             "user_instructions": user_instructions,
             "max_retries": max_retries,
             "retry_count": retry_count
-        })
+        }, **kwargs)
         self.response = response
 
-    def invoke_agent(self, user_instructions: str=None, max_retries=3, retry_count=0):
+    def invoke_agent(self, user_instructions: str=None, max_retries=3, retry_count=0, **kwargs):
         """
         Synchronously runs the SQL Database Agent based on user instructions.
 
@@ -214,6 +216,8 @@ class SQLDatabaseAgent(BaseAgent):
             Maximum retry attempts. Defaults to 3.
         retry_count : int, optional
             Current retry count. Defaults to 0.
+        kwargs : dict
+            Additional keyword arguments to pass to invoke().
 
         Returns
         -------
@@ -223,7 +227,7 @@ class SQLDatabaseAgent(BaseAgent):
             "user_instructions": user_instructions,
             "max_retries": max_retries,
             "retry_count": retry_count
-        })
+        }, **kwargs)
         self.response = response
 
     def explain_sql_steps(self):

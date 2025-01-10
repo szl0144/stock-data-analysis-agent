@@ -186,7 +186,7 @@ class DataVisualizationAgent(BaseAgent):
         # Rebuild the compiled graph
         self._compiled_graph = self._make_compiled_graph()
 
-    def ainvoke_agent(self, data_raw: pd.DataFrame, user_instructions: str=None, max_retries:int=3, retry_count:int=0):
+    def ainvoke_agent(self, data_raw: pd.DataFrame, user_instructions: str=None, max_retries:int=3, retry_count:int=0, **kwargs):
         """
         Asynchronously invokes the agent to generate a visualization. 
         The response is stored in the 'response' attribute.
@@ -201,21 +201,23 @@ class DataVisualizationAgent(BaseAgent):
             Maximum retry attempts.
         retry_count : int
             Current retry attempt count.
+        **kwargs : dict
+            Additional keyword arguments passed to ainvoke().
 
         Returns
         -------
         None
         """
-        response = self._compiled_graph.ainvoke_agent({
+        response = self._compiled_graph.ainvoke({
             "user_instructions": user_instructions,
             "data_raw": data_raw.to_dict(),
             "max_retries": max_retries,
             "retry_count": retry_count,
-        })
+        }, **kwargs)
         self.response = response
         return None
 
-    def invoke_agent(self, data_raw: pd.DataFrame, user_instructions: str=None,  max_retries:int=3, retry_count:int=0):
+    def invoke_agent(self, data_raw: pd.DataFrame, user_instructions: str=None,  max_retries:int=3, retry_count:int=0, **kwargs):
         """
         Synchronously invokes the agent to generate a visualization. 
         The response is stored in the 'response' attribute.
@@ -230,6 +232,8 @@ class DataVisualizationAgent(BaseAgent):
             Maximum retry attempts.
         retry_count : int
             Current retry attempt count.
+        **kwargs : dict
+            Additional keyword arguments passed to invoke().
 
         Returns
         -------
@@ -240,7 +244,7 @@ class DataVisualizationAgent(BaseAgent):
             "data_raw": data_raw.to_dict(),
             "max_retries": max_retries,
             "retry_count": retry_count,
-        })
+        }, **kwargs)
         self.response = response
         return None
 

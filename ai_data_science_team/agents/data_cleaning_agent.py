@@ -175,51 +175,63 @@ class DataCleaningAgent(BaseAgent):
         return make_data_cleaning_agent(**self._params)
 
     
-    def ainvoke_agent(self, data_raw: pd.DataFrame, user_instructions: str=None, max_retries:int=3, retry_count:int=0):
+    def ainvoke_agent(self, data_raw: pd.DataFrame, user_instructions: str=None, max_retries:int=3, retry_count:int=0, **kwargs):
         """
         Asynchronously invokes the agent. The response is stored in the response attribute.
 
         Parameters:
         ----------
-            data_raw (pd.DataFrame): The raw dataset to be cleaned.
-            user_instructions (str): Instructions for data cleaning.
-            max_retries (int): Maximum retry attempts for cleaning.
-            retry_count (int): Current retry attempt.
+            data_raw (pd.DataFrame): 
+                The raw dataset to be cleaned.
+            user_instructions (str): 
+                Instructions for data cleaning agent.
+            max_retries (int): 
+                Maximum retry attempts for cleaning.
+            retry_count (int): 
+                Current retry attempt.
+            **kwargs
+                Additional keyword arguments to pass to ainvoke().
 
         Returns:
         --------
             None. The response is stored in the response attribute.
         """
-        response = self._compiled_graph.ainvoke_agent({
+        response = self._compiled_graph.ainvoke({
             "user_instructions": user_instructions,
             "data_raw": data_raw.to_dict(),
             "max_retries": max_retries,
             "retry_count": retry_count,
-        })
+        }, **kwargs)
         self.response = response
         return None
     
-    def invoke_agent(self, data_raw: pd.DataFrame, user_instructions: str=None, max_retries:int=3, retry_count:int=0):
+    def invoke_agent(self, data_raw: pd.DataFrame, user_instructions: str=None, max_retries:int=3, retry_count:int=0, **kwargs):
         """
         Invokes the agent. The response is stored in the response attribute.
 
         Parameters:
         ----------
-            data_raw (pd.DataFrame): The raw dataset to be cleaned.
-            user_instructions (str): Instructions for data cleaning agent.
-            max_retries (int): Maximum retry attempts for cleaning.
-            retry_count (int): Current retry attempt.
+            data_raw (pd.DataFrame): 
+                The raw dataset to be cleaned.
+            user_instructions (str): 
+                Instructions for data cleaning agent.
+            max_retries (int): 
+                Maximum retry attempts for cleaning.
+            retry_count (int): 
+                Current retry attempt.
+            **kwargs
+                Additional keyword arguments to pass to invoke().
 
         Returns:
         --------
             None. The response is stored in the response attribute.
         """
-        response = self._compiled_graph.invoke_agent({
+        response = self._compiled_graph.invoke({
             "user_instructions": user_instructions,
             "data_raw": data_raw.to_dict(),
             "max_retries": max_retries,
             "retry_count": retry_count,
-        })
+        },**kwargs)
         self.response = response
         return None
 

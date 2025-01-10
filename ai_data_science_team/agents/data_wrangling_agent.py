@@ -207,7 +207,8 @@ class DataWranglingAgent(BaseAgent):
         data_raw: Union[pd.DataFrame, dict, list],
         user_instructions: str=None,
         max_retries:int=3,
-        retry_count:int=0
+        retry_count:int=0,
+        **kwargs
     ):
         """
         Asynchronously wrangles the provided dataset(s) based on user instructions.
@@ -225,18 +226,20 @@ class DataWranglingAgent(BaseAgent):
             Maximum retry attempts.
         retry_count : int
             Current retry attempt count.
+        **kwargs
+            Additional keyword arguments to pass to ainvoke().
 
         Returns
         -------
         None
         """
         data_input = self._convert_data_input(data_raw)
-        response = self._compiled_graph.ainvoke_agent({
+        response = self._compiled_graph.ainvoke({
             "user_instructions": user_instructions,
             "data_raw": data_input,
             "max_retries": max_retries,
             "retry_count": retry_count
-        })
+        }, **kwargs)
         self.response = response
         return None
 
@@ -245,7 +248,8 @@ class DataWranglingAgent(BaseAgent):
         data_raw: Union[pd.DataFrame, dict, list],
         user_instructions: str=None,
         max_retries:int=3,
-        retry_count:int=0
+        retry_count:int=0,
+        **kwargs
     ):
         """
         Synchronously wrangles the provided dataset(s) based on user instructions.
@@ -262,6 +266,8 @@ class DataWranglingAgent(BaseAgent):
             Maximum retry attempts.
         retry_count : int
             Current retry attempt count.
+        **kwargs
+            Additional keyword arguments to pass to invoke().
 
         Returns
         -------
@@ -273,7 +279,7 @@ class DataWranglingAgent(BaseAgent):
             "data_raw": data_input,
             "max_retries": max_retries,
             "retry_count": retry_count
-        })
+        }, **kwargs)
         self.response = response
         return None
 
