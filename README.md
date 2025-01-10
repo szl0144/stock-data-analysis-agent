@@ -19,7 +19,7 @@ The AI Data Science Team of Copilots includes Agents that specialize data cleani
 
 ## Table of Contents
 
-- [Your AI Data Science Team (An Army Of Copilots)](#your-ai-data-science-team-an-army-of-copilots)
+- [Your AI Data Science Team (An Army Of Agents)](#your-ai-data-science-team-an-army-of-agents)
   - [Table of Contents](#table-of-contents)
   - [Companies That Want An AI Data Science Team Copilot](#companies-that-want-an-ai-data-science-team-copilot)
   - [Free Generative AI For Data Scientists Workshop](#free-generative-ai-for-data-scientists-workshop)
@@ -97,15 +97,15 @@ pip install git+https://github.com/business-science/ai-data-science-team.git --u
 [See the full example here.](/examples/feature_engineering_agent.ipynb)
 
 ``` python
-feature_engineering_agent = make_feature_engineering_agent(model = llm)
+feature_engineering_agent = FeatureEngineeringAgent(model = llm)
 
-response = feature_engineering_agent.invoke({
-    "user_instructions": "Make sure to scale and center numeric features",
-    "target_variable": "Churn",
-    "data_raw": df.to_dict(),
-    "max_retries":3, 
-    "retry_count":0
-})
+feature_engineering_agent.invoke(
+    user_instructions = "Make sure to scale and center numeric features",
+    target_variable = "Churn",
+    data_raw = df,
+    max_retries = 3,
+    retry_count = 0
+)
 ```
 
 ``` bash
@@ -120,14 +120,14 @@ response = feature_engineering_agent.invoke({
 [See the full example here.](/examples/data_cleaning_agent.ipynb) 
 
 ``` python
-data_cleaning_agent = make_data_cleaning_agent(model = llm)
+data_cleaning_agent = DataCleaningAgent(model = llm)
 
-response = data_cleaning_agent.invoke({
-    "user_instructions": "Don't remove outliers when cleaning the data.",
-    "data_raw": df.to_dict(),
-    "max_retries":3, 
-    "retry_count":0
-})
+response = data_cleaning_agent.invoke(
+    user_instructions = "Don't remove outliers when cleaning the data.",
+    data_raw = df,
+    max_retries = 3,
+    retry_count = 0
+)
 ```
 
 ``` bash
