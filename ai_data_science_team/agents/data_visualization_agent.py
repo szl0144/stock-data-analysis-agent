@@ -33,6 +33,7 @@ from ai_data_science_team.tools.parsers import PythonOutputParser
 from ai_data_science_team.tools.regex import relocate_imports_inside_function, add_comments_to_top, format_agent_name
 from ai_data_science_team.tools.metadata import get_dataframe_summary
 from ai_data_science_team.tools.logging import log_ai_function
+from ai_data_science_team.utils.plotly import plotly_from_dict
 
 # Setup
 AGENT_NAME = "data_visualization_agent"
@@ -288,7 +289,7 @@ class DataVisualizationAgent(BaseAgent):
             The Plotly graph dictionary if available, otherwise None.
         """
         if self.response:
-            return self.response.get("plotly_graph", None)
+            return plotly_from_dict(self.response.get("plotly_graph", None))
         return None
 
     def get_data_raw(self):
