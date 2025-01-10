@@ -97,6 +97,7 @@ class BaseAgent(CompiledStateGraph):
             xray (int): If set to 1, displays subgraph levels. Defaults to 0.
         """
         display(Image(self.get_graph(xray=xray).draw_mermaid_png()))
+        
 
 
 
@@ -169,35 +170,37 @@ def create_coding_agent_graph(
 
     workflow = StateGraph(GraphState)
     
-    # Conditionally add the recommended-steps node
-    if not bypass_recommended_steps:
-        workflow.add_node(recommended_steps_node_name, node_functions[recommended_steps_node_name])
+    # * NODES
     
     # Always add create, execute, and fix nodes
     workflow.add_node(create_code_node_name, node_functions[create_code_node_name])
     workflow.add_node(execute_code_node_name, node_functions[execute_code_node_name])
     workflow.add_node(fix_code_node_name, node_functions[fix_code_node_name])
     
+    # Conditionally add the recommended-steps node
+    if not bypass_recommended_steps:
+        workflow.add_node(recommended_steps_node_name, node_functions[recommended_steps_node_name])
+    
+    # Conditionally add the human review node
+    if human_in_the_loop:
+        workflow.add_node(human_review_node_name, node_functions[human_review_node_name])
+    
     # Conditionally add the explanation node
     if not bypass_explain_code:
         workflow.add_node(explain_code_node_name, node_functions[explain_code_node_name])
     
+    # * EDGES
+    
     # Set the entry point
     entry_point = create_code_node_name if bypass_recommended_steps else recommended_steps_node_name
+    
     workflow.set_entry_point(entry_point)
     
-    # Add edges for recommended steps
     if not bypass_recommended_steps:
-        if human_in_the_loop:
-            workflow.add_edge(recommended_steps_node_name, human_review_node_name)
-        else:
-            workflow.add_edge(recommended_steps_node_name, create_code_node_name)
-    elif human_in_the_loop:
-        # Skip recommended steps but still include human review
-        workflow.add_edge(create_code_node_name, human_review_node_name)
+        workflow.add_edge(recommended_steps_node_name, create_code_node_name)
     
-    # Create -> Execute
     workflow.add_edge(create_code_node_name, execute_code_node_name)
+    workflow.add_edge(fix_code_node_name, execute_code_node_name)
     
     # Define a helper to check if we have an error & can still retry
     def error_and_can_retry(state):
@@ -207,39 +210,43 @@ def create_coding_agent_graph(
             and state.get(max_retries_key) is not None
             and state[retry_count_key] < state[max_retries_key]
         )
-    
-    # ---- Split into two branches for bypass_explain_code ----
-    if not bypass_explain_code:
-        # If we are NOT bypassing explain, the next node is fix_code if error,
-        # else explain_code. Then we wire explain_code -> END afterward.
+        
+    # If human in the loop, add a branch for human review
+    if human_in_the_loop:
         workflow.add_conditional_edges(
             execute_code_node_name,
-            lambda s: "fix_code" if error_and_can_retry(s) else "explain_code",
+            lambda s: "fix_code" if error_and_can_retry(s) else "human_review",
             {
+                "human_review": human_review_node_name,
                 "fix_code": fix_code_node_name,
-                "explain_code": explain_code_node_name,
             },
         )
-        # Fix code -> Execute again
-        workflow.add_edge(fix_code_node_name, execute_code_node_name)
-        # explain_code -> END
-        workflow.add_edge(explain_code_node_name, END)
     else:
-        # If we ARE bypassing explain_code, the next node is fix_code if error,
-        # else straight to END.
-        workflow.add_conditional_edges(
-            execute_code_node_name,
-            lambda s: "fix_code" if error_and_can_retry(s) else "END",
-            {
-                "fix_code": fix_code_node_name,
-                "END": END,
-            },
-        )
-        # Fix code -> Execute again
-        workflow.add_edge(fix_code_node_name, execute_code_node_name)
+        # If no human review, the next node is fix_code if error, else explain_code.
+        if not bypass_explain_code:
+            workflow.add_conditional_edges(
+                execute_code_node_name,
+                lambda s: "fix_code" if error_and_can_retry(s) else "explain_code",
+                {
+                    "fix_code": fix_code_node_name,
+                    "explain_code": explain_code_node_name,
+                },
+            )
+        else:
+            workflow.add_conditional_edges(
+                execute_code_node_name,
+                lambda s: "fix_code" if error_and_can_retry(s) else "END",
+                {
+                    "fix_code": fix_code_node_name,
+                    "END": END,
+                },
+            )
+            
+    if not bypass_explain_code:
+        workflow.add_edge(explain_code_node_name, END)
     
     # Finally, compile
-    if human_in_the_loop and checkpointer is not None:
+    if human_in_the_loop:
         app = workflow.compile(checkpointer=checkpointer)
     else:
         app = workflow.compile()
@@ -255,6 +262,7 @@ def node_func_human_review(
     no_goto: str,
     user_instructions_key: str = "user_instructions",
     recommended_steps_key: str = "recommended_steps",
+    code_snippet_key: str = "code_snippet",
 ) -> Command[str]:
     """
     A generic function to handle human review steps.
@@ -273,6 +281,8 @@ def node_func_human_review(
         The key in the state to store user instructions.
     recommended_steps_key : str, optional
         The key in the state to store recommended steps.    
+    code_snippet_key : str, optional
+        The key in the state to store the code snippet.
     
     Returns
     -------
@@ -282,7 +292,7 @@ def node_func_human_review(
     print("    * HUMAN REVIEW")
 
     # Display instructions and get user response
-    user_input = interrupt(value=prompt_text.format(steps=state.get(recommended_steps_key, '')))
+    user_input = interrupt(value=prompt_text.format(steps=state.get(recommended_steps_key, '') + "\n\n```" + state.get(code_snippet_key)+"\n```"))
 
     # Decide next steps based on user input
     if user_input.strip().lower() == "yes":

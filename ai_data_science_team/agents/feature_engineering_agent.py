@@ -198,7 +198,8 @@ class FeatureEngineeringAgent(BaseAgent):
         data_raw: pd.DataFrame, 
         target_variable: str = None, 
         max_retries=3, 
-        retry_count=0
+        retry_count=0,
+        **kwargs
     ):
         """
         Asynchronously engineers features for the provided dataset.
@@ -216,6 +217,8 @@ class FeatureEngineeringAgent(BaseAgent):
             Maximum retry attempts.
         retry_count : int
             Current retry attempt count.
+        **kwargs
+            Additional keyword arguments to pass to the compiled graph.
 
         Returns
         -------
@@ -227,7 +230,7 @@ class FeatureEngineeringAgent(BaseAgent):
             "target_variable": target_variable,
             "max_retries": max_retries,
             "retry_count": retry_count
-        })
+        }, **kwargs)
         self.response = response
         return None
 
@@ -237,7 +240,8 @@ class FeatureEngineeringAgent(BaseAgent):
         data_raw: pd.DataFrame,
         target_variable: str = None,
         max_retries=3,
-        retry_count=0
+        retry_count=0,
+        **kwargs
     ):
         """
         Synchronously engineers features for the provided dataset.
@@ -255,6 +259,8 @@ class FeatureEngineeringAgent(BaseAgent):
             Maximum retry attempts.
         retry_count : int
             Current retry attempt count.
+        **kwargs
+            Additional keyword arguments to pass to the compiled graph.
 
         Returns
         -------
@@ -266,7 +272,7 @@ class FeatureEngineeringAgent(BaseAgent):
             "target_variable": target_variable,
             "max_retries": max_retries,
             "retry_count": retry_count
-        })
+        }, **kwargs)
         self.response = response
         return None
 
@@ -580,15 +586,55 @@ def make_feature_engineering_agent(
             "all_datasets_summary": all_datasets_summary_str
         }
     
-    def human_review(state: GraphState) -> Command[Literal["recommend_feature_engineering_steps", "create_feature_engineering_code"]]:
-        return node_func_human_review(
-            state=state,
-            prompt_text="Is the following feature engineering instructions correct? (Answer 'yes' or provide modifications)\n{steps}",
-            yes_goto="create_feature_engineering_code",
-            no_goto="recommend_feature_engineering_steps",
-            user_instructions_key="user_instructions",
-            recommended_steps_key="recommended_steps" 
-        )
+    # Human Review   
+    
+    prompt_text_human_review = "Are the following feature engineering instructions correct? (Answer 'yes' or provide modifications)\n{steps}"
+    if not bypass_explain_code:
+        if not bypass_recommended_steps:
+            def human_review(state: GraphState) -> Command[Literal["recommend_feature_engineering_steps", "explain_feature_engineering_code"]]:
+                return node_func_human_review(
+                    state=state,
+                    prompt_text=prompt_text_human_review,
+                    yes_goto= 'explain_feature_engineering_code',
+                    no_goto="recommend_feature_engineering_steps",
+                    user_instructions_key="user_instructions",
+                    recommended_steps_key="recommended_steps",
+                    code_snippet_key="feature_engineer_function",
+                )
+        else:
+            def human_review(state: GraphState) -> Command[Literal["create_feature_engineering_code", "explain_feature_engineering_code"]]:
+                return node_func_human_review(
+                    state=state,
+                    prompt_text=prompt_text_human_review,
+                    yes_goto= 'explain_feature_engineering_code',
+                    no_goto="create_feature_engineering_code",
+                    user_instructions_key="user_instructions",
+                    recommended_steps_key="recommended_steps",
+                    code_snippet_key="feature_engineer_function",
+                )
+    else:
+        if not bypass_recommended_steps:
+            def human_review(state: GraphState) -> Command[Literal["recommend_feature_engineering_steps", "__end__"]]:
+                return node_func_human_review(
+                    state=state,
+                    prompt_text=prompt_text_human_review,
+                    yes_goto= '__end__',
+                    no_goto="recommend_feature_engineering_steps",
+                    user_instructions_key="user_instructions",
+                    recommended_steps_key="recommended_steps",
+                    code_snippet_key="feature_engineer_function", 
+                )
+        else:
+            def human_review(state: GraphState) -> Command[Literal["create_feature_engineering_code", "__end__"]]:
+                return node_func_human_review(
+                    state=state,
+                    prompt_text=prompt_text_human_review,
+                    yes_goto= '__end__',
+                    no_goto="create_feature_engineering_code",
+                    user_instructions_key="user_instructions",
+                    recommended_steps_key="recommended_steps",
+                    code_snippet_key="feature_engineer_function",
+                )
     
     def create_feature_engineering_code(state: GraphState):
         if bypass_recommended_steps:
@@ -753,9 +799,11 @@ def make_feature_engineering_agent(
         fix_code_node_name="fix_feature_engineering_code",
         explain_code_node_name="explain_feature_engineering_code",
         error_key="feature_engineer_error",
+        max_retries_key = "max_retries",
+        retry_count_key = "retry_count",
         human_in_the_loop=human_in_the_loop,
         human_review_node_name="human_review",
-        checkpointer=MemorySaver() if human_in_the_loop else None,
+        checkpointer=MemorySaver(),
         bypass_recommended_steps=bypass_recommended_steps,
         bypass_explain_code=bypass_explain_code,
     )
