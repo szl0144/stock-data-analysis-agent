@@ -71,9 +71,9 @@ class SQLDatabaseAgent(BaseAgent):
     -------
     update_params(**kwargs)
         Updates the agent's parameters and rebuilds the compiled state graph.
-    ainvoke(user_instructions: str, max_retries=3, retry_count=0)
+    ainvoke_agent(user_instructions: str, max_retries=3, retry_count=0)
         Asynchronously runs the agent to generate and execute a SQL query based on user instructions.
-    invoke(user_instructions: str, max_retries=3, retry_count=0)
+    invoke_agent(user_instructions: str, max_retries=3, retry_count=0)
         Synchronously runs the agent to generate and execute a SQL query based on user instructions.
     explain_sql_steps()
         Returns an explanation of the SQL steps performed by the agent.
@@ -116,7 +116,7 @@ class SQLDatabaseAgent(BaseAgent):
     )
 
     # Example usage
-    sql_database_agent.invoke(
+    sql_database_agent.invoke_agent(
         user_instructions="List all the tables in the database.",
         max_retries=3,
         retry_count=0
@@ -178,7 +178,7 @@ class SQLDatabaseAgent(BaseAgent):
             self._params[k] = v
         self._compiled_graph = self._make_compiled_graph()
 
-    def ainvoke(self, user_instructions: str, max_retries=3, retry_count=0):
+    def ainvoke_agent(self, user_instructions: str=None, max_retries=3, retry_count=0):
         """
         Asynchronously runs the SQL Database Agent based on user instructions.
 
@@ -195,14 +195,14 @@ class SQLDatabaseAgent(BaseAgent):
         -------
         None
         """
-        response = self._compiled_graph.ainvoke({
+        response = self._compiled_graph.ainvoke_agent({
             "user_instructions": user_instructions,
             "max_retries": max_retries,
             "retry_count": retry_count
         })
         self.response = response
 
-    def invoke(self, user_instructions: str, max_retries=3, retry_count=0):
+    def invoke_agent(self, user_instructions: str=None, max_retries=3, retry_count=0):
         """
         Synchronously runs the SQL Database Agent based on user instructions.
 

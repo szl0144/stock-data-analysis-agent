@@ -80,10 +80,10 @@ class DataWranglingAgent(BaseAgent):
     update_params(**kwargs)
         Updates the agent's parameters and rebuilds the compiled state graph.
 
-    ainvoke(user_instructions: str, data_raw: Union[dict, list], max_retries=3, retry_count=0)
+    ainvoke_agent(user_instructions: str, data_raw: Union[dict, list], max_retries=3, retry_count=0)
         Asynchronously wrangles the provided dataset(s) based on user instructions.
 
-    invoke(user_instructions: str, data_raw: Union[dict, list], max_retries=3, retry_count=0)
+    invoke_agent(user_instructions: str, data_raw: Union[dict, list], max_retries=3, retry_count=0)
         Synchronously wrangles the provided dataset(s) based on user instructions.
 
     explain_wrangling_steps()
@@ -130,7 +130,7 @@ class DataWranglingAgent(BaseAgent):
 
     df = pd.read_csv("https://raw.githubusercontent.com/business-science/ai-data-science-team/refs/heads/master/data/churn_data.csv")
 
-    data_wrangling_agent.invoke(
+    data_wrangling_agent.invoke_agent(
         user_instructions="Group by 'gender' and compute mean of 'tenure'.",
         data_raw=df,  # data_raw can be df.to_dict() or just a DataFrame
         max_retries=3,
@@ -144,7 +144,7 @@ class DataWranglingAgent(BaseAgent):
     df1 = pd.DataFrame({'id': [1,2,3], 'val1': [10,20,30]})
     df2 = pd.DataFrame({'id': [1,2,3], 'val2': [40,50,60]})
 
-    data_wrangling_agent.invoke(
+    data_wrangling_agent.invoke_agent(
         user_instructions="Merge these two datasets on 'id' and compute a new column 'val_sum' = val1+val2",
         data_raw=[df1, df2],   # multiple datasets
         max_retries=3,
@@ -202,12 +202,12 @@ class DataWranglingAgent(BaseAgent):
             self._params[k] = v
         self._compiled_graph = self._make_compiled_graph()
 
-    def ainvoke(
+    def ainvoke_agent(
         self,
-        user_instructions: str,
         data_raw: Union[pd.DataFrame, dict, list],
-        max_retries=3,
-        retry_count=0
+        user_instructions: str=None,
+        max_retries:int=3,
+        retry_count:int=0
     ):
         """
         Asynchronously wrangles the provided dataset(s) based on user instructions.
@@ -215,12 +215,12 @@ class DataWranglingAgent(BaseAgent):
 
         Parameters
         ----------
-        user_instructions : str
-            Instructions for data wrangling.
         data_raw : Union[pd.DataFrame, dict, list]
             The raw dataset(s) to be wrangled. 
             - Can be a single DataFrame, a single dict ({col: list_of_values}), 
               or a list of dicts if multiple datasets are provided.
+        user_instructions : str
+            Instructions for data wrangling.
         max_retries : int
             Maximum retry attempts.
         retry_count : int
@@ -231,7 +231,7 @@ class DataWranglingAgent(BaseAgent):
         None
         """
         data_input = self._convert_data_input(data_raw)
-        response = self._compiled_graph.ainvoke({
+        response = self._compiled_graph.ainvoke_agent({
             "user_instructions": user_instructions,
             "data_raw": data_input,
             "max_retries": max_retries,
@@ -240,12 +240,12 @@ class DataWranglingAgent(BaseAgent):
         self.response = response
         return None
 
-    def invoke(
+    def invoke_agent(
         self,
-        user_instructions: str,
         data_raw: Union[pd.DataFrame, dict, list],
-        max_retries=3,
-        retry_count=0
+        user_instructions: str=None,
+        max_retries:int=3,
+        retry_count:int=0
     ):
         """
         Synchronously wrangles the provided dataset(s) based on user instructions.
@@ -253,11 +253,11 @@ class DataWranglingAgent(BaseAgent):
 
         Parameters
         ----------
-        user_instructions : str
-            Instructions for data wrangling.
         data_raw : Union[pd.DataFrame, dict, list]
             The raw dataset(s) to be wrangled.
             - Can be a single DataFrame, a single dict, or a list of dicts.
+        user_instructions : str
+            Instructions for data wrangling agent.
         max_retries : int
             Maximum retry attempts.
         retry_count : int
@@ -314,7 +314,7 @@ class DataWranglingAgent(BaseAgent):
 
     def get_data_wrangled(self) -> Optional[pd.DataFrame]:
         """
-        Retrieves the wrangled data after running invoke() or ainvoke().
+        Retrieves the wrangled data after running invoke_agent() or ainvoke_agent().
 
         Returns
         -------

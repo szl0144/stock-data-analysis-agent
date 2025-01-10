@@ -80,7 +80,7 @@ class FeatureEngineeringAgent(BaseAgent):
     -------
     update_params(**kwargs)
         Updates the agent's parameters and rebuilds the compiled state graph.
-    ainvoke(
+    ainvoke_agent(
         user_instructions: str, 
         data_raw: pd.DataFrame, 
         target_variable: str = None, 
@@ -88,7 +88,7 @@ class FeatureEngineeringAgent(BaseAgent):
         retry_count=0
     )
         Engineers features from the provided dataset asynchronously based on user instructions.
-    invoke(
+    invoke_agent(
         user_instructions: str, 
         data_raw: pd.DataFrame, 
         target_variable: str = None, 
@@ -132,7 +132,7 @@ class FeatureEngineeringAgent(BaseAgent):
 
     df = pd.read_csv("https://raw.githubusercontent.com/business-science/ai-data-science-team/refs/heads/master/data/churn_data.csv")
 
-    feature_agent.invoke(
+    feature_agent.invoke_agent(
         user_instructions="Also encode the 'PaymentMethod' column with one-hot encoding.", 
         data_raw=df, 
         target_variable="Churn",
@@ -192,10 +192,10 @@ class FeatureEngineeringAgent(BaseAgent):
             self._params[k] = v
         self._compiled_graph = self._make_compiled_graph()
 
-    def ainvoke(
+    def ainvoke_agent(
         self, 
-        user_instructions: str, 
         data_raw: pd.DataFrame, 
+        user_instructions: str=None, 
         target_variable: str = None, 
         max_retries=3, 
         retry_count=0,
@@ -207,10 +207,10 @@ class FeatureEngineeringAgent(BaseAgent):
 
         Parameters
         ----------
-        user_instructions : str
-            Instructions for feature engineering.
         data_raw : pd.DataFrame
             The raw dataset to be processed.
+        user_instructions : str, optional
+            Instructions for feature engineering.
         target_variable : str, optional
             The name of the target variable (if any).
         max_retries : int
@@ -224,7 +224,7 @@ class FeatureEngineeringAgent(BaseAgent):
         -------
         None
         """
-        response = self._compiled_graph.ainvoke({
+        response = self._compiled_graph.ainvoke_agent({
             "user_instructions": user_instructions,
             "data_raw": data_raw.to_dict(),
             "target_variable": target_variable,
@@ -234,10 +234,10 @@ class FeatureEngineeringAgent(BaseAgent):
         self.response = response
         return None
 
-    def invoke(
+    def invoke_agent(
         self,
-        user_instructions: str,
         data_raw: pd.DataFrame,
+        user_instructions: str=None,
         target_variable: str = None,
         max_retries=3,
         retry_count=0,
@@ -249,10 +249,10 @@ class FeatureEngineeringAgent(BaseAgent):
 
         Parameters
         ----------
-        user_instructions : str
-            Instructions for feature engineering.
         data_raw : pd.DataFrame
             The raw dataset to be processed.
+        user_instructions : str
+            Instructions for feature engineering agent.
         target_variable : str, optional
             The name of the target variable (if any).
         max_retries : int

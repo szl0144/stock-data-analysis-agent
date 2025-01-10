@@ -83,9 +83,9 @@ class DataCleaningAgent(BaseAgent):
     -------
     update_params(**kwargs)
         Updates the agent's parameters and rebuilds the compiled state graph.
-    ainvoke(user_instructions: str, data_raw: pd.DataFrame, max_retries=3, retry_count=0)
+    ainvoke_agent(user_instructions: str, data_raw: pd.DataFrame, max_retries=3, retry_count=0)
         Cleans the provided dataset asynchronously based on user instructions.
-    invoke(user_instructions: str, data_raw: pd.DataFrame, max_retries=3, retry_count=0)
+    invoke_agent(user_instructions: str, data_raw: pd.DataFrame, max_retries=3, retry_count=0)
         Cleans the provided dataset synchronously based on user instructions.
     explain_cleaning_steps()
         Returns an explanation of the cleaning steps performed by the agent.
@@ -123,7 +123,7 @@ class DataCleaningAgent(BaseAgent):
 
     df = pd.read_csv("https://raw.githubusercontent.com/business-science/ai-data-science-team/refs/heads/master/data/churn_data.csv")
 
-    data_cleaning_agent.invoke(
+    data_cleaning_agent.invoke_agent(
         user_instructions="Don't remove outliers when cleaning the data.",
         data_raw=df,
         max_retries=3,
@@ -175,14 +175,14 @@ class DataCleaningAgent(BaseAgent):
         return make_data_cleaning_agent(**self._params)
 
     
-    def ainvoke(self, user_instructions: str, data_raw: pd.DataFrame, max_retries=3, retry_count=0):
+    def ainvoke_agent(self, data_raw: pd.DataFrame, user_instructions: str=None, max_retries:int=3, retry_count:int=0):
         """
         Asynchronously invokes the agent. The response is stored in the response attribute.
 
         Parameters:
         ----------
-            user_instructions (str): Instructions for data cleaning.
             data_raw (pd.DataFrame): The raw dataset to be cleaned.
+            user_instructions (str): Instructions for data cleaning.
             max_retries (int): Maximum retry attempts for cleaning.
             retry_count (int): Current retry attempt.
 
@@ -190,7 +190,7 @@ class DataCleaningAgent(BaseAgent):
         --------
             None. The response is stored in the response attribute.
         """
-        response = self._compiled_graph.ainvoke({
+        response = self._compiled_graph.ainvoke_agent({
             "user_instructions": user_instructions,
             "data_raw": data_raw.to_dict(),
             "max_retries": max_retries,
@@ -199,14 +199,14 @@ class DataCleaningAgent(BaseAgent):
         self.response = response
         return None
     
-    def invoke(self, user_instructions: str, data_raw: pd.DataFrame, max_retries=3, retry_count=0):
+    def invoke_agent(self, data_raw: pd.DataFrame, user_instructions: str=None, max_retries:int=3, retry_count:int=0):
         """
         Invokes the agent. The response is stored in the response attribute.
 
         Parameters:
         ----------
-            user_instructions (str): Instructions for data cleaning.
             data_raw (pd.DataFrame): The raw dataset to be cleaned.
+            user_instructions (str): Instructions for data cleaning agent.
             max_retries (int): Maximum retry attempts for cleaning.
             retry_count (int): Current retry attempt.
 
@@ -214,7 +214,7 @@ class DataCleaningAgent(BaseAgent):
         --------
             None. The response is stored in the response attribute.
         """
-        response = self._compiled_graph.invoke({
+        response = self._compiled_graph.invoke_agent({
             "user_instructions": user_instructions,
             "data_raw": data_raw.to_dict(),
             "max_retries": max_retries,
@@ -247,7 +247,7 @@ class DataCleaningAgent(BaseAgent):
     
     def get_data_cleaned(self):
         """
-        Retrieves the cleaned data stored after running invoke or clean_data methods.
+        Retrieves the cleaned data stored after running invoke_agent or clean_data methods.
         """
         if self.response:
             return pd.DataFrame(self.response.get("data_cleaned"))

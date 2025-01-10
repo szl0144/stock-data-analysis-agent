@@ -82,9 +82,9 @@ class DataVisualizationAgent(BaseAgent):
     -------
     update_params(**kwargs)
         Updates the agent's parameters and rebuilds the compiled state graph.
-    ainvoke(user_instructions: str, data_raw: pd.DataFrame, max_retries=3, retry_count=0)
+    ainvoke_agent(user_instructions: str, data_raw: pd.DataFrame, max_retries=3, retry_count=0)
         Asynchronously generates a visualization based on user instructions.
-    invoke(user_instructions: str, data_raw: pd.DataFrame, max_retries=3, retry_count=0)
+    invoke_agent(user_instructions: str, data_raw: pd.DataFrame, max_retries=3, retry_count=0)
         Synchronously generates a visualization based on user instructions.
     explain_visualization_steps()
         Returns an explanation of the visualization steps performed by the agent.
@@ -122,7 +122,7 @@ class DataVisualizationAgent(BaseAgent):
 
     df = pd.read_csv("https://raw.githubusercontent.com/business-science/ai-data-science-team/refs/heads/master/data/churn_data.csv")
 
-    data_visualization_agent.invoke(
+    data_visualization_agent.invoke_agent(
         user_instructions="Generate a scatter plot of age vs. total charges with a trend line.",
         data_raw=df,
         max_retries=3,
@@ -186,17 +186,17 @@ class DataVisualizationAgent(BaseAgent):
         # Rebuild the compiled graph
         self._compiled_graph = self._make_compiled_graph()
 
-    def ainvoke(self, user_instructions: str, data_raw: pd.DataFrame, max_retries=3, retry_count=0):
+    def ainvoke_agent(self, data_raw: pd.DataFrame, user_instructions: str=None, max_retries:int=3, retry_count:int=0):
         """
         Asynchronously invokes the agent to generate a visualization. 
         The response is stored in the 'response' attribute.
 
         Parameters
         ----------
-        user_instructions : str
-            Instructions for data visualization.
         data_raw : pd.DataFrame
             The raw dataset to be visualized.
+        user_instructions : str
+            Instructions for data visualization.
         max_retries : int
             Maximum retry attempts.
         retry_count : int
@@ -206,7 +206,7 @@ class DataVisualizationAgent(BaseAgent):
         -------
         None
         """
-        response = self._compiled_graph.ainvoke({
+        response = self._compiled_graph.ainvoke_agent({
             "user_instructions": user_instructions,
             "data_raw": data_raw.to_dict(),
             "max_retries": max_retries,
@@ -215,17 +215,17 @@ class DataVisualizationAgent(BaseAgent):
         self.response = response
         return None
 
-    def invoke(self, user_instructions: str, data_raw: pd.DataFrame, max_retries=3, retry_count=0):
+    def invoke_agent(self, data_raw: pd.DataFrame, user_instructions: str=None,  max_retries:int=3, retry_count:int=0):
         """
         Synchronously invokes the agent to generate a visualization. 
         The response is stored in the 'response' attribute.
 
         Parameters
         ----------
-        user_instructions : str
-            Instructions for data visualization.
         data_raw : pd.DataFrame
             The raw dataset to be visualized.
+        user_instructions : str
+            Instructions for data visualization agent.
         max_retries : int
             Maximum retry attempts.
         retry_count : int
