@@ -53,9 +53,9 @@ The AI Data Science Team of Copilots includes Agents that specialize data cleani
   - [Contributing](#contributing)
   - [License](#license)
 
-## Companies That Want An AI Data Science Team
+## Companies That Want A Custom AI Data Science Team (And AI Apps)
 
-If you are interested in having your own _customized_ enterprise-grade AI Data Science Team, send inquiries here: [https://www.business-science.io/contact.html](https://www.business-science.io/contact.html)
+If you are interested in having your own _customized_ enterprise-grade AI Data Science Team and/or custom AI-powered Apps, send inquiries here: [https://www.business-science.io/contact.html](https://www.business-science.io/contact.html)
 
 ## Free Generative AI For Data Scientists Workshop
 
