@@ -3,11 +3,13 @@ from langgraph.graph import StateGraph, END
 from langgraph.types import interrupt, Command
 from langgraph.graph.state import CompiledStateGraph
 
+from langchain_core.runnables import RunnableConfig
+from langgraph.pregel.types import StreamMode
 
 import pandas as pd
 import sqlalchemy as sql
 
-from typing import Any, Callable, Dict, Type, Optional
+from typing import Any, Callable, Dict, Type, Optional, Union
 
 from ai_data_science_team.tools.parsers import PythonOutputParser
 from ai_data_science_team.tools.regex import relocate_imports_inside_function, add_comments_to_top
@@ -62,6 +64,100 @@ class BaseAgent(CompiledStateGraph):
         """
         return getattr(self._compiled_graph, name)
 
+    def invoke(
+        self, 
+        input: Union[dict[str, Any], Any], 
+        config: Optional[RunnableConfig] = None, 
+        **kwargs
+    ):
+        """
+        Wrapper for self._compiled_graph.invoke()
+
+        Parameters:
+            input: The input data for the graph. It can be a dictionary or any other type.
+            config: Optional. The configuration for the graph run.
+            **kwarg: Arguments to pass to self._compiled_graph.invoke()
+
+        Returns:
+            Any: The agent's response.
+        """
+        self.response = self._compiled_graph.invoke(input=input, config=config,**kwargs)
+        return self.response
+    
+    def ainvoke(
+        self, 
+        input: Union[dict[str, Any], Any], 
+        config: Optional[RunnableConfig] = None, 
+        **kwargs
+    ):
+        """
+        Wrapper for self._compiled_graph.ainvoke()
+
+        Parameters:
+            input: The input data for the graph. It can be a dictionary or any other type.
+            config: Optional. The configuration for the graph run.
+            **kwarg: Arguments to pass to self._compiled_graph.ainvoke()
+            
+        Returns:
+            Any: The agent's response.
+        """
+        self.response = self._compiled_graph.ainvoke(input=input, config=config,**kwargs)
+        return self.response
+    
+    def stream(
+        self,
+        input: dict[str, Any] | Any,
+        config: RunnableConfig | None = None,
+        stream_mode: StreamMode | list[StreamMode] | None = None, 
+        **kwargs
+    ):
+        """
+        Wrapper for self._compiled_graph.stream()
+
+        Parameters:
+            input: The input to the graph.
+            config: The configuration to use for the run.
+            stream_mode: The mode to stream output, defaults to self.stream_mode.
+                Options are 'values', 'updates', and 'debug'.
+                values: Emit the current values of the state for each step.
+                updates: Emit only the updates to the state for each step.
+                    Output is a dict with the node name as key and the updated values as value.
+                debug: Emit debug events for each step.
+            **kwarg: Arguments to pass to self._compiled_graph.stream()
+
+        Returns:
+            Any: The agent's response.
+        """
+        self.response = self._compiled_graph.stream(input=input, config=config, stream_mode=stream_mode, **kwargs)
+        return self.response
+    
+    def astream(
+        self,
+        input: dict[str, Any] | Any,
+        config: RunnableConfig | None = None,
+        stream_mode: StreamMode | list[StreamMode] | None = None, 
+        **kwargs
+    ):
+        """
+        Wrapper for self._compiled_graph.astream()
+
+        Parameters:
+            input: The input to the graph.
+            config: The configuration to use for the run.
+            stream_mode: The mode to stream output, defaults to self.stream_mode.
+                Options are 'values', 'updates', and 'debug'.
+                values: Emit the current values of the state for each step.
+                updates: Emit only the updates to the state for each step.
+                    Output is a dict with the node name as key and the updated values as value.
+                debug: Emit debug events for each step.
+            **kwarg: Arguments to pass to self._compiled_graph.astream()
+
+        Returns:
+            Any: The agent's response.
+        """
+        self.response = self._compiled_graph.astream(input=input, config=config, stream_mode=stream_mode, **kwargs)
+        return self.response
+    
     def get_state_keys(self):
         """
         Returns a list of keys that the state graph response contains.
