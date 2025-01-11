@@ -6,7 +6,7 @@
   </a>
 </div>
 <div align="center">
-  <em>An AI-powered data science team of agents to help you build AI data science apps</em>
+  <em>An AI-powered data science team of agents to help you build head-turning AI data science apps</em>
 </div>
 <div align="center">
   <a href="https://pypi.python.org/pypi/ai-data-science-team"><img src="https://img.shields.io/pypi/v/ai-data-science-team.svg" alt="PyPI"></a>
@@ -17,7 +17,7 @@
 
 # Your AI Data Science Team (An Army Of Agents)
 
-**An AI-powered data science team of agents to help you build AI data science apps**.
+**An AI-powered data science team of agents to help you build head-turning AI data science apps**.
 
 **Star ⭐ This GitHub (Takes 2 seconds and means a lot).**
 
