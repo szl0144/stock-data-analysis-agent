@@ -38,7 +38,7 @@ The AI Data Science Team of Copilots includes Agents that specialize data cleani
 
 - [Your AI Data Science Team (An Army Of Agents)](#your-ai-data-science-team-an-army-of-agents)
   - [Table of Contents](#table-of-contents)
-  - [Companies That Want An AI Data Science Team Copilot](#companies-that-want-an-ai-data-science-team-copilot)
+  - [Companies That Want A Custom AI Data Science Team (And AI Apps)](#companies-that-want-a-custom-ai-data-science-team-and-ai-apps)
   - [Free Generative AI For Data Scientists Workshop](#free-generative-ai-for-data-scientists-workshop)
   - [Data Science Agents](#data-science-agents)
     - [Coming Soon: Multi-Agents](#coming-soon-multi-agents)
@@ -52,6 +52,7 @@ The AI Data Science Team of Copilots includes Agents that specialize data cleani
     - [Example 2: Cleaning Data with the Data Cleaning Agent](#example-2-cleaning-data-with-the-data-cleaning-agent)
   - [Contributing](#contributing)
   - [License](#license)
+- [Want To Become A Generative AI Data Scientist?](#want-to-become-a-generative-ai-data-scientist)
 
 ## Companies That Want A Custom AI Data Science Team (And AI Apps)
 
@@ -178,4 +179,11 @@ data_cleaning_agent.get_data_cleaned()
 ## License
 
 This project is licensed under the MIT License. See LICENSE file for details. 
+
+# Want To Become A Generative AI Data Scientist?
+
+![Generative AI Data Scientist](/img/become_a_generative_ai_data_scientist.jpg)
+
+I teach Generative AI Data Science to help you build AI-powered data science apps. [**Register for my next Generative AI for Data Scientists workshop here.**](https://learn.business-science.io/ai-register)
+
 
