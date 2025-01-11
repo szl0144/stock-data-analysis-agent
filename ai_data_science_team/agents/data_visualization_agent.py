@@ -385,6 +385,11 @@ def make_data_visualization_agent(
     
     llm = model
     
+    # Human in th loop requires recommended steps
+    if bypass_recommended_steps and human_in_the_loop:
+        bypass_recommended_steps = False
+        print("Bypass recommended steps set to False to enable human in the loop.")
+    
     # Setup Log Directory
     if log:
         if log_path is None:
@@ -577,6 +582,33 @@ def make_data_visualization_agent(
             user_instructions_key="user_instructions",
             recommended_steps_key="recommended_steps"            
         )
+    
+    # Human Review
+        
+    prompt_text_human_review = "Are the following data visualization instructions correct? (Answer 'yes' or provide modifications)\n{steps}"
+    
+    if not bypass_explain_code:
+        def human_review(state: GraphState) -> Command[Literal["chart_instructor", "explain_data_visualization_code"]]:
+            return node_func_human_review(
+                state=state,
+                prompt_text=prompt_text_human_review,
+                yes_goto= 'explain_data_visualization_code',
+                no_goto="chart_instructor",
+                user_instructions_key="user_instructions",
+                recommended_steps_key="recommended_steps",
+                code_snippet_key="data_visualization_function",
+            )
+    else:
+        def human_review(state: GraphState) -> Command[Literal["chart_instructor", "__end__"]]:
+            return node_func_human_review(
+                state=state,
+                prompt_text=prompt_text_human_review,
+                yes_goto= '__end__',
+                no_goto="chart_instructor",
+                user_instructions_key="user_instructions",
+                recommended_steps_key="recommended_steps",
+                code_snippet_key="data_visualization_function", 
+            )
     
         
     def execute_data_visualization_code(state):

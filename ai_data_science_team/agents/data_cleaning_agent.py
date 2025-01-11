@@ -382,6 +382,11 @@ def make_data_cleaning_agent(
     """
     llm = model
     
+    # Human in th loop requires recommended steps
+    if bypass_recommended_steps and human_in_the_loop:
+        bypass_recommended_steps = False
+        print("Bypass recommended steps set to False to enable human in the loop.")
+    
     # Setup Log Directory
     if log:
         if log_path is None:
@@ -549,16 +554,33 @@ def make_data_cleaning_agent(
             "data_cleaner_function_name": file_name_2,
             "all_datasets_summary": all_datasets_summary_str
         }
+        
+    # Human Review
+        
+    prompt_text_human_review = "Are the following data cleaning instructions correct? (Answer 'yes' or provide modifications)\n{steps}"
     
-    def human_review(state: GraphState) -> Command[Literal["recommend_cleaning_steps", "create_data_cleaner_code"]]:
-        return node_func_human_review(
-            state=state,
-            prompt_text="Is the following data cleaning instructions correct? (Answer 'yes' or provide modifications)\n{steps}",
-            yes_goto="create_data_cleaner_code",
-            no_goto="recommend_cleaning_steps",
-            user_instructions_key="user_instructions",
-            recommended_steps_key="recommended_steps"            
-        )
+    if not bypass_explain_code:
+        def human_review(state: GraphState) -> Command[Literal["recommend_cleaning_steps", "explain_data_cleaner_code"]]:
+            return node_func_human_review(
+                state=state,
+                prompt_text=prompt_text_human_review,
+                yes_goto= 'explain_data_cleaner_code',
+                no_goto="recommend_cleaning_steps",
+                user_instructions_key="user_instructions",
+                recommended_steps_key="recommended_steps",
+                code_snippet_key="data_cleaner_function",
+            )
+    else:
+        def human_review(state: GraphState) -> Command[Literal["recommend_cleaning_steps", "__end__"]]:
+            return node_func_human_review(
+                state=state,
+                prompt_text=prompt_text_human_review,
+                yes_goto= '__end__',
+                no_goto="recommend_cleaning_steps",
+                user_instructions_key="user_instructions",
+                recommended_steps_key="recommended_steps",
+                code_snippet_key="data_cleaner_function", 
+            )
     
     def execute_data_cleaner_code(state):
         return node_func_execute_agent_code_on_data(

@@ -512,6 +512,11 @@ def make_data_wrangling_agent(
     """
     llm = model
     
+    # Human in th loop requires recommended steps
+    if bypass_recommended_steps and human_in_the_loop:
+        bypass_recommended_steps = False
+        print("Bypass recommended steps set to False to enable human in the loop.")
+    
     # Setup Log Directory
     if log:
         if log_path is None:
@@ -715,6 +720,33 @@ def make_data_wrangling_agent(
             user_instructions_key="user_instructions",
             recommended_steps_key="recommended_steps"            
         )
+        
+    # Human Review   
+    
+    prompt_text_human_review = "Are the following data wrangling instructions correct? (Answer 'yes' or provide modifications)\n{steps}"
+    
+    if not bypass_explain_code:
+        def human_review(state: GraphState) -> Command[Literal["recommend_wrangling_steps", "explain_data_wrangler_code"]]:
+            return node_func_human_review(
+                state=state,
+                prompt_text=prompt_text_human_review,
+                yes_goto= 'explain_data_wrangler_code',
+                no_goto="recommend_wrangling_steps",
+                user_instructions_key="user_instructions",
+                recommended_steps_key="recommended_steps",
+                code_snippet_key="data_wrangler_function",
+            )
+    else:
+        def human_review(state: GraphState) -> Command[Literal["recommend_wrangling_steps", "__end__"]]:
+            return node_func_human_review(
+                state=state,
+                prompt_text=prompt_text_human_review,
+                yes_goto= '__end__',
+                no_goto="recommend_wrangling_steps",
+                user_instructions_key="user_instructions",
+                recommended_steps_key="recommended_steps",
+                code_snippet_key="data_wrangler_function", 
+            )
     
     def execute_data_wrangler_code(state: GraphState):
         return node_func_execute_agent_code_on_data(

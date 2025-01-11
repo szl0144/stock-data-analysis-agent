@@ -486,6 +486,11 @@ def make_feature_engineering_agent(
         The feature engineering agent as a state graph.
     """
     llm = model
+    
+    # Human in th loop requires recommended steps
+    if bypass_recommended_steps and human_in_the_loop:
+        bypass_recommended_steps = False
+        print("Bypass recommended steps set to False to enable human in the loop.")
 
     # Setup Log Directory
     if log:
@@ -589,52 +594,29 @@ def make_feature_engineering_agent(
     # Human Review   
     
     prompt_text_human_review = "Are the following feature engineering instructions correct? (Answer 'yes' or provide modifications)\n{steps}"
+    
     if not bypass_explain_code:
-        if not bypass_recommended_steps:
-            def human_review(state: GraphState) -> Command[Literal["recommend_feature_engineering_steps", "explain_feature_engineering_code"]]:
-                return node_func_human_review(
-                    state=state,
-                    prompt_text=prompt_text_human_review,
-                    yes_goto= 'explain_feature_engineering_code',
-                    no_goto="recommend_feature_engineering_steps",
-                    user_instructions_key="user_instructions",
-                    recommended_steps_key="recommended_steps",
-                    code_snippet_key="feature_engineer_function",
-                )
-        else:
-            def human_review(state: GraphState) -> Command[Literal["create_feature_engineering_code", "explain_feature_engineering_code"]]:
-                return node_func_human_review(
-                    state=state,
-                    prompt_text=prompt_text_human_review,
-                    yes_goto= 'explain_feature_engineering_code',
-                    no_goto="create_feature_engineering_code",
-                    user_instructions_key="user_instructions",
-                    recommended_steps_key="recommended_steps",
-                    code_snippet_key="feature_engineer_function",
-                )
+        def human_review(state: GraphState) -> Command[Literal["recommend_feature_engineering_steps", "explain_feature_engineering_code"]]:
+            return node_func_human_review(
+                state=state,
+                prompt_text=prompt_text_human_review,
+                yes_goto= 'explain_feature_engineering_code',
+                no_goto="recommend_feature_engineering_steps",
+                user_instructions_key="user_instructions",
+                recommended_steps_key="recommended_steps",
+                code_snippet_key="feature_engineer_function",
+            )
     else:
-        if not bypass_recommended_steps:
-            def human_review(state: GraphState) -> Command[Literal["recommend_feature_engineering_steps", "__end__"]]:
-                return node_func_human_review(
-                    state=state,
-                    prompt_text=prompt_text_human_review,
-                    yes_goto= '__end__',
-                    no_goto="recommend_feature_engineering_steps",
-                    user_instructions_key="user_instructions",
-                    recommended_steps_key="recommended_steps",
-                    code_snippet_key="feature_engineer_function", 
-                )
-        else:
-            def human_review(state: GraphState) -> Command[Literal["create_feature_engineering_code", "__end__"]]:
-                return node_func_human_review(
-                    state=state,
-                    prompt_text=prompt_text_human_review,
-                    yes_goto= '__end__',
-                    no_goto="create_feature_engineering_code",
-                    user_instructions_key="user_instructions",
-                    recommended_steps_key="recommended_steps",
-                    code_snippet_key="feature_engineer_function",
-                )
+        def human_review(state: GraphState) -> Command[Literal["recommend_feature_engineering_steps", "__end__"]]:
+            return node_func_human_review(
+                state=state,
+                prompt_text=prompt_text_human_review,
+                yes_goto= '__end__',
+                no_goto="recommend_feature_engineering_steps",
+                user_instructions_key="user_instructions",
+                recommended_steps_key="recommended_steps",
+                code_snippet_key="feature_engineer_function", 
+            )
     
     def create_feature_engineering_code(state: GraphState):
         if bypass_recommended_steps:

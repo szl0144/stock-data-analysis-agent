@@ -359,6 +359,7 @@ def node_func_human_review(
     user_instructions_key: str = "user_instructions",
     recommended_steps_key: str = "recommended_steps",
     code_snippet_key: str = "code_snippet",
+    code_type: str = "python"
 ) -> Command[str]:
     """
     A generic function to handle human review steps.
@@ -379,6 +380,8 @@ def node_func_human_review(
         The key in the state to store recommended steps.    
     code_snippet_key : str, optional
         The key in the state to store the code snippet.
+    code_type : str, optional
+        The type of code snippet to display (e.g., "python").
     
     Returns
     -------
@@ -388,7 +391,7 @@ def node_func_human_review(
     print("    * HUMAN REVIEW")
 
     # Display instructions and get user response
-    user_input = interrupt(value=prompt_text.format(steps=state.get(recommended_steps_key, '') + "\n\n```" + state.get(code_snippet_key)+"\n```"))
+    user_input = interrupt(value=prompt_text.format(steps=state.get(recommended_steps_key, '') + f"\n\n```{code_type}\n" + state.get(code_snippet_key)+"\n```"))
 
     # Decide next steps based on user input
     if user_input.strip().lower() == "yes":

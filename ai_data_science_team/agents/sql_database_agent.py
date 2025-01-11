@@ -421,6 +421,11 @@ def make_sql_database_agent(
     
     llm = model
     
+    # Human in th loop requires recommended steps
+    if bypass_recommended_steps and human_in_the_loop:
+        bypass_recommended_steps = False
+        print("Bypass recommended steps set to False to enable human in the loop.")
+    
     # Setup Log Directory
     if log:
         if log_path is None:
@@ -614,6 +619,32 @@ def sql_database_pipeline(connection):
             user_instructions_key="user_instructions",
             recommended_steps_key="recommended_steps"            
         )
+    # Human Review   
+    
+    prompt_text_human_review = "Are the following SQL agent instructions correct? (Answer 'yes' or provide modifications)\n{steps}"
+    
+    if not bypass_explain_code:
+        def human_review(state: GraphState) -> Command[Literal["recommend_sql_steps", "explain_sql_database_code"]]:
+            return node_func_human_review(
+                state=state,
+                prompt_text=prompt_text_human_review,
+                yes_goto= 'explain_sql_database_code',
+                no_goto="recommend_sql_steps",
+                user_instructions_key="user_instructions",
+                recommended_steps_key="recommended_steps",
+                code_snippet_key="sql_database_function",
+            )
+    else:
+        def human_review(state: GraphState) -> Command[Literal["recommend_sql_steps", "__end__"]]:
+            return node_func_human_review(
+                state=state,
+                prompt_text=prompt_text_human_review,
+                yes_goto= '__end__',
+                no_goto="recommend_sql_steps",
+                user_instructions_key="user_instructions",
+                recommended_steps_key="recommended_steps",
+                code_snippet_key="sql_database_function", 
+            )
     
     def execute_sql_database_code(state: GraphState):
         
