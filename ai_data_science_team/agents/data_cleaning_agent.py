@@ -70,6 +70,8 @@ class DataCleaningAgent(BaseAgent):
         Directory path for storing log files. Defaults to None.
     file_name : str, optional
         Name of the file for saving the generated response. Defaults to "data_cleaner.py".
+    function_name : str, optional
+        Name of the generated data cleaning function. Defaults to "data_cleaner".
     overwrite : bool, optional
         Whether to overwrite the log file if it exists. If False, a unique file name is created. Defaults to True.
     human_in_the_loop : bool, optional
@@ -148,6 +150,7 @@ class DataCleaningAgent(BaseAgent):
         log=False, 
         log_path=None, 
         file_name="data_cleaner.py", 
+        function_name="data_cleaner",
         overwrite=True, 
         human_in_the_loop=False, 
         bypass_recommended_steps=False, 
@@ -159,6 +162,7 @@ class DataCleaningAgent(BaseAgent):
             "log": log,
             "log_path": log_path,
             "file_name": file_name,
+            "function_name": function_name,
             "overwrite": overwrite,
             "human_in_the_loop": human_in_the_loop,
             "bypass_recommended_steps": bypass_recommended_steps,
@@ -301,6 +305,7 @@ def make_data_cleaning_agent(
     log=False, 
     log_path=None, 
     file_name="data_cleaner.py",
+    function_name="data_cleaner",
     overwrite = True, 
     human_in_the_loop=False, 
     bypass_recommended_steps=False, 
@@ -342,6 +347,8 @@ def make_data_cleaning_agent(
         "logs/".
     file_name : str, optional
         The name of the file to save the response to. Defaults to "data_cleaner.py".
+    function_name : str, optional
+        The name of the function that will be generated to clean the data. Defaults to "data_cleaner".
     overwrite : bool, optional
         Whether or not to overwrite the log file if it already exists. If False, a unique file name will be created. 
         Defaults to True.
@@ -404,6 +411,7 @@ def make_data_cleaning_agent(
         all_datasets_summary: str
         data_cleaner_function: str
         data_cleaner_function_path: str
+        data_cleaner_file_name: str
         data_cleaner_function_name: str
         data_cleaner_error: str
         max_retries: int
@@ -498,42 +506,44 @@ def make_data_cleaning_agent(
         else:
             all_datasets_summary_str = state.get("all_datasets_summary")
         
+        
         data_cleaning_prompt = PromptTemplate(
             template="""
-            You are a Data Cleaning Agent. Your job is to create a data_cleaner() function that can be run on the data provided using the following recommended steps.
-            
+            You are a Data Cleaning Agent. Your job is to create a {function_name}() function that can be run on the data provided using the following recommended steps.
+
             Recommended Steps:
             {recommended_steps}
-            
+
             You can use Pandas, Numpy, and Scikit Learn libraries to clean the data.
-            
+
             Below are summaries of all datasets provided. Use this information about the data to help determine how to clean the data:
 
             {all_datasets_summary}
-            
-            Return Python code in ```python ``` format with a single function definition, data_cleaner(data_raw), that includes all imports inside the function. 
-            
+
+            Return Python code in ```python``` format with a single function definition, {function_name}(data_raw), that includes all imports inside the function.
+
             Return code to provide the data cleaning function:
-            
-            def data_cleaner(data_raw):
+
+            def {function_name}(data_raw):
                 import pandas as pd
                 import numpy as np
                 ...
                 return data_cleaned
-            
+
             Best Practices and Error Preventions:
-            
+
             Always ensure that when assigning the output of fit_transform() from SimpleImputer to a Pandas DataFrame column, you call .ravel() or flatten the array, because fit_transform() returns a 2D array while a DataFrame column is 1D.
             
             """,
-            input_variables=["recommended_steps", "all_datasets_summary"]
+            input_variables=["recommended_steps", "all_datasets_summary", "function_name"]
         )
 
         data_cleaning_agent = data_cleaning_prompt | llm | PythonOutputParser()
         
         response = data_cleaning_agent.invoke({
             "recommended_steps": state.get("recommended_steps"),
-            "all_datasets_summary": all_datasets_summary_str
+            "all_datasets_summary": all_datasets_summary_str,
+            "function_name": function_name
         })
         
         response = relocate_imports_inside_function(response)
@@ -551,7 +561,8 @@ def make_data_cleaning_agent(
         return {
             "data_cleaner_function" : response,
             "data_cleaner_function_path": file_path,
-            "data_cleaner_function_name": file_name_2,
+            "data_cleaner_file_name": file_name_2,
+            "data_cleaner_function_name": function_name,
             "all_datasets_summary": all_datasets_summary_str
         }
         
@@ -589,7 +600,7 @@ def make_data_cleaning_agent(
             result_key="data_cleaned",
             error_key="data_cleaner_error",
             code_snippet_key="data_cleaner_function",
-            agent_function_name="data_cleaner",
+            agent_function_name=state.get("data_cleaner_function_name"),
             pre_processing=lambda data: pd.DataFrame.from_dict(data),
             post_processing=lambda df: df.to_dict() if isinstance(df, pd.DataFrame) else df,
             error_message_prefix="An error occurred during data cleaning: "
