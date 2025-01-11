@@ -1,12 +1,8 @@
 <div align="center">
   <a href="https://github.com/business-science/ai-data-science-team">
     <picture>
-      <img src="/img/ai_data_science_team_logo.jpg" alt="AI Data Science Team" style="width: 100%; max-width: 300px;">
-    <style>
-      img {
-        max-width: 300px;
-      }
-    </style>   </picture>
+      <img src="/img/ai_data_science_team_logo.jpg" alt="AI Data Science Team" width="400">
+  </picture>
   </a>
 </div>
 <div align="center">
