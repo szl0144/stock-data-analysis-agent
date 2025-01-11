@@ -66,6 +66,8 @@ class DataWranglingAgent(BaseAgent):
         Directory path for storing log files. Defaults to None.
     file_name : str, optional
         Name of the file for saving the generated response. Defaults to "data_wrangler.py".
+    function_name : str, optional
+        Name of the function to be generated. Defaults to "data_wrangler".
     overwrite : bool, optional
         Whether to overwrite the log file if it exists. If False, a unique file name is created. Defaults to True.
     human_in_the_loop : bool, optional
@@ -167,6 +169,7 @@ class DataWranglingAgent(BaseAgent):
         log=False,
         log_path=None,
         file_name="data_wrangler.py",
+        function_name="data_wrangler",
         overwrite=True,
         human_in_the_loop=False,
         bypass_recommended_steps=False,
@@ -178,6 +181,7 @@ class DataWranglingAgent(BaseAgent):
             "log": log,
             "log_path": log_path,
             "file_name": file_name,
+            "function_name": function_name,
             "overwrite": overwrite,
             "human_in_the_loop": human_in_the_loop,
             "bypass_recommended_steps": bypass_recommended_steps,
@@ -434,7 +438,8 @@ def make_data_wrangling_agent(
     log=False, 
     log_path=None, 
     file_name="data_wrangler.py",
-    overwrite = True, 
+    function_name="data_wrangler",
+    overwrite=True, 
     human_in_the_loop=False, 
     bypass_recommended_steps=False, 
     bypass_explain_code=False
@@ -470,6 +475,8 @@ def make_data_wrangling_agent(
         The path to the directory where the log files should be stored. Defaults to "logs/".
     file_name : str, optional
         The name of the file to save the response to. Defaults to "data_wrangler.py".
+    function_name : str, optional
+        The name of the function to be generated. Defaults to "data_wrangler".
     overwrite : bool, optional
         Whether or not to overwrite the log file if it already exists. If False, a unique file name will be created. 
         Defaults to True.
@@ -646,7 +653,7 @@ def make_data_wrangling_agent(
         
         data_wrangling_prompt = PromptTemplate(
             template="""
-            You are a Data Wrangling Coding Agent. Your job is to create a data_wrangler() function that can be run on the provided data. 
+            You are a Data Wrangling Coding Agent. Your job is to create a {function_name}() function that can be run on the provided data. 
             
             Follow these recommended steps:
             {recommended_steps}
@@ -656,10 +663,10 @@ def make_data_wrangling_agent(
             Below are summaries of all datasets provided. If more than one dataset is provided, you may need to merge or join them.:
             {all_datasets_summary}
             
-            Return Python code in ```python``` format with a single function definition, data_wrangler(), that includes all imports inside the function. And returns a single pandas data frame.
+            Return Python code in ```python``` format with a single function definition, {function_name}(), that includes all imports inside the function. And returns a single pandas data frame.
 
             ```python
-            def data_wrangler(data_list):
+            def {function_name}(data_list):
                 '''
                 Wrangle the data provided in data.
                 
@@ -681,14 +688,15 @@ def make_data_wrangling_agent(
             
             
             """,
-            input_variables=["recommended_steps", "all_datasets_summary"]
+            input_variables=["recommended_steps", "all_datasets_summary", "function_name"]
         )
 
         data_wrangling_agent = data_wrangling_prompt | llm | PythonOutputParser()
 
         response = data_wrangling_agent.invoke({
             "recommended_steps": state.get("recommended_steps"),
-            "all_datasets_summary": all_datasets_summary_str
+            "all_datasets_summary": all_datasets_summary_str,
+            "function_name": function_name
         })
         
         response = relocate_imports_inside_function(response)
@@ -706,7 +714,8 @@ def make_data_wrangling_agent(
         return {
             "data_wrangler_function" : response,
             "data_wrangler_function_path": file_path,
-            "data_wrangler_function_name": file_name_2,
+            "data_wrangler_file_name": file_name_2,
+            "data_wrangler_function_name": function_name,
             "all_datasets_summary": all_datasets_summary_str
         }
 
@@ -755,7 +764,7 @@ def make_data_wrangling_agent(
             result_key="data_wrangled",
             error_key="data_wrangler_error",
             code_snippet_key="data_wrangler_function",
-            agent_function_name="data_wrangler",
+            agent_function_name=state.get("data_wrangler_function_name"),
             # pre_processing=pre_processing,
             post_processing=lambda df: df.to_dict() if isinstance(df, pd.DataFrame) else df,
             error_message_prefix="An error occurred during data wrangling: "
@@ -763,11 +772,11 @@ def make_data_wrangling_agent(
         
     def fix_data_wrangler_code(state: GraphState):
         data_wrangler_prompt = """
-        You are a Data Wrangling Agent. Your job is to create a data_wrangler() function that can be run on the data provided. The function is currently broken and needs to be fixed.
+        You are a Data Wrangling Agent. Your job is to create a {function_name}() function that can be run on the data provided. The function is currently broken and needs to be fixed.
         
-        Make sure to only return the function definition for data_wrangler().
+        Make sure to only return the function definition for {function_name}().
         
-        Return Python code in ```python``` format with a single function definition, data_wrangler(data_raw), that includes all imports inside the function.
+        Return Python code in ```python``` format with a single function definition, {function_name}(data_raw), that includes all imports inside the function.
         
         This is the broken code (please fix): 
         {code_snippet}
@@ -785,6 +794,7 @@ def make_data_wrangling_agent(
             agent_name=AGENT_NAME,
             log=log,
             file_path=state.get("data_wrangler_function_path"),
+            function_name=state.get("data_wrangler_function_name"),
         )
     
     def explain_data_wrangler_code(state: GraphState):        

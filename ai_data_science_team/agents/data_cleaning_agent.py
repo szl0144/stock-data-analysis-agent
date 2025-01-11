@@ -630,7 +630,7 @@ def make_data_cleaning_agent(
             agent_name=AGENT_NAME,
             log=log,
             file_path=state.get("data_cleaner_function_path"),
-            function_name=function_name,
+            function_name=state.get("data_cleaner_function_name"),
         )
     
     def explain_data_cleaner_code(state: GraphState):        
