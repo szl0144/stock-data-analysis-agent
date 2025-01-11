@@ -387,6 +387,71 @@ def make_data_visualization_agent(
     bypass_recommended_steps=False, 
     bypass_explain_code=False
 ):
+    """
+    Creates a data visualization agent that can generate Plotly charts based on user-defined instructions or
+    default visualization steps. The agent generates a Python function to produce the visualization, executes it,
+    and logs the process, including code and errors. It is designed to facilitate reproducible and customizable
+    data visualization workflows.
+
+    The agent can perform the following default visualization steps unless instructed otherwise:
+    - Generating a recommended chart type (bar, scatter, line, etc.)
+    - Creating user-friendly titles and axis labels
+    - Applying consistent styling (template, font sizes, color themes)
+    - Handling theme details (white background, base font size, line size, etc.)
+
+    User instructions can modify, add, or remove any of these steps to tailor the visualization process.
+
+    Parameters
+    ----------
+    model : langchain.llms.base.LLM
+        The language model used to generate the data visualization function.
+    n_samples : int, optional
+        Number of samples used when summarizing the dataset for chart instructions. Defaults to 30.
+    log : bool, optional
+        Whether to log the generated code and errors. Defaults to False.
+    log_path : str, optional
+        Directory path for storing log files. Defaults to None.
+    file_name : str, optional
+        Name of the file for saving the generated response. Defaults to "data_visualization.py".
+    function_name : str, optional
+        Name of the function for data visualization. Defaults to "data_visualization".
+    overwrite : bool, optional
+        Whether to overwrite the log file if it exists. If False, a unique file name is created. Defaults to True.
+    human_in_the_loop : bool, optional
+        Enables user review of data visualization instructions. Defaults to False.
+    bypass_recommended_steps : bool, optional
+        If True, skips the default recommended visualization steps. Defaults to False.
+    bypass_explain_code : bool, optional
+        If True, skips the step that provides code explanations. Defaults to False.
+
+    Examples
+    --------
+    ``` python
+    import pandas as pd
+    from langchain_openai import ChatOpenAI
+    from ai_data_science_team.agents import data_visualization_agent
+
+    llm = ChatOpenAI(model="gpt-4o-mini")
+
+    data_visualization_agent = make_data_visualization_agent(llm)
+
+    df = pd.read_csv("https://raw.githubusercontent.com/business-science/ai-data-science-team/refs/heads/master/data/churn_data.csv")
+
+    response = data_visualization_agent.invoke({
+        "user_instructions": "Generate a scatter plot of tenure vs. total charges with a trend line.",
+        "data_raw": df.to_dict(),
+        "max_retries": 3,
+        "retry_count": 0
+    })
+
+    pd.DataFrame(response['plotly_graph'])
+    ```
+
+    Returns
+    -------
+    app : langchain.graphs.CompiledStateGraph
+        The data visualization agent as a state graph.
+    """
     
     llm = model
     
