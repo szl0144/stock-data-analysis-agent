@@ -39,7 +39,7 @@ The AI Data Science Team of Copilots includes Agents that specialize data cleani
 - [Your AI Data Science Team (An Army Of Agents)](#your-ai-data-science-team-an-army-of-agents)
   - [Table of Contents](#table-of-contents)
   - [Companies That Want A Custom AI Data Science Team (And AI Apps)](#companies-that-want-a-custom-ai-data-science-team-and-ai-apps)
-  - [Free Generative AI For Data Scientists Workshop](#free-generative-ai-for-data-scientists-workshop)
+  - [Free How To Build AI Agents for Data Scientists Workshop](#free-how-to-build-ai-agents-for-data-scientists-workshop)
   - [Data Science Agents](#data-science-agents)
     - [Coming Soon: Multi-Agents](#coming-soon-multi-agents)
     - [...And after that, the Multi-Agent Data Science Apps](#and-after-that-the-multi-agent-data-science-apps)
@@ -56,11 +56,15 @@ The AI Data Science Team of Copilots includes Agents that specialize data cleani
 
 ## Companies That Want A Custom AI Data Science Team (And AI Apps)
 
-If you are interested in having your own _customized_ enterprise-grade AI Data Science Team and/or custom AI-powered Apps, send inquiries here: [https://www.business-science.io/contact.html](https://www.business-science.io/contact.html)
+Want to have your own _customized_ enterprise-grade AI Data Science Team and domain-specifici AI-powered Apps? 
 
-## Free Generative AI For Data Scientists Workshop
+**Send inquiries here:** [https://www.business-science.io/contact.html](https://www.business-science.io/contact.html)
 
-If you're an aspiring data scientist who wants to learn how to build AI Agents and AI Apps for your company that performs Data Science, Business Intelligence, Churn Modeling, Time Series Forecasting, and more, then I'd love to help you. [**Register for my next Generative AI for Data Scientists workshop here.**](https://learn.business-science.io/ai-register)
+## Free How To Build AI Agents for Data Scientists Workshop
+
+If you're an aspiring data scientist who wants to learn how to build AI Agents and AI Apps for your company that performs Data Science, Business Intelligence, Churn Modeling, Time Series Forecasting, and more, then I'd love to help you. 
+
+[**Register for my next Generative AI for Data Scientists workshop here.**](https://learn.business-science.io/ai-register)
 
 ## Data Science Agents
 
