@@ -593,6 +593,7 @@ def node_func_fix_agent_code(
     retry_count_key: str = "retry_count",
     log: bool = False,
     file_path: str = "logs/agent_function.py",
+    function_name: str = "agent_function"
 ) -> dict:
     """
     Generic function to fix a given piece of agent code using an LLM and a prompt template.
@@ -619,6 +620,8 @@ def node_func_fix_agent_code(
         Whether to log the returned code to a file.
     file_path : str, optional
         The path to the file where the code will be logged.
+    function_name : str, optional
+        The name of the function in the code snippet that will be fixed.
     
     Returns
     -------
@@ -635,7 +638,8 @@ def node_func_fix_agent_code(
     # Format the prompt with the code snippet and the error
     prompt = prompt_template.format(
         code_snippet=code_snippet,
-        error=error_message
+        error=error_message,
+        function_name=function_name,
     )
     
     # Execute the prompt with the LLM

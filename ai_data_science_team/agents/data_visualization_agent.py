@@ -69,6 +69,8 @@ class DataVisualizationAgent(BaseAgent):
         Directory path for storing log files. Defaults to None.
     file_name : str, optional
         Name of the file for saving the generated response. Defaults to "data_visualization.py".
+    function_name : str, optional
+        Name of the function for data visualization. Defaults to "data_visualization".
     overwrite : bool, optional
         Whether to overwrite the log file if it exists. If False, a unique file name is created. Defaults to True.
     human_in_the_loop : bool, optional
@@ -149,6 +151,7 @@ class DataVisualizationAgent(BaseAgent):
         log=False, 
         log_path=None, 
         file_name="data_visualization.py", 
+        function_name="data_visualization",
         overwrite=True, 
         human_in_the_loop=False, 
         bypass_recommended_steps=False, 
@@ -160,6 +163,7 @@ class DataVisualizationAgent(BaseAgent):
             "log": log,
             "log_path": log_path,
             "file_name": file_name,
+            "function_name": function_name,
             "overwrite": overwrite,
             "human_in_the_loop": human_in_the_loop,
             "bypass_recommended_steps": bypass_recommended_steps,
@@ -377,7 +381,8 @@ def make_data_visualization_agent(
     log=False, 
     log_path=None, 
     file_name="data_visualization.py",
-    overwrite = True, 
+    function_name="data_visualization",
+    overwrite=True, 
     human_in_the_loop=False, 
     bypass_recommended_steps=False, 
     bypass_explain_code=False
@@ -408,6 +413,7 @@ def make_data_visualization_agent(
         all_datasets_summary: str
         data_visualization_function: str
         data_visualization_function_path: str
+        data_visualization_file_name: str
         data_visualization_function_name: str
         data_visualization_error: str
         max_retries: int
@@ -507,7 +513,7 @@ def make_data_visualization_agent(
             template="""
             You are a chart generator agent that is an expert in generating plotly charts. You must use plotly or plotly.express to produce plots.
     
-            Your job is to produce python code to generate visualizations.
+            Your job is to produce python code to generate visualizations with a function named {function_name}.
             
             You will take instructions from a Chart Instructor and generate a plotly chart from the data provided.
             
@@ -519,13 +525,13 @@ def make_data_visualization_agent(
             
             RETURN:
             
-            Return Python code in ```python ``` format with a single function definition, data_visualization(data_raw), that includes all imports inside the function.
+            Return Python code in ```python ``` format with a single function definition, {function_name}(data_raw), that includes all imports inside the function.
             
             Return the plotly chart as a dictionary.
             
             Return code to provide the data visualization function:
             
-            def data_visualization(data_raw):
+            def {function_name}(data_raw):
                 import pandas as pd
                 import numpy as np
                 import json
@@ -544,14 +550,15 @@ def make_data_visualization_agent(
             2. Do not include unrelated user instructions that are not related to the chart generation.
             
             """,
-            input_variables=["chart_generator_instructions", "all_datasets_summary"]
+            input_variables=["chart_generator_instructions", "all_datasets_summary", "function_name"]
         )
-        
+
         data_visualization_agent = prompt_template | llm | PythonOutputParser()
         
         response = data_visualization_agent.invoke({
             "chart_generator_instructions": chart_generator_instructions,
-            "all_datasets_summary": all_datasets_summary_str
+            "all_datasets_summary": all_datasets_summary_str,
+            "function_name": function_name
         })
         
         response = relocate_imports_inside_function(response)
@@ -569,7 +576,8 @@ def make_data_visualization_agent(
         return {
             "data_visualization_function": response,
             "data_visualization_function_path": file_path,
-            "data_visualization_function_name": file_name_2,
+            "data_visualization_file_name": file_name_2,
+            "data_visualization_function_name": function_name,
             "all_datasets_summary": all_datasets_summary_str
         }
             
@@ -618,7 +626,7 @@ def make_data_visualization_agent(
             result_key="plotly_graph",
             error_key="data_visualization_error",
             code_snippet_key="data_visualization_function",
-            agent_function_name="data_visualization",
+            agent_function_name=state.get("data_visualization_function_name"),
             pre_processing=lambda data: pd.DataFrame.from_dict(data),
             # post_processing=lambda df: df.to_dict() if isinstance(df, pd.DataFrame) else df,
             error_message_prefix="An error occurred during data visualization: "
@@ -626,11 +634,11 @@ def make_data_visualization_agent(
     
     def fix_data_visualization_code(state: GraphState):
         prompt = """
-        You are a Data Visualization Agent. Your job is to create a data_visualization() function that can be run on the data provided. The function is currently broken and needs to be fixed.
+        You are a Data Visualization Agent. Your job is to create a {function_name}() function that can be run on the data provided. The function is currently broken and needs to be fixed.
         
-        Make sure to only return the function definition for data_visualization().
+        Make sure to only return the function definition for {function_name}().
         
-        Return Python code in ```python``` format with a single function definition, data_visualization(data_raw), that includes all imports inside the function.
+        Return Python code in ```python``` format with a single function definition, {function_name}(data_raw), that includes all imports inside the function.
         
         This is the broken code (please fix): 
         {code_snippet}
@@ -648,6 +656,7 @@ def make_data_visualization_agent(
             agent_name=AGENT_NAME,
             log=log,
             file_path=state.get("data_visualization_function_path"),
+            function_name=state.get("data_visualization_function_name"),
         )
     
     def explain_data_visualization_code(state: GraphState):        
@@ -693,4 +702,3 @@ def make_data_visualization_agent(
     )
         
     return app
-    

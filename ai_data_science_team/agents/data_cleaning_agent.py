@@ -608,11 +608,11 @@ def make_data_cleaning_agent(
         
     def fix_data_cleaner_code(state: GraphState):
         data_cleaner_prompt = """
-        You are a Data Cleaning Agent. Your job is to create a data_cleaner() function that can be run on the data provided. The function is currently broken and needs to be fixed.
+        You are a Data Cleaning Agent. Your job is to create a {function_name}() function that can be run on the data provided. The function is currently broken and needs to be fixed.
         
-        Make sure to only return the function definition for data_cleaner().
+        Make sure to only return the function definition for {function_name}().
         
-        Return Python code in ```python``` format with a single function definition, data_cleaner(data_raw), that includes all imports inside the function.
+        Return Python code in ```python``` format with a single function definition, {function_name}(data_raw), that includes all imports inside the function.
         
         This is the broken code (please fix): 
         {code_snippet}
@@ -630,6 +630,7 @@ def make_data_cleaning_agent(
             agent_name=AGENT_NAME,
             log=log,
             file_path=state.get("data_cleaner_function_path"),
+            function_name=function_name,
         )
     
     def explain_data_cleaner_code(state: GraphState):        
