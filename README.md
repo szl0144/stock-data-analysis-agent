@@ -124,11 +124,10 @@ pip install git+https://github.com/business-science/ai-data-science-team.git --u
 feature_engineering_agent = FeatureEngineeringAgent(model = llm)
 
 feature_engineering_agent.invoke_agent(
+    data_raw = df,
     user_instructions = "Make sure to scale and center numeric features",
     target_variable = "Churn",
-    data_raw = df,
     max_retries = 3,
-    retry_count = 0
 )
 ```
 
@@ -151,10 +150,9 @@ feature_engineering_agent.get_data_engineered()
 data_cleaning_agent = DataCleaningAgent(model = llm)
 
 response = data_cleaning_agent.invoke_agent(
-    user_instructions = "Don't remove outliers when cleaning the data.",
     data_raw = df,
+    user_instructions = "Don't remove outliers when cleaning the data.",
     max_retries = 3,
-    retry_count = 0
 )
 ```
 
