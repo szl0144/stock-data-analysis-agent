@@ -23,8 +23,8 @@ from ai_data_science_team.templates import(
     create_coding_agent_graph,
     BaseAgent,
 )
-from ai_data_science_team.tools.parsers import PythonOutputParser, SQLOutputParser  
-from ai_data_science_team.tools.regex import relocate_imports_inside_function, add_comments_to_top, format_agent_name
+from ai_data_science_team.tools.parsers import SQLOutputParser  
+from ai_data_science_team.tools.regex import add_comments_to_top, format_agent_name
 from ai_data_science_team.tools.metadata import get_database_metadata
 from ai_data_science_team.tools.logging import log_ai_function
 
@@ -58,6 +58,8 @@ class SQLDatabaseAgent(BaseAgent):
         Directory path for storing log files. Defaults to None.
     file_name : str, optional
         Name of the file for saving the generated response. Defaults to "sql_database.py".
+    function_name : str, optional
+        Name of the Python function that executes the SQL query. Defaults to "sql_database_pipeline".
     overwrite : bool, optional
         Whether to overwrite the log file if it exists. If False, a unique file name is created. Defaults to True.
     human_in_the_loop : bool, optional
@@ -141,6 +143,7 @@ class SQLDatabaseAgent(BaseAgent):
         log=False,
         log_path=None,
         file_name="sql_database.py",
+        function_name="sql_database_pipeline",
         overwrite=True,
         human_in_the_loop=False,
         bypass_recommended_steps=False,
@@ -153,6 +156,7 @@ class SQLDatabaseAgent(BaseAgent):
             "log": log,
             "log_path": log_path,
             "file_name": file_name,
+            "function_name": function_name,
             "overwrite": overwrite,
             "human_in_the_loop": human_in_the_loop,
             "bypass_recommended_steps": bypass_recommended_steps,
@@ -350,6 +354,7 @@ def make_sql_database_agent(
     log=False, 
     log_path=None, 
     file_name="sql_database.py",
+    function_name="sql_database_pipeline",
     overwrite = True, 
     human_in_the_loop=False, bypass_recommended_steps=False, 
     bypass_explain_code=False
@@ -442,6 +447,7 @@ def make_sql_database_agent(
         sql_query_code: str
         sql_database_function: str
         sql_database_function_path: str
+        sql_database_function_file_name: str
         sql_database_function_name: str
         sql_database_error: str
         max_retries: int
@@ -576,7 +582,7 @@ def make_sql_database_agent(
         print("    * CREATE PYTHON FUNCTION TO RUN SQL CODE")
         
         response = f"""
-def sql_database_pipeline(connection):
+def {function_name}(connection):
     import pandas as pd
     import sqlalchemy as sql
     
@@ -606,19 +612,11 @@ def sql_database_pipeline(connection):
             "sql_query_code": sql_query_code,
             "sql_database_function": response,
             "sql_database_function_path": file_path,
-            "sql_database_function_name": file_name_2,
+            "sql_database_function_file_name": file_name_2,
+            "sql_database_function_name": function_name,
             "all_sql_database_summary": all_sql_database_summary
         }
         
-    def human_review(state: GraphState) -> Command[Literal["recommend_sql_steps", "create_sql_query_code"]]:
-        return node_func_human_review(
-            state=state,
-            prompt_text="Are the following SQL database querying steps correct? (Answer 'yes' or provide modifications)\n{steps}",
-            yes_goto="create_sql_query_code",
-            no_goto="recommend_sql_steps",
-            user_instructions_key="user_instructions",
-            recommended_steps_key="recommended_steps"            
-        )
     # Human Review   
     
     prompt_text_human_review = "Are the following SQL agent instructions correct? (Answer 'yes' or provide modifications)\n{steps}"
@@ -657,18 +655,18 @@ def sql_database_pipeline(connection):
             result_key="data_sql",
             error_key="sql_database_error",
             code_snippet_key="sql_database_function",
-            agent_function_name="sql_database_pipeline",
+            agent_function_name=state.get("sql_database_function_name"),
             post_processing=lambda df: df.to_dict() if isinstance(df, pd.DataFrame) else df,
             error_message_prefix="An error occurred during executing the sql database pipeline: "
         )
     
     def fix_sql_database_code(state: GraphState):
         prompt = """
-        You are a SQL Database Agent code fixer. Your job is to create a sql_database_pipeline(connection) function that can be run on a sql connection. The function is currently broken and needs to be fixed.
+        You are a SQL Database Agent code fixer. Your job is to create a {function_name}(connection) function that can be run on a sql connection. The function is currently broken and needs to be fixed.
         
-        Make sure to only return the function definition for sql_database_pipeline().
+        Make sure to only return the function definition for {function_name}().
         
-        Return Python code in ```python``` format with a single function definition, sql_database_pipeline(connection), that includes all imports inside the function. The connection object is a SQLAlchemy connection object. Don't specify the class of the connection object, just use it as an argument to the function.
+        Return Python code in ```python``` format with a single function definition, {function_name}(connection), that includes all imports inside the function. The connection object is a SQLAlchemy connection object. Don't specify the class of the connection object, just use it as an argument to the function.
         
         This is the broken code (please fix): 
         {code_snippet}
@@ -686,6 +684,7 @@ def sql_database_pipeline(connection):
             agent_name=AGENT_NAME,
             log=log,
             file_path=state.get("sql_database_function_path", None),
+            function_name=state.get("sql_database_function_name"),
         )
         
     def explain_sql_database_code(state: GraphState):

@@ -413,7 +413,7 @@ def make_data_visualization_agent(
         all_datasets_summary: str
         data_visualization_function: str
         data_visualization_function_path: str
-        data_visualization_file_name: str
+        data_visualization_function_file_name: str
         data_visualization_function_name: str
         data_visualization_error: str
         max_retries: int
@@ -576,20 +576,10 @@ def make_data_visualization_agent(
         return {
             "data_visualization_function": response,
             "data_visualization_function_path": file_path,
-            "data_visualization_file_name": file_name_2,
+            "data_visualization_function_file_name": file_name_2,
             "data_visualization_function_name": function_name,
             "all_datasets_summary": all_datasets_summary_str
         }
-            
-    def human_review(state: GraphState) -> Command[Literal["chart_instructor", "chart_generator"]]:
-        return node_func_human_review(
-            state=state,
-            prompt_text="Is the following data visualization instructions correct? (Answer 'yes' or provide modifications)\n{steps}",
-            yes_goto="chart_generator",
-            no_goto="chart_instructor",
-            user_instructions_key="user_instructions",
-            recommended_steps_key="recommended_steps"            
-        )
     
     # Human Review
         
