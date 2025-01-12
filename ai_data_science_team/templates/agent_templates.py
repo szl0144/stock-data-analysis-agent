@@ -389,9 +389,11 @@ def node_func_human_review(
         A Command object directing the next state and updates to the state.    
     """
     print("    * HUMAN REVIEW")
+    
+    code_markdown=f"```{code_type}\n" + state.get(code_snippet_key)+"\n```"
 
     # Display instructions and get user response
-    user_input = interrupt(value=prompt_text.format(steps=state.get(recommended_steps_key, '') + f"\n\n```{code_type}\n" + state.get(code_snippet_key)+"\n```"))
+    user_input = interrupt(value=prompt_text.format(steps=state.get(recommended_steps_key, '') + "\n\n" + code_markdown))
 
     # Decide next steps based on user input
     if user_input.strip().lower() == "yes":
@@ -399,11 +401,11 @@ def node_func_human_review(
         update = {}
     else:
         goto = no_goto
-        modifications = "Modifications: \n" + user_input
+        modifications = "User Has Requested Modifications To Previous Code: \n" + user_input
         if state.get(user_instructions_key) is None:
-            update = {user_instructions_key: modifications}
+            update = {user_instructions_key: modifications + "\n\nPrevious Code:\n" + code_markdown}
         else:
-            update = {user_instructions_key: state.get(user_instructions_key) + modifications}
+            update = {user_instructions_key: state.get(user_instructions_key) + modifications + "\n\nPrevious Code:\n" + code_markdown}
 
     return Command(goto=goto, update=update)
 
