@@ -77,3 +77,30 @@ def format_agent_name(agent_name: str) -> str:
     formatted_name = agent_name.strip().replace("_", " ").upper()
     
     return f"---{formatted_name}----"
+
+def format_recommended_steps(raw_text: str, heading: str = "# Recommended Feature Engineering Steps:") -> str:
+    # Split text by newline and strip leading/trailing whitespace
+    lines = raw_text.strip().split('\n')
+    
+    # Remove empty lines from the start
+    while lines and not lines[0].strip():
+        lines.pop(0)
+
+    seen_heading = False
+    new_lines = []
+
+    for line in lines:
+        # If this line *is exactly* the heading, check if we've seen it already
+        if line.strip() == heading:
+            if seen_heading:
+                # Skip duplicates
+                continue
+            else:
+                seen_heading = True
+        new_lines.append(line)
+
+    # If heading was never seen, prepend it
+    if not seen_heading:
+        new_lines.insert(0, heading)
+
+    return "\n".join(new_lines)

@@ -24,7 +24,7 @@ from ai_data_science_team.templates import(
     BaseAgent,
 )
 from ai_data_science_team.tools.parsers import PythonOutputParser
-from ai_data_science_team.tools.regex import relocate_imports_inside_function, add_comments_to_top, format_agent_name
+from ai_data_science_team.tools.regex import relocate_imports_inside_function, add_comments_to_top, format_agent_name, format_recommended_steps
 from ai_data_science_team.tools.metadata import get_dataframe_summary
 from ai_data_science_team.tools.logging import log_ai_function
 
@@ -614,7 +614,7 @@ def make_data_wrangling_agent(
         }) 
 
         return {
-            "recommended_steps": "\n\n# Recommended Wrangling Steps:\n" + recommended_steps.content.strip(),
+            "recommended_steps": format_recommended_steps(recommended_steps.content.strip(), heading="# Recommended Data Wrangling Steps:"),
             "all_datasets_summary": all_datasets_summary_str,
         }
 

@@ -24,7 +24,7 @@ from ai_data_science_team.templates import(
     BaseAgent,
 )
 from ai_data_science_team.tools.parsers import SQLOutputParser  
-from ai_data_science_team.tools.regex import add_comments_to_top, format_agent_name
+from ai_data_science_team.tools.regex import add_comments_to_top, format_agent_name, format_recommended_steps
 from ai_data_science_team.tools.metadata import get_database_metadata
 from ai_data_science_team.tools.logging import log_ai_function
 
@@ -518,7 +518,7 @@ def make_sql_database_agent(
         })
         
         return {
-            "recommended_steps": "\n\n# Recommended SQL Database Steps:\n" + recommended_steps.content.strip(),
+            "recommended_steps": format_recommended_steps(recommended_steps.content.strip(), heading="# Recommended SQL Database Steps:"),
             "all_sql_database_summary": all_sql_database_summary
         }
         
