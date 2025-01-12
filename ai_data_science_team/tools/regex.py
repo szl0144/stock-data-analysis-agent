@@ -78,7 +78,7 @@ def format_agent_name(agent_name: str) -> str:
     
     return f"---{formatted_name}----"
 
-def format_recommended_steps(raw_text: str, heading: str = "# Recommended Feature Engineering Steps:") -> str:
+def format_recommended_steps(raw_text: str, heading: str = "# Recommended Steps:") -> str:
     # Split text by newline and strip leading/trailing whitespace
     lines = raw_text.strip().split('\n')
     
