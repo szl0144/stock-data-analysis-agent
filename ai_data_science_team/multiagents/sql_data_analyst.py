@@ -1,27 +1,272 @@
-# TODO Create a SQLDataAnalyst class that inherits from DataAnalyst
-# https://langchain-ai.github.io/langgraph/concepts/multi_agent/#multi-agent-architectures
 
+from langchain_core.messages import BaseMessage
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph.graph import START, END, StateGraph
+from langgraph.graph.state import CompiledStateGraph
+from langgraph.types import Command
 
-# from langchain_community.agent_toolkits import SQLDatabaseToolkit
-# from langchain_community.utilities.sql_database import SQLDatabase
-# from langchain_openai import ChatOpenAI
+from typing import TypedDict, Annotated, Sequence
+import operator
 
-# import os 
-# import yaml
+from typing_extensions import TypedDict, Literal
 
+import pandas as pd
+from IPython.display import Markdown
 
-# MODEL    = "gpt-4o-mini"
+from ai_data_science_team.templates import BaseAgent
+from ai_data_science_team.agents import SQLDatabaseAgent, DataVisualizationAgent
+from ai_data_science_team.utils.plotly import plotly_from_dict
 
-# os.environ["OPENAI_API_KEY"] = yaml.safe_load(open('../credentials.yml'))['openai']
+memory = MemorySaver()
 
-# llm = ChatOpenAI(model = MODEL)
+class SQLDataAnalyst(BaseAgent):
+    """
+    SQLDataAnalyst is a multi-agent class that combines SQL database querying and data visualization capabilities.
+    
+    Parameters:
+    -----------
+    model:
+        The language model to be used for the agents.
+    sql_database_agent: SQLDatabaseAgent
+        The SQL Database Agent.
+    data_visualization_agent: DataVisualizationAgent
+        The Data Visualization Agent.
+        
+    Methods:
+    --------
+    ainvoke_agent(user_instructions, **kwargs)
+        Asynchronously invokes the SQL Data Analyst Multi-Agent with the given user instructions.
+    invoke_agent(user_instructions, **kwargs)
+        Invokes the SQL Data Analyst Multi-Agent with the given user instructions.
+    get_data_sql()
+        Returns the SQL data as a Pandas DataFrame.
+    get_plotly_graph()
+        Returns the Plotly graph as a Plotly object.
+    get_sql_query_code(markdown=False)
+        Returns the SQL query code as a string, optionally formatted as a Markdown code block.
+    get_sql_database_function(markdown=False)
+        Returns the SQL database function as a string, optionally formatted as a Markdown code block.
+    get_data_visualization_function(markdown=False)
+        Returns the data visualization function as a string, optionally formatted as a Markdown code block.
+    """
+    
+    def __init__(
+        self, 
+        model, 
+        sql_database_agent: SQLDatabaseAgent, 
+        data_visualization_agent: DataVisualizationAgent
+    ):
+        self._params = {
+            "model": model,
+            "sql_database_agent": sql_database_agent,
+            "data_visualization_agent": data_visualization_agent
+        }
+        self._compiled_graph = self._make_compiled_graph()
+        self.response = None
+    
+    def _make_compiled_graph(self):
+        """
+        Create or rebuild the compiled graph for the SQL Data Analyst Multi-Agent.
+        Running this method resets the response to None.
+        """
+        self.response = None
+        return make_sql_data_analyst(
+            model=self._params["model"],
+            sql_database_agent=self._params["sql_database_agent"]._compiled_graph,
+            data_visualization_agent=self._params["data_visualization_agent"]._compiled_graph
+        )
+    
+    def update_params(self, **kwargs):
+        """
+        Updates the agent's parameters (e.g. model, sql_database_agent, etc.) 
+        and rebuilds the compiled graph.
+        """
+        for k, v in kwargs.items():
+            self._params[k] = v
+        self._compiled_graph = self._make_compiled_graph()
+        
+    def ainvoke_agent(self, user_instructions, **kwargs):
+        """
+        Asynchronosly nvokes the SQL Data Analyst Multi-Agent.
+        
+        Parameters:
+        ----------
+        user_instructions: str
+            The user's instructions for the combined SQL and (optionally) Data Visualization agents.
+        **kwargs:
+            Additional keyword arguments to pass to the compiled graph's `ainvoke` method.
+            
+        Returns:
+        -------
+        None. The response is stored in the `response` attribute.
+        
+        Example:
+        --------
+        ``` python
+        # TODO
+        ```
+        """
+        response = self._compiled_graph.ainvoke({
+            "user_instructions": user_instructions,
+        }, **kwargs)
+        self.response = response
+        
+    def invoke_agent(self, user_instructions, **kwargs):
+        """
+        Invokes the SQL Data Analyst Multi-Agent.
+        
+        Parameters:
+        ----------
+        user_instructions: str
+            The user's instructions for the combined SQL and (optionally) Data Visualization agents.
+        **kwargs:
+            Additional keyword arguments to pass to the compiled graph's `invoke` method.
+            
+        Returns:
+        -------
+        None. The response is stored in the `response` attribute.
+        
+        Example:
+        --------
+        ``` python
+        # TODO
+        ```
+        """
+        response = self._compiled_graph.invoke({
+            "user_instructions": user_instructions,
+        }, **kwargs)
+        self.response = response
+        
+    def get_data_sql(self):
+        """
+        Returns the SQL data as a Pandas DataFrame.
+        """
+        if self.response.get("data_sql"):
+            return pd.DataFrame(self.response.get("data_sql"))
+    
+    def get_plotly_graph(self):
+        """
+        Returns the Plotly graph as a Plotly object.
+        """
+        if self.response.get("plotly_graph"):
+            return plotly_from_dict(self.response.get("plotly_graph"))
+    
+    def get_sql_query_code(self, markdown=False):
+        """
+        Returns the SQL query code as a string.
+        
+        Parameters:
+        ----------
+        markdown: bool
+            If True, returns the code as a Markdown code block for Jupyter (IPython).
+            For streamlit, use `st.code()` instead.
+        """
+        if self.response.get("sql_query_code"):
+            if markdown:
+                return Markdown(f"```sql\n{self.response.get('sql_query_code')}\n```")
+            return self.response.get("sql_query_code")
+    
+    def get_sql_database_function(self, markdown=False):
+        """
+        Returns the SQL database function as a string.
+        
+        Parameters:
+        ----------
+        markdown: bool
+            If True, returns the function as a Markdown code block for Jupyter (IPython).
+            For streamlit, use `st.code()` instead.
+        """
+        if self.response.get("sql_database_function"):
+            if markdown:
+                return Markdown(f"```python\n{self.response.get('sql_database_function')}\n```")
+            return self.response.get("sql_database_function")
+    
+    def get_data_visualization_function(self, markdown=False):
+        """
+        Returns the data visualization function as a string.
+        
+        Parameters:
+        ----------
+        markdown: bool
+            If True, returns the function as a Markdown code block for Jupyter (IPython).
+            For streamlit, use `st.code()` instead.
+        """
+        if self.response.get("data_visualization_function"):
+            if markdown:
+                return Markdown(f"```python\n{self.response.get('data_visualization_function')}\n```")
+            return self.response.get("data_visualization_function")
+    
+    
 
-# db = SQLDatabase.from_uri("sqlite:///data/northwind.db")
+def make_sql_data_analyst(
+    model, 
+    sql_database_agent: CompiledStateGraph,
+    data_visualization_agent: CompiledStateGraph,
+):
+    """
+    Creates a multi-agent system that takes in a SQL query and returns a plot or table.
+    
+    - Agent 1: SQL Database Agent made with `make_sql_database_agent()`
+    - Agent 2: Data Visualization Agent made with `make_data_visualization_agent()`
+    
+    Parameters:
+    ----------
+    model: 
+        The language model to be used for the agents.
+    sql_database_agent: CompiledStateGraph
+        The SQL Database Agent.
+    data_visualization_agent: CompiledStateGraph
+        The Data Visualization Agent.
+        
+    Returns:
+    -------
+    CompiledStateGraph
+        The compiled multi-agent system.
+    """
+    
+    llm = model
 
-# toolkit = SQLDatabaseToolkit(db=db, llm=llm)
+    class PrimaryState(TypedDict):
+        messages: Annotated[Sequence[BaseMessage], operator.add]    
+        user_instructions: str
+        sql_query_code: str
+        sql_database_function: str
+        data_sql: dict
+        data_raw: dict
+        plot_required: bool
+        data_visualization_function: str
+        plotly_graph: dict
+        
+    def route_to_visualization(state) -> Command[Literal["data_visualization_agent", "__end__"]]: 
+        
+        response = llm.invoke(f"Respond in 1 word ('plot' or 'table'). Is the user requesting a plot? If unknown, select 'table'. \n\n User Instructions:\n{state.get('user_instructions')}")
+        
+        if response.content == 'plot':
+            plot_required = True
+            goto="data_visualization_agent"
+        else:
+            plot_required = False
+            goto="__end__"
+        
+        return Command(
+            update={
+                'data_raw': state.get("data_sql"),
+                'plot_required': plot_required,
+            },
+            goto=goto
+        )
 
-# tools = toolkit.get_tools()
+    workflow = StateGraph(PrimaryState)
 
-# tools
+    workflow.add_node("sql_database_agent", sql_database_agent)
+    workflow.add_node("route_to_visualization", route_to_visualization)
+    workflow.add_node("data_visualization_agent", data_visualization_agent)
 
-# tools[0]
+    workflow.add_edge(START, "sql_database_agent")
+    workflow.add_edge("sql_database_agent", "route_to_visualization")
+    workflow.add_edge("data_visualization_agent", END)
+
+    app = workflow.compile(checkpointer=MemorySaver())
+
+    return app
+

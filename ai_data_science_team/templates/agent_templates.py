@@ -14,7 +14,7 @@ from typing import Any, Callable, Dict, Type, Optional, Union
 from ai_data_science_team.tools.parsers import PythonOutputParser
 from ai_data_science_team.tools.regex import relocate_imports_inside_function, add_comments_to_top
 
-from IPython.display import Image, Markdown, display
+from IPython.display import Image, display
 import pandas as pd
 
 class BaseAgent(CompiledStateGraph):

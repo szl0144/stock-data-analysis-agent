@@ -349,7 +349,8 @@ class SQLDatabaseAgent(BaseAgent):
 # Function
 
 def make_sql_database_agent(
-    model, connection, 
+    model, 
+    connection, 
     n_samples = 10, 
     log=False, 
     log_path=None, 
