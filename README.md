@@ -19,7 +19,7 @@
 
 **An AI-powered data science team of agents to help you perform common data science tasks 10X faster**.
 
-[**Star ⭐ This GitHub (Takes 2 seconds and means a lot).**](https://github.com/business-science/ai-data-science-team)
+[**Please ⭐ us on GitHub (it takes 2 seconds and means a lot).**](https://github.com/business-science/ai-data-science-team)
 
 *Beta - This Python library is under active development. There may be breaking changes that occur until release of 0.1.0.* 
 
