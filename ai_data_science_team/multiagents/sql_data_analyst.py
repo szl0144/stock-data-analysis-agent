@@ -1,6 +1,8 @@
 
 from langchain_core.messages import BaseMessage
 from langgraph.checkpoint.memory import MemorySaver
+from langgraph.types import Checkpointer
+
 from langgraph.graph import START, END, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.types import Command
@@ -17,7 +19,7 @@ from ai_data_science_team.templates import BaseAgent
 from ai_data_science_team.agents import SQLDatabaseAgent, DataVisualizationAgent
 from ai_data_science_team.utils.plotly import plotly_from_dict
 
-memory = MemorySaver()
+
 
 class SQLDataAnalyst(BaseAgent):
     """
@@ -54,12 +56,14 @@ class SQLDataAnalyst(BaseAgent):
         self, 
         model, 
         sql_database_agent: SQLDatabaseAgent, 
-        data_visualization_agent: DataVisualizationAgent
+        data_visualization_agent: DataVisualizationAgent,
+        checkpointer: Checkpointer = None,
     ):
         self._params = {
             "model": model,
             "sql_database_agent": sql_database_agent,
-            "data_visualization_agent": data_visualization_agent
+            "data_visualization_agent": data_visualization_agent,
+            "checkpointer": checkpointer,
         }
         self._compiled_graph = self._make_compiled_graph()
         self.response = None
@@ -73,7 +77,8 @@ class SQLDataAnalyst(BaseAgent):
         return make_sql_data_analyst(
             model=self._params["model"],
             sql_database_agent=self._params["sql_database_agent"]._compiled_graph,
-            data_visualization_agent=self._params["data_visualization_agent"]._compiled_graph
+            data_visualization_agent=self._params["data_visualization_agent"]._compiled_graph,
+            checkpointer=self._params["checkpointer"],
         )
     
     def update_params(self, **kwargs):
@@ -141,15 +146,17 @@ class SQLDataAnalyst(BaseAgent):
         """
         Returns the SQL data as a Pandas DataFrame.
         """
-        if self.response.get("data_sql"):
-            return pd.DataFrame(self.response.get("data_sql"))
+        if self.response:
+            if self.response.get("data_sql"):
+                return pd.DataFrame(self.response.get("data_sql"))
     
     def get_plotly_graph(self):
         """
         Returns the Plotly graph as a Plotly object.
         """
-        if self.response.get("plotly_graph"):
-            return plotly_from_dict(self.response.get("plotly_graph"))
+        if self.response:
+            if self.response.get("plotly_graph"):
+                return plotly_from_dict(self.response.get("plotly_graph"))
     
     def get_sql_query_code(self, markdown=False):
         """
@@ -161,10 +168,11 @@ class SQLDataAnalyst(BaseAgent):
             If True, returns the code as a Markdown code block for Jupyter (IPython).
             For streamlit, use `st.code()` instead.
         """
-        if self.response.get("sql_query_code"):
-            if markdown:
-                return Markdown(f"```sql\n{self.response.get('sql_query_code')}\n```")
-            return self.response.get("sql_query_code")
+        if self.response:
+            if self.response.get("sql_query_code"):
+                if markdown:
+                    return Markdown(f"```sql\n{self.response.get('sql_query_code')}\n```")
+                return self.response.get("sql_query_code")
     
     def get_sql_database_function(self, markdown=False):
         """
@@ -176,10 +184,11 @@ class SQLDataAnalyst(BaseAgent):
             If True, returns the function as a Markdown code block for Jupyter (IPython).
             For streamlit, use `st.code()` instead.
         """
-        if self.response.get("sql_database_function"):
-            if markdown:
-                return Markdown(f"```python\n{self.response.get('sql_database_function')}\n```")
-            return self.response.get("sql_database_function")
+        if self.response:
+            if self.response.get("sql_database_function"):
+                if markdown:
+                    return Markdown(f"```python\n{self.response.get('sql_database_function')}\n```")
+                return self.response.get("sql_database_function")
     
     def get_data_visualization_function(self, markdown=False):
         """
@@ -191,10 +200,11 @@ class SQLDataAnalyst(BaseAgent):
             If True, returns the function as a Markdown code block for Jupyter (IPython).
             For streamlit, use `st.code()` instead.
         """
-        if self.response.get("data_visualization_function"):
-            if markdown:
-                return Markdown(f"```python\n{self.response.get('data_visualization_function')}\n```")
-            return self.response.get("data_visualization_function")
+        if self.response:
+            if self.response.get("data_visualization_function"):
+                if markdown:
+                    return Markdown(f"```python\n{self.response.get('data_visualization_function')}\n```")
+                return self.response.get("data_visualization_function")
     
     
 
@@ -202,6 +212,7 @@ def make_sql_data_analyst(
     model, 
     sql_database_agent: CompiledStateGraph,
     data_visualization_agent: CompiledStateGraph,
+    checkpointer: Checkpointer = None
 ):
     """
     Creates a multi-agent system that takes in a SQL query and returns a plot or table.
@@ -214,9 +225,12 @@ def make_sql_data_analyst(
     model: 
         The language model to be used for the agents.
     sql_database_agent: CompiledStateGraph
-        The SQL Database Agent.
+        The SQL Database Agent made with `make_sql_database_agent()`.
     data_visualization_agent: CompiledStateGraph
-        The Data Visualization Agent.
+        The Data Visualization Agent made with `make_data_visualization_agent()`.
+    checkpointer: Checkpointer (optional)
+        The checkpointer to save the state of the multi-agent system.
+        Default: None
         
     Returns:
     -------
@@ -266,7 +280,7 @@ def make_sql_data_analyst(
     workflow.add_edge("sql_database_agent", "route_to_visualization")
     workflow.add_edge("data_visualization_agent", END)
 
-    app = workflow.compile(checkpointer=MemorySaver())
+    app = workflow.compile(checkpointer=checkpointer)
 
     return app
 
