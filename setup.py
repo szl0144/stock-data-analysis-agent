@@ -1,6 +1,8 @@
 from setuptools import find_packages, setup
+import os
 
 def parse_requirements(filename):
+    filename = os.path.join(os.path.dirname(__file__), filename)
     with open(filename, "r") as f:
         return [line.strip() for line in f if line and not line.startswith("#")]
 
