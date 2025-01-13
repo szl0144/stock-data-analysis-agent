@@ -41,9 +41,11 @@ The AI Data Science Team of Copilots includes Agents that specialize data cleani
   - [Companies That Want A Custom AI Data Science Team (And AI Apps)](#companies-that-want-a-custom-ai-data-science-team-and-ai-apps)
   - [Free How To Build AI Agents for Data Scientists Workshop](#free-how-to-build-ai-agents-for-data-scientists-workshop)
   - [Data Science Agents](#data-science-agents)
-    - [Coming Soon: Multi-Agents](#coming-soon-multi-agents)
-    - [...And after that, the Multi-Agent Data Science Apps](#and-after-that-the-multi-agent-data-science-apps)
+    - [NEW: Multi-Agents](#new-multi-agents)
+    - [Coming Soon: Data Science Apps](#coming-soon-data-science-apps)
     - [Agents Available Now](#agents-available-now)
+      - [Data Science Agents](#data-science-agents-1)
+      - [Multi-Agents](#multi-agents)
     - [Agents Coming Soon](#agents-coming-soon)
   - [Disclaimer](#disclaimer)
   - [Installation](#installation)
@@ -72,13 +74,13 @@ This project is a work in progress. New data science agents will be released soo
 
 ![Data Science Team](/img/ai_data_science_team.jpg)
 
-### Coming Soon: Multi-Agents
+### NEW: Multi-Agents
 
-This is the internals of the Business Intelligence SQL Agent I'm working on:
+This is the internals of the SQL Data Analyst Agent that connects to SQL databases to pull data into the data science environment. It creates pipelines to automate data extraction, performs Joins, Aggregations, and other SQL Query operations. And it includes a Data Visualization Agent that creates visualizations to help you understand your data.:
 
 ![Business Intelligence SQL Agent](/img/multi_agent_sql_data_visualization.jpg)
 
-### ...And after that, the Multi-Agent Data Science Apps
+### Coming Soon: Data Science Apps
 
 This is a top secret project I'm working on. It's a multi-agent data science app that performs time series forecasting.
 
@@ -86,11 +88,17 @@ This is a top secret project I'm working on. It's a multi-agent data science app
 
 ### Agents Available Now
 
+#### Data Science Agents
+
 1. **Data Wrangling Agent:** Merges, Joins, Preps and Wrangles data into a format that is ready for data analysis.
 2. **Data Visualization Agent:** Creates visualizations to help you understand your data. Returns JSON serializable plotly visualizations.
 3. **Data Cleaning Agent:** Performs Data Preparation steps including handling missing values, outliers, and data type conversions.
 4. **Feature Engineering Agent:** Converts the prepared data into ML-ready data. Adds features to increase predictive accuracy of ML models.
 5. **SQL Database Agent:** Connects to SQL databases to pull data into the data science environment. Creates pipelines to automate data extraction. Performs Joins, Aggregations, and other SQL Query operations.
+
+#### Multi-Agents
+
+1. **SQL Data Analyst Agent:** Connects to SQL databases to pull data into the data science environment. Creates pipelines to automate data extraction. Performs Joins, Aggregations, and other SQL Query operations. Includes a Data Visualization Agent that creates visualizations to help you understand your data.
 
 ### Agents Coming Soon
 
