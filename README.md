@@ -58,7 +58,7 @@ The AI Data Science Team of Copilots includes Agents that specialize data cleani
 
 ## Companies That Want A Custom AI Data Science Team (And AI Apps)
 
-Want to have your own _customized_ enterprise-grade AI Data Science Team and domain-specifici AI-powered Apps? 
+Want to have your own _customized_ enterprise-grade AI Data Science Team and *domain-specific* AI-powered Apps? 
 
 **Send inquiries here:** [https://www.business-science.io/contact.html](https://www.business-science.io/contact.html)
 
