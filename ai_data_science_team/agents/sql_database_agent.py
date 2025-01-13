@@ -473,6 +473,7 @@ def make_sql_database_agent(
             - If no user instructions are provided, just return the steps needed to understand the database.
             - Take into account the database dialect and the tables and columns in the database.
             - Pay attention to use only the column names you can see in the tables below. Be careful to not query for columns that do not exist. Also, pay attention to which column is in which table.
+            - IMPORTANT: Pay attention to the table names and column names in the database. Make sure to use the correct table and column names in the SQL code. If a space is present in the table name or column name, make sure to account for it.
             
             
             User instructions / Question:
@@ -541,6 +542,7 @@ def make_sql_database_agent(
             - Only return a single query if possible.
             - Pay attention to use only the column names you can see in the tables below. Be careful to not query for columns that do not exist. Also, pay attention to which column is in which table.
             - Pay attention to the SQL dialect from the database summary metadata. Write the SQL code according to the dialect specified.
+            - IMPORTANT: Pay attention to the table names and column names in the database. Make sure to use the correct table and column names in the SQL code. If a space is present in the table name or column name, make sure to account for it.
             
             
             User instructions / Question:
