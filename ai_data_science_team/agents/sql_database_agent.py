@@ -548,6 +548,8 @@ def make_sql_database_agent(
                 all_sql_database_summary, 
                 smart_filtering=smart_schema_filtering
             )
+        else:
+            all_sql_database_summary = state.get("all_sql_database_summary")    
         print("    * CREATE SQL QUERY CODE")
         
         # Prompt to get the SQL code from the LLM
