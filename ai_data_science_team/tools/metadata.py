@@ -1,6 +1,7 @@
 import io
 import pandas as pd
 import sqlalchemy as sql
+from sqlalchemy import inspect
 from typing import Union, List, Dict
 
 def get_dataframe_summary(
@@ -139,8 +140,7 @@ def _summarize_dataframe(df: pd.DataFrame, dataset_name: str, n_sample=30, skip_
 
 
 
-def get_database_metadata(connection: Union[sql.engine.base.Connection, sql.engine.base.Engine],
-                          n_samples: int = 10) -> str:
+def get_database_metadata(connection, n_samples=10) -> dict:
     """
     Collects metadata and sample data from a database, with safe identifier quoting and
     basic dialect-aware row limiting. Prevents issues with spaces/reserved words in identifiers.
@@ -154,77 +154,109 @@ def get_database_metadata(connection: Union[sql.engine.base.Connection, sql.engi
 
     Returns
     -------
-    str
-        A formatted string with database metadata, including some sample data from each column.
+    dict
+        A dictionary with database metadata, including some sample data from each column.
     """
-
-    # If a connection is passed, use it; if an engine is passed, connect to it
     is_engine = isinstance(connection, sql.engine.base.Engine)
     conn = connection.connect() if is_engine else connection
 
-    output = []
+    metadata = {
+        "dialect": None,
+        "driver": None,
+        "connection_url": None,
+        "schemas": [],
+    }
+
     try:
-        # Grab the engine off the connection
         sql_engine = conn.engine
         dialect_name = sql_engine.dialect.name.lower()
 
-        output.append(f"Database Dialect: {sql_engine.dialect.name}")
-        output.append(f"Driver: {sql_engine.driver}")
-        output.append(f"Connection URL: {sql_engine.url}")
+        metadata["dialect"] = sql_engine.dialect.name
+        metadata["driver"] = sql_engine.driver
+        metadata["connection_url"] = str(sql_engine.url)
 
-        # Inspect the database
-        inspector = sql.inspect(sql_engine)
-        tables = inspector.get_table_names()
-        output.append(f"Tables: {tables}")
-        output.append(f"Schemas: {inspector.get_schema_names()}")
-
-        # Helper to build a dialect-specific limit clause
-        def build_query(col_name_quoted: str, table_name_quoted: str, n: int) -> str:
-            """
-            Returns a SQL query string to select N rows from the given column/table
-            across different dialects (SQLite, MySQL, Postgres, MSSQL, Oracle, etc.)
-            """
-            if "sqlite" in dialect_name or "mysql" in dialect_name or "postgres" in dialect_name:
-                # Common dialects supporting LIMIT
-                return f"SELECT {col_name_quoted} FROM {table_name_quoted} LIMIT {n}"
-            elif "mssql" in dialect_name:
-                # Microsoft SQL Server syntax
-                return f"SELECT TOP {n} {col_name_quoted} FROM {table_name_quoted}"
-            elif "oracle" in dialect_name:
-                # Oracle syntax
-                return f"SELECT {col_name_quoted} FROM {table_name_quoted} WHERE ROWNUM <= {n}"
-            else:
-                # Fallback
-                return f"SELECT {col_name_quoted} FROM {table_name_quoted} LIMIT {n}"
-
-        # Prepare for quoting
+        inspector = inspect(sql_engine)
         preparer = inspector.bind.dialect.identifier_preparer
 
-        # For each table, get columns and sample data
-        for table_name in tables:
-            output.append(f"\nTable: {table_name}")
-            # Properly quote the table name
-            table_name_quoted = preparer.quote_identifier(table_name)
+        # For each schema
+        for schema_name in inspector.get_schema_names():
+            schema_obj = {
+                "schema_name": schema_name,
+                "tables": []
+            }
 
-            for column in inspector.get_columns(table_name):
-                col_name = column["name"]
-                col_type = column["type"]
-                output.append(f"  Column: {col_name} Type: {col_type}")
+            tables = inspector.get_table_names(schema=schema_name)
+            for table_name in tables:
+                table_info = {
+                    "table_name": table_name,
+                    "columns": [],
+                    "primary_key": [],
+                    "foreign_keys": [],
+                    "indexes": []
+                }
+                # Get columns
+                columns = inspector.get_columns(table_name, schema=schema_name)
+                for col in columns:
+                    col_name = col["name"]
+                    col_type = str(col["type"])
+                    table_name_quoted = f"{preparer.quote_identifier(schema_name)}.{preparer.quote_identifier(table_name)}"
+                    col_name_quoted = preparer.quote_identifier(col_name)
 
-                # Properly quote the column name
-                col_name_quoted = preparer.quote_identifier(col_name)
+                    # Build query for sample data
+                    query = build_query(col_name_quoted, table_name_quoted, n_samples, dialect_name)
 
-                # Build a dialect-aware query with safe quoting
-                query = build_query(col_name_quoted, table_name_quoted, n_samples)
+                    # Retrieve sample data
+                    try:
+                        df = pd.read_sql(query, conn)
+                        samples = df[col_name].head(n_samples).tolist()
+                    except Exception as e:
+                        samples = [f"Error retrieving data: {str(e)}"]
 
-                # Read a few sample values
-                df = pd.read_sql(sql.text(query), conn)
-                first_values = df[col_name].tolist()
-                output.append(f"    First {n_samples} Values: {first_values}")
+                    table_info["columns"].append({
+                        "name": col_name,
+                        "type": col_type,
+                        "sample_values": samples
+                    })
 
+                # Primary keys
+                pk_constraint = inspector.get_pk_constraint(table_name, schema=schema_name)
+                table_info["primary_key"] = pk_constraint.get("constrained_columns", [])
+
+                # Foreign keys
+                fks = inspector.get_foreign_keys(table_name, schema=schema_name)
+                table_info["foreign_keys"] = [
+                    {
+                        "local_cols": fk["constrained_columns"],
+                        "referred_table": fk["referred_table"],
+                        "referred_cols": fk["referred_columns"]
+                    }
+                    for fk in fks
+                ]
+
+                # Indexes
+                idxs = inspector.get_indexes(table_name, schema=schema_name)
+                table_info["indexes"] = idxs
+
+                schema_obj["tables"].append(table_info)
+            
+            metadata["schemas"].append(schema_obj)
+    
     finally:
-        # Close connection if created inside the function
         if is_engine:
             conn.close()
 
-    return "\n".join(output)
+    return metadata
+
+def build_query(col_name_quoted: str, table_name_quoted: str, n: int, dialect_name: str) -> str:
+    # Example: expand your build_query to handle random sampling if possible
+    if "postgres" in dialect_name:
+        return f"SELECT {col_name_quoted} FROM {table_name_quoted} ORDER BY RANDOM() LIMIT {n}"
+    if "mysql" in dialect_name:
+        return f"SELECT {col_name_quoted} FROM {table_name_quoted} ORDER BY RAND() LIMIT {n}"
+    if "sqlite" in dialect_name:
+        return f"SELECT {col_name_quoted} FROM {table_name_quoted} ORDER BY RANDOM() LIMIT {n}"
+    if "mssql" in dialect_name:
+        return f"SELECT TOP {n} {col_name_quoted} FROM {table_name_quoted} ORDER BY NEWID()"
+    # Oracle or fallback
+    return f"SELECT {col_name_quoted} FROM {table_name_quoted} WHERE ROWNUM <= {n}"
+

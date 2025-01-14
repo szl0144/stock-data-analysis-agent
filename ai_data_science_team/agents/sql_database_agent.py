@@ -5,6 +5,7 @@ import operator
 
 from langchain.prompts import PromptTemplate
 from langchain_core.messages import BaseMessage
+from langchain_core.output_parsers import JsonOutputParser
 
 from langgraph.types import Command
 from langgraph.checkpoint.memory import MemorySaver
@@ -51,7 +52,7 @@ class SQLDatabaseAgent(BaseAgent):
     connection : sqlalchemy.engine.base.Engine or sqlalchemy.engine.base.Connection
         The SQLAlchemy connection (or engine) to the database.
     n_samples : int, optional
-        Number of sample rows (per column) to retrieve when summarizing database metadata. Defaults to 10.
+        Number of sample rows (per column) to retrieve when summarizing database metadata. Defaults to 1.
     log : bool, optional
         Whether to log the generated code and errors. Defaults to False.
     log_path : str, optional
@@ -68,6 +69,8 @@ class SQLDatabaseAgent(BaseAgent):
         If True, skips the step that generates recommended SQL steps. Defaults to False.
     bypass_explain_code : bool, optional
         If True, skips the step that provides code explanations. Defaults to False.
+    smart_schema_filtering : bool, optional
+        If True, filters the tables and columns based on the user instructions and recommended steps. Defaults to False.
 
     Methods
     -------
@@ -139,7 +142,7 @@ class SQLDatabaseAgent(BaseAgent):
         self,
         model,
         connection,
-        n_samples=10,
+        n_samples=1,
         log=False,
         log_path=None,
         file_name="sql_database.py",
@@ -147,7 +150,8 @@ class SQLDatabaseAgent(BaseAgent):
         overwrite=True,
         human_in_the_loop=False,
         bypass_recommended_steps=False,
-        bypass_explain_code=False
+        bypass_explain_code=False,
+        smart_schema_filtering=False,
     ):
         self._params = {
             "model": model,
@@ -160,7 +164,8 @@ class SQLDatabaseAgent(BaseAgent):
             "overwrite": overwrite,
             "human_in_the_loop": human_in_the_loop,
             "bypass_recommended_steps": bypass_recommended_steps,
-            "bypass_explain_code": bypass_explain_code
+            "bypass_explain_code": bypass_explain_code,
+            "smart_schema_filtering": smart_schema_filtering,
         }
         self._compiled_graph = self._make_compiled_graph()
         self.response = None
@@ -351,14 +356,16 @@ class SQLDatabaseAgent(BaseAgent):
 def make_sql_database_agent(
     model, 
     connection, 
-    n_samples = 10, 
+    n_samples=1, 
     log=False, 
     log_path=None, 
     file_name="sql_database.py",
     function_name="sql_database_pipeline",
     overwrite = True, 
-    human_in_the_loop=False, bypass_recommended_steps=False, 
-    bypass_explain_code=False
+    human_in_the_loop=False, 
+    bypass_recommended_steps=False, 
+    bypass_explain_code=False,
+    smart_schema_filtering=False,
 ):
     """
     Creates a SQL Database Agent that can recommend SQL steps and generate SQL code to query a database. 
@@ -370,7 +377,7 @@ def make_sql_database_agent(
     connection : sqlalchemy.engine.base.Engine
         The connection to the SQL database.
     n_samples : int, optional
-        The number of samples to retrieve for each column, by default 10. 
+        The number of samples to retrieve for each column, by default 1. 
         If you get an error due to maximum tokens, try reducing this number.
         > "This model's maximum context length is 128000 tokens. However, your messages resulted in 333858 tokens. Please reduce the length of the messages."
     log : bool, optional
@@ -387,6 +394,8 @@ def make_sql_database_agent(
         Bypass the recommendation step, by default False
     bypass_explain_code : bool, optional
         Bypass the code explanation step, by default False.
+    smart_schema_filtering : bool, optional
+        If True, filters the tables and columns with an extra LLM step to reduce tokens for large databases. Increases processing time. Defaults to False.
     
     Returns
     -------
@@ -419,11 +428,7 @@ def make_sql_database_agent(
         "retry_count":0
     })
     ```
-    
     """
-    
-    is_engine = isinstance(connection, sql.engine.base.Engine)
-    conn = connection.connect() if is_engine else connection
     
     llm = model
     
@@ -438,6 +443,11 @@ def make_sql_database_agent(
             log_path = LOG_PATH
         if not os.path.exists(log_path):
             os.makedirs(log_path)
+            
+    # Get the database metadata
+    is_engine = isinstance(connection, sql.engine.base.Engine)
+    conn = connection.connect() if is_engine else connection
+        
     
     class GraphState(TypedDict):
         messages: Annotated[Sequence[BaseMessage], operator.add]
@@ -456,7 +466,18 @@ def make_sql_database_agent(
     
     def recommend_sql_steps(state: GraphState):
         
+        
         print(format_agent_name(AGENT_NAME))
+        
+        all_sql_database_summary = get_database_metadata(conn, n_samples=n_samples)
+    
+        all_sql_database_summary = smart_schema_filter(
+            llm, 
+            state.get("user_instructions"), 
+            all_sql_database_summary, 
+            smart_filtering=smart_schema_filtering
+        )
+        
         print("    * RECOMMEND STEPS")
         
         
@@ -504,13 +525,6 @@ def make_sql_database_agent(
             input_variables=["user_instructions", "recommended_steps", "all_sql_database_summary"]
         )
         
-        # Create a connection if needed
-        is_engine = isinstance(connection, sql.engine.base.Engine)
-        conn = connection.connect() if is_engine else connection
-        
-        # Get the database metadata
-        all_sql_database_summary = get_database_metadata(conn, n_samples=n_samples)
-        
         steps_agent = recommend_steps_prompt | llm
         
         recommended_steps = steps_agent.invoke({
@@ -527,6 +541,13 @@ def make_sql_database_agent(
     def create_sql_query_code(state: GraphState):
         if bypass_recommended_steps:
             print(format_agent_name(AGENT_NAME))
+            all_sql_database_summary = get_database_metadata(conn, n_samples=n_samples)
+            all_sql_database_summary = smart_schema_filter(
+                llm, 
+                state.get("user_instructions"), 
+                all_sql_database_summary, 
+                smart_filtering=smart_schema_filtering
+            )
         print("    * CREATE SQL QUERY CODE")
         
         # Prompt to get the SQL code from the LLM
@@ -566,13 +587,6 @@ def make_sql_database_agent(
             """,
             input_variables=["user_instructions", "recommended_steps", "all_sql_database_summary"]
         )
-        
-        # Create a connection if needed
-        is_engine = isinstance(connection, sql.engine.base.Engine)
-        conn = connection.connect() if is_engine else connection
-        
-        # Get the database metadata
-        all_sql_database_summary = get_database_metadata(conn, n_samples=n_samples)
         
         sql_query_code_agent = sql_query_code_prompt | llm | SQLOutputParser()
         
@@ -737,7 +751,46 @@ def {function_name}(connection):
              
             
         
+def smart_schema_filter(llm, user_instructions, all_sql_database_summary, smart_filtering = True):
+    """
+    This function filters the tables and columns based on the user instructions and the recommended steps.
+    """
+    # Smart schema filtering
+    if smart_filtering:
+        print("    * SMART FILTER SCHEMA")
         
+        filter_schema_prompt = PromptTemplate(
+            template="""
+            You are a highly skilled data engineer. The user question is:
+
+                "{user_instructions}"
+
+            You have the full database metadata in JSON format below:
+
+                {all_sql_database_summary}
+            
+            
+            Please return ONLY the subset of this metadata that is relevant to answering the user’s question. 
+            - Preserve the same JSON structure for "schemas" -> "tables" -> "columns". 
+            - If any schemas/tables are irrelevant, omit them entirely.
+            - If some columns in a relevant table are not needed, you can still keep them if you aren't sure. 
+            - However, try to keep only the minimum amount of data required to answer the user’s question.
+
+            Return a valid JSON object. Do not include any additional explanation or text outside of the JSON.
+            """,
+            input_variables=["user_instructions", "full_metadata_json"]
+        )
+        
+        filter_schema_agent = filter_schema_prompt | llm | JsonOutputParser()
+        
+        response = filter_schema_agent.invoke({
+            "user_instructions": user_instructions,
+            "all_sql_database_summary": all_sql_database_summary
+        })
+        
+        return response
+    else:
+        return all_sql_database_summary
         
         
     
