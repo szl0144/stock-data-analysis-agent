@@ -330,6 +330,9 @@ def make_h2o_ml_agent(
                 {all_datasets_summary}
 
                 Please recommend a short list of steps or considerations for performing H2OAutoML on this data. 
+                
+                Do not perform substantial data cleaning or feature engineering here. We will handle that separately.
+                
                 Return as a numbered list (no code).
             """,
             input_variables=["user_instructions", "all_datasets_summary"]
@@ -370,29 +373,41 @@ def make_h2o_ml_agent(
 
         code_prompt = PromptTemplate(
             template="""
-            You are an H2O AutoML agent. Create a Python function named {function_name}(data_raw) 
-            that runs H2OAutoML on the provided data. 
+            You are an H2O AutoML agent. Create a Python function named {function_name}(data_raw)
+            that runs H2OAutoML on the provided data with a focus on maximizing model accuracy and 
+            incorporating user instructions for flexibility.
+            
+            Do not perform substantial data cleaning or feature engineering here. We will handle that separately.
 
             We have two variables for deciding where to save the model:
-               model_directory = {model_directory} 
-               log_path = {log_path}
+            model_directory = {model_directory} 
+            log_path = {log_path}
 
             Logic:
             1. If both model_directory and log_path are None, do NOT save the model (set model_path = None).
             2. Otherwise, pick model_directory if it's not None, else pick log_path.
-               Then call `h2o.save_model(..., path=the_directory, ...)` 
+            Then call `h2o.save_model(model=aml.leader, path=the_directory, force=True)` to save the model.
             3. Return model_path as part of the final dictionary.
 
             Additional Requirements:
-            - Convert `data_raw` (pandas DataFrame) into h2o.H2OFrame.
+            - Convert `data_raw` (pandas DataFrame) into an H2OFrame.
             - Identify the target variable from {target_variable} (if provided).
             - Start H2O if not already started.
-            - Run H2OAutoML with any relevant parameters from these instructions:
-               {recommended_steps}
-            - Return a dict with keys: "leaderboard", "best_model_id", "model_path".
+            - Use Recommended Steps to guide any advanced parameters (e.g., cross-validation folds, 
+            balancing classes, extended training time, stacking) that might improve performance.
+            - If the user does not specify anything special, use H2OAutoML defaults (including stacked ensembles).
+            - Focus on maximizing accuracy (or the most relevant metric if it's not classification) 
+            while remaining flexible to user instructions.
+            - Return a dict with keys: leaderboard, best_model_id, and model_path.
+            
+            Initial User Instructions (Disregard any instructions that are unrelated to modeling):
+                {user_instructions}
+            
+            Recommended Steps:
+                {recommended_steps}
 
             Data summary for reference:
-            {all_datasets_summary}
+                {all_datasets_summary}
 
             Return only code in ```python``` with a single function definition:
             ```python
@@ -401,20 +416,42 @@ def make_h2o_ml_agent(
                 from h2o.automl import H2OAutoML
                 import pandas as pd
                 
+                # Initialize or connect to H2O if not already started
                 h2o.init()
+
+                # Convert the pandas DataFrame to an H2OFrame
+                data_h2o = h2o.H2OFrame(data_raw)
                 
-                ...
+                # Identify the target variable
+                target = {target_variable}
+                x = [col for col in data_h2o.columns if col != target]
                 
-                h2o.shutdown()
-                # handle model_directory vs log_path logic
-                return {
-                    "leaderboard": <leaderboard_dict>,
-                    "best_model_id": <best_model_id_str>,
-                    "model_path": <model_path_str_or_None>
-                }
+                # Example: Use advanced parameters if recommended (e.g., nfolds, max_runtime_secs, etc.)
+                # Adjust them based on user instructions and recommended steps:
+                aml = H2OAutoML(
+                    max_runtime_secs=60,  # default if no user instructions override
+                    seed=42,
+                    nfolds=5, # default if no user instructions override
+                    # e.g.,  balance_classes=True, etc. if recommended
+                )
+                aml.train(x=x, y=target, training_frame=data_h2o)
+                
+                # Determine model saving logic
+                if {model_directory} is None and {log_path} is None:
+                    model_path = None
+                else:
+                    path_to_save = {model_directory} if {model_directory} else {log_path}
+                    model_path = h2o.save_model(model=aml.leader, path=path_to_save, force=True)
+                
+                return dict(
+                    leaderboard = aml.leaderboard.as_data_frame().to_dict(),
+                    best_model_id = aml.leader.model_id,
+                    model_path = model_path
+                )
             ```
             """,
             input_variables=[
+                "user_instructions",
                 "function_name", 
                 "target_variable",
                 "recommended_steps",
@@ -428,6 +465,7 @@ def make_h2o_ml_agent(
         h2o_code_agent = code_prompt | llm | PythonOutputParser()
 
         resp = h2o_code_agent.invoke({
+            "user_instructions": state.get("user_instructions"),
             "function_name": function_name,
             "target_variable": state.get("target_variable"),
             "recommended_steps": recommended_steps,
