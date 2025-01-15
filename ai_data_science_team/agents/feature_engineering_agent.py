@@ -388,22 +388,7 @@ class FeatureEngineeringAgent(BaseAgent):
             return steps
         return None
 
-    def get_response(self):
-        """
-        Returns the agent's full response dictionary.
-
-        Returns
-        -------
-        dict or None
-            The response dictionary if available, otherwise None.
-        """
-        return self.response
-
-    def show(self):
-        """
-        Displays the agent's mermaid diagram for visual inspection of the compiled graph.
-        """
-        return self._compiled_graph.show()
+    
 
 
 # * Feature Engineering Agent
@@ -649,7 +634,6 @@ def make_feature_engineering_agent(
 
         feature_engineering_prompt = PromptTemplate(
             template="""
-            
             You are a Feature Engineering Agent. Your job is to create a {function_name}() function that can be run on the data provided using the following recommended steps.
             
             Recommended Steps:

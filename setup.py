@@ -25,6 +25,10 @@ setup(
     url="https://github.com/business-science/ai-data-science-team",
     packages=find_packages(),
     install_requires=parse_requirements("requirements.txt"),
+    extras_require={
+        "machine_learning_agent": ["h2o"],
+        "all": ["h2o"],
+    },
     python_requires=">=3.9",
     classifiers=[
         'Programming Language :: Python :: 3',
