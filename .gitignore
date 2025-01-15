@@ -164,9 +164,11 @@ cython_debug/
 # Mac
 .DS_Store
 
-# Temp
+# Temp and Logs
 /temp
 /logs
+/h2o_models
+
 
 # Draw.io
 *.drawio
