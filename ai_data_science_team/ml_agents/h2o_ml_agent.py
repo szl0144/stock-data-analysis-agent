@@ -337,7 +337,7 @@ def make_h2o_ml_agent(
                 
                 - Recommend any paramters and values that might improve performance (predictive accuracy).
                 - Recommend the Loss Function, Stopping Criteria, and other advanced parameters.
-                - Use the documentation to your advantage.
+                - Use the H2O AutoML documentation to your advantage.
                 - Exclude deep learning algorithms since these are typically low performance.
                 
                 Avoid these:
@@ -345,7 +345,7 @@ def make_h2o_ml_agent(
                 - Do not perform data cleaning or feature engineering here. We will handle that separately.
                 - Do not limit memory size or CPU usage unless the user specifies it. 
                 
-                Return as a numbered list (no code).
+                Return as a numbered list. You can return short code snippets to demonstrate actions. But do not return a fully coded solution. The H2O AutoML code will be generated separately by a Coding Agent.
             """,
             input_variables=["user_instructions", "all_datasets_summary", "h2o_automl_documentation"]
         )
@@ -422,7 +422,7 @@ def make_h2o_ml_agent(
             Data summary for reference:
                 {all_datasets_summary}
 
-            Return only code in ```python``` with a single function definition:
+            Return only code in ```python``` with a single function definition. Use this as an example starting template:
             ```python
             def {function_name}(data_raw):
                 import h2o
@@ -457,9 +457,9 @@ def make_h2o_ml_agent(
                     model_path = h2o.save_model(model=aml.leader, path=path_to_save, force=True)
                 
                 return dict(
-                    leaderboard = aml.leaderboard.as_data_frame().to_dict(),
+                    leaderboard = h2o.automl.get_leaderboard(aml, extra_columns="ALL").as_data_frame().to_dict(),
                     best_model_id = aml.leader.model_id,
-                    model_path = model_path
+                    model_path = model_path,
                 )
             ```
             """,
