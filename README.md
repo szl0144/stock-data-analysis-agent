@@ -15,7 +15,7 @@
 </div>
 
 
-# Your AI Data Science Team (An Army Of Agents)
+# Your AI Data Science Team (🪖 An Army Of Agents)
 
 **An AI-powered data science team of agents to help you perform common data science tasks 10X faster**.
 
