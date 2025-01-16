@@ -167,8 +167,7 @@ cython_debug/
 # Temp and Logs
 /temp
 /logs
-/h2o_models
-
+h2o_models/
 
 # Draw.io
 *.drawio
