@@ -21,7 +21,6 @@ from ai_data_science_team.templates import(
     node_func_execute_agent_code_on_data,
     node_func_human_review,
     node_func_fix_agent_code,
-    node_func_explain_agent_code,
     node_func_report_agent_outputs,
     create_coding_agent_graph,
     BaseAgent,
@@ -101,7 +100,47 @@ class H2OMLAgent(BaseAgent):
         
     Examples
     --------
-    # TODO: COMING SOON
+    ```python
+    from langchain_openai import ChatOpenAI
+    import pandas as pd
+    from ai_data_science_team.ml_agents import H2OMLAgent
+
+    llm = ChatOpenAI(model="gpt-4o-mini")
+    
+    df = pd.read_csv("data/churn_data.csv")
+    
+    ml_agent = H2OMLAgent(
+        model=llm, 
+        log=True, 
+        log_path=LOG_PATH,
+        model_directory=MODEL_PATH, 
+    )
+    
+    ml_agent.invoke_agent(
+        data_raw=df.drop(columns=["customerID"]),
+        user_instructions="Please do classification on 'Churn'. Use a max runtime of 30 seconds.",
+        target_variable="Churn"
+    )
+
+    # Retrieve and display the leaderboard of models
+    ml_agent.get_leaderboard()
+
+    # Get the H2O training function in markdown format
+    ml_agent.get_h2o_train_function(markdown=True)
+
+    # Get the recommended machine learning steps in markdown format
+    ml_agent.get_recommended_ml_steps(markdown=True)
+
+    # Get a summary of the workflow in markdown format
+    ml_agent.get_workflow_summary(markdown=True)
+
+    # Get a summary of the logs in markdown format
+    ml_agent.get_log_summary(markdown=True)
+
+    # Get the path to the saved model
+    model_path = ml_agent.get_model_path()
+    model_path
+    ```
     
     Returns
     -------
