@@ -7,6 +7,7 @@
 from typing import TypedDict, Annotated, Sequence, Literal, Union, Optional
 import operator
 import os
+import json
 import pandas as pd
 from IPython.display import Markdown
 
@@ -19,12 +20,18 @@ from ai_data_science_team.templates import(
     node_func_execute_agent_code_on_data, 
     node_func_human_review,
     node_func_fix_agent_code, 
-    node_func_explain_agent_code, 
+    node_func_report_agent_outputs,
     create_coding_agent_graph,
     BaseAgent,
 )
 from ai_data_science_team.tools.parsers import PythonOutputParser
-from ai_data_science_team.tools.regex import relocate_imports_inside_function, add_comments_to_top, format_agent_name, format_recommended_steps
+from ai_data_science_team.tools.regex import (
+    relocate_imports_inside_function, 
+    add_comments_to_top, 
+    format_agent_name, 
+    format_recommended_steps, 
+    get_generic_summary,
+)
 from ai_data_science_team.tools.metadata import get_dataframe_summary
 from ai_data_science_team.tools.logging import log_ai_function
 
@@ -88,8 +95,8 @@ class DataWranglingAgent(BaseAgent):
     invoke_agent(user_instructions: str, data_raw: Union[dict, list], max_retries=3, retry_count=0)
         Synchronously wrangles the provided dataset(s) based on user instructions.
 
-    explain_wrangling_steps()
-        Returns an explanation of the wrangling steps performed by the agent.
+    get_workflow_summary()
+        Retrieves a summary of the agent's workflow.
 
     get_log_summary()
         Retrieves a summary of logged operations if logging is enabled.
@@ -287,40 +294,34 @@ class DataWranglingAgent(BaseAgent):
         self.response = response
         return None
 
-    def explain_wrangling_steps(self):
+    def get_workflow_summary(self, markdown=False):
         """
-        Provides an explanation of the wrangling steps performed by the agent.
-
-        Returns
-        -------
-        str or list
-            Explanation of the data wrangling steps.
+        Retrieves the agent's workflow summary, if logging is enabled.
         """
-        if self.response:
-            return self.response.get("messages", [])
-        return []
+        if self.response and self.response.get("messages"):
+            summary = get_generic_summary(json.loads(self.response.get("messages")[-1].content))
+            if markdown:
+                return Markdown(summary)
+            else:
+                return summary
 
     def get_log_summary(self, markdown=False):
         """
         Logs a summary of the agent's operations, if logging is enabled.
-
-        Parameters
-        ----------
-        markdown : bool, optional
-            If True, returns the summary in Markdown.
-
-        Returns
-        -------
-        str or None
-            The log details, or None if not available.
         """
-        if self.response and self.response.get("data_wrangler_function_path"):
-            log_details = f"Log Path: {self.response.get('data_wrangler_function_path')}"
-            if markdown:
-                return Markdown(log_details)
-            else:
-                return log_details
-        return None
+        if self.response:
+            if self.response.get('data_wrangler_function_path'):
+                log_details = f"""
+## Data Wrangling Agent Log Summary:
+
+Function Path: {self.response.get('data_wrangler_function_path')}
+
+Function Name: {self.response.get('data_wrangler_function_name')}
+                """
+                if markdown:
+                    return Markdown(log_details) 
+                else:
+                    return log_details
 
     def get_data_wrangled(self) -> Optional[pd.DataFrame]:
         """
@@ -597,7 +598,7 @@ def make_data_wrangling_agent(
             Below are summaries of all datasets provided:
             {all_datasets_summary}
 
-            Return your recommended steps as a numbered point list, explaining briefly why each step is needed.
+            Return steps as a numbered list. You can return short code snippets to demonstrate actions. But do not return a fully coded solution. The code will be generated separately by a Coding Agent.
             
             Avoid these:
             1. Do not include steps to save files.
@@ -797,20 +798,20 @@ def make_data_wrangling_agent(
             function_name=state.get("data_wrangler_function_name"),
         )
     
-    def explain_data_wrangler_code(state: GraphState):        
-        return node_func_explain_agent_code(
+    # Final reporting node
+    def report_agent_outputs(state: GraphState):
+        return node_func_report_agent_outputs(
             state=state,
-            code_snippet_key="data_wrangler_function",
+            keys_to_include=[
+                "recommended_steps",
+                "data_wrangler_function",
+                "data_wrangler_function_path",
+                "data_wrangler_function_name",
+                "data_wrangler_error",
+            ],
             result_key="messages",
-            error_key="data_wrangler_error",
-            llm=llm,  
             role=AGENT_NAME,
-            explanation_prompt_template="""
-            Explain the data wrangling steps that the data wrangling agent performed in this function. 
-            Keep the summary succinct and to the point.\n\n# Data Wrangling Agent:\n\n{code}
-            """,
-            success_prefix="# Data Wrangling Agent:\n\n ",
-            error_message="The Data Wrangling Agent encountered an error during data wrangling. Data could not be explained."
+            custom_title="Data Wrangling Agent Outputs"
         )
         
     # Define the graph
@@ -820,7 +821,7 @@ def make_data_wrangling_agent(
         "create_data_wrangler_code": create_data_wrangler_code,
         "execute_data_wrangler_code": execute_data_wrangler_code,
         "fix_data_wrangler_code": fix_data_wrangler_code,
-        "explain_data_wrangler_code": explain_data_wrangler_code
+        "report_agent_outputs": report_agent_outputs,
     }
     
     app = create_coding_agent_graph(
@@ -830,7 +831,7 @@ def make_data_wrangling_agent(
         create_code_node_name="create_data_wrangler_code",
         execute_code_node_name="execute_data_wrangler_code",
         fix_code_node_name="fix_data_wrangler_code",
-        explain_code_node_name="explain_data_wrangler_code",
+        explain_code_node_name="report_agent_outputs",
         error_key="data_wrangler_error",
         human_in_the_loop=human_in_the_loop,
         human_review_node_name="human_review",

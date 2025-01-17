@@ -108,7 +108,39 @@ class SQLDataAnalyst(BaseAgent):
         Example:
         --------
         ``` python
-        # TODO
+        from langchain_openai import ChatOpenAI
+        import sqlalchemy as sql
+        from ai_data_science_team.multiagents import SQLDataAnalyst
+        from ai_data_science_team.agents import SQLDatabaseAgent, DataVisualizationAgent
+        
+        llm = ChatOpenAI(model = "gpt-4o-mini")
+        
+        sql_engine = sql.create_engine("sqlite:///data/northwind.db")
+
+        conn = sql_engine.connect()
+        
+        sql_data_analyst = SQLDataAnalyst(
+            model = llm,
+            sql_database_agent = SQLDatabaseAgent(
+                model = llm,
+                connection = conn,
+                n_samples = 1,
+            ),
+            data_visualization_agent = DataVisualizationAgent(
+                model = llm,
+                n_samples = 10,
+            )
+        )
+        
+        sql_data_analyst.ainvoke_agent(
+            user_instructions = "Make a plot of sales revenue by month by territory. Make a dropdown for the user to select the territory.",
+        )
+        
+        sql_data_analyst.get_sql_query_code()
+        
+        sql_data_analyst.get_data_sql()
+        
+        sql_data_analyst.get_plotly_graph()
         ```
         """
         response = self._compiled_graph.ainvoke({
@@ -134,7 +166,39 @@ class SQLDataAnalyst(BaseAgent):
         Example:
         --------
         ``` python
-        # TODO
+        from langchain_openai import ChatOpenAI
+        import sqlalchemy as sql
+        from ai_data_science_team.multiagents import SQLDataAnalyst
+        from ai_data_science_team.agents import SQLDatabaseAgent, DataVisualizationAgent
+        
+        llm = ChatOpenAI(model = "gpt-4o-mini")
+        
+        sql_engine = sql.create_engine("sqlite:///data/northwind.db")
+
+        conn = sql_engine.connect()
+        
+        sql_data_analyst = SQLDataAnalyst(
+            model = llm,
+            sql_database_agent = SQLDatabaseAgent(
+                model = llm,
+                connection = conn,
+                n_samples = 1,
+            ),
+            data_visualization_agent = DataVisualizationAgent(
+                model = llm,
+                n_samples = 10,
+            )
+        )
+        
+        sql_data_analyst.invoke_agent(
+            user_instructions = "Make a plot of sales revenue by month by territory. Make a dropdown for the user to select the territory.",
+        )
+        
+        sql_data_analyst.get_sql_query_code()
+        
+        sql_data_analyst.get_data_sql()
+        
+        sql_data_analyst.get_plotly_graph()
         ```
         """
         response = self._compiled_graph.invoke({

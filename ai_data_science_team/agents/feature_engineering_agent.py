@@ -14,6 +14,7 @@ from langgraph.types import Command
 from langgraph.checkpoint.memory import MemorySaver
 
 import os
+import json
 import pandas as pd
 
 from IPython.display import Markdown
@@ -22,7 +23,7 @@ from ai_data_science_team.templates import(
     node_func_execute_agent_code_on_data, 
     node_func_human_review,
     node_func_fix_agent_code, 
-    node_func_explain_agent_code, 
+    node_func_report_agent_outputs, 
     create_coding_agent_graph,
     BaseAgent,
 )
@@ -31,7 +32,8 @@ from ai_data_science_team.tools.regex import (
     relocate_imports_inside_function, 
     add_comments_to_top, 
     format_agent_name, 
-    format_recommended_steps
+    format_recommended_steps, 
+    get_generic_summary,
 )
 from ai_data_science_team.tools.metadata import get_dataframe_summary
 from ai_data_science_team.tools.logging import log_ai_function
@@ -103,8 +105,8 @@ class FeatureEngineeringAgent(BaseAgent):
         retry_count=0
     )
         Engineers features from the provided dataset synchronously based on user instructions.
-    explain_feature_engineering_steps()
-        Returns an explanation of the feature engineering steps performed by the agent.
+    get_workflow_summary()
+        Retrieves a summary of the agent's workflow.
     get_log_summary()
         Retrieves a summary of logged operations if logging is enabled.
     get_data_engineered()
@@ -285,40 +287,34 @@ class FeatureEngineeringAgent(BaseAgent):
         self.response = response
         return None
 
-    def explain_feature_engineering_steps(self):
+    def get_workflow_summary(self, markdown=False):
         """
-        Provides an explanation of the feature engineering steps performed by the agent.
-
-        Returns
-        -------
-        str or list
-            Explanation of the feature engineering steps.
+        Retrieves the agent's workflow summary, if logging is enabled.
         """
-        if self.response:
-            return self.response.get("messages", [])
-        return []
+        if self.response and self.response.get("messages"):
+            summary = get_generic_summary(json.loads(self.response.get("messages")[-1].content))
+            if markdown:
+                return Markdown(summary)
+            else:
+                return summary
 
     def get_log_summary(self, markdown=False):
         """
         Logs a summary of the agent's operations, if logging is enabled.
-
-        Parameters
-        ----------
-        markdown : bool, optional
-            If True, returns Markdown-formatted output.
-
-        Returns
-        -------
-        str or None
-            Summary of logs, or None if not available.
         """
-        if self.response and self.response.get("feature_engineer_function_path"):
-            log_details = f"Log Path: {self.response.get('feature_engineer_function_path')}"
-            if markdown:
-                return Markdown(log_details)
-            else:
-                return log_details
-        return None
+        if self.response:
+            if self.response.get('feature_engineer_function_path'):
+                log_details = f"""
+## Featuring Engineering Agent Log Summary:
+
+Function Path: {self.response.get('feature_engineer_function_path')}
+
+Function Name: {self.response.get('feature_engineer_function_name')}
+                """
+                if markdown:
+                    return Markdown(log_details) 
+                else:
+                    return log_details
 
     def get_data_engineered(self):
         """
@@ -561,7 +557,7 @@ def make_feature_engineering_agent(
             Below are summaries of all datasets provided:
             {all_datasets_summary}
 
-            Return the steps as a numbered list (no code, just the steps).
+            Return steps as a numbered list. You can return short code snippets to demonstrate actions. But do not return a fully coded solution. The code will be generated separately by a Coding Agent.
             
             Avoid these:
             1. Do not include steps to save files.
@@ -747,21 +743,22 @@ def make_feature_engineering_agent(
             function_name=state.get("feature_engineer_function_name"),
         )
 
-    def explain_feature_engineering_code(state: GraphState):
-        return node_func_explain_agent_code(
+    # Final reporting node
+    def report_agent_outputs(state: GraphState):
+        return node_func_report_agent_outputs(
             state=state,
-            code_snippet_key="feature_engineer_function",
+            keys_to_include=[
+                "recommended_steps",
+                "feature_engineer_function",
+                "feature_engineer_function_path",
+                "feature_engineer_function_name",
+                "feature_engineer_error",
+            ],
             result_key="messages",
-            error_key="feature_engineer_error",
-            llm=llm,
             role=AGENT_NAME,
-            explanation_prompt_template="""
-            Explain the feature engineering steps performed by this function. Keep the explanation clear and concise.\n\n# Feature Engineering Agent:\n\n{code}
-            """,
-            success_prefix="# Feature Engineering Agent:\n\n ",
-            error_message="The Feature Engineering Agent encountered an error during feature engineering. Data could not be explained."
+            custom_title="Feature Engineering Agent Outputs"
         )
-
+    
     # Create the graph
     node_functions = {
         "recommend_feature_engineering_steps": recommend_feature_engineering_steps,
@@ -769,7 +766,7 @@ def make_feature_engineering_agent(
         "create_feature_engineering_code": create_feature_engineering_code,
         "execute_feature_engineering_code": execute_feature_engineering_code,
         "fix_feature_engineering_code": fix_feature_engineering_code,
-        "explain_feature_engineering_code": explain_feature_engineering_code
+        "report_agent_outputs": report_agent_outputs,
     }
     
     app = create_coding_agent_graph(
@@ -779,7 +776,7 @@ def make_feature_engineering_agent(
         create_code_node_name="create_feature_engineering_code",
         execute_code_node_name="execute_feature_engineering_code",
         fix_code_node_name="fix_feature_engineering_code",
-        explain_code_node_name="explain_feature_engineering_code",
+        explain_code_node_name="report_agent_outputs",
         error_key="feature_engineer_error",
         max_retries_key = "max_retries",
         retry_count_key = "retry_count",

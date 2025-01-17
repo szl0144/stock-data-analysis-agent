@@ -104,3 +104,49 @@ def format_recommended_steps(raw_text: str, heading: str = "# Recommended Steps:
         new_lines.insert(0, heading)
 
     return "\n".join(new_lines)
+
+def get_generic_summary(report_dict: dict, code_lang = "python") -> str:
+    """
+    Takes a dictionary of unknown structure (e.g., from json.loads(...)) 
+    and returns a textual summary. It assumes:
+      1) 'report_title' (if present) should be displayed first.
+      2) If a key includes 'code' or 'function', 
+         the value is treated as a code block.
+      3) Otherwise, key-value pairs are displayed as text.
+
+    Parameters
+    ----------
+    report_dict : dict
+        The dictionary holding the agent output or user report.
+
+    Returns
+    -------
+    str
+        A formatted summary string.
+    """
+    # 1) Grab the report title (or default)
+    title = report_dict.get("report_title", "Untitled Report")
+
+    lines = []
+    lines.append(f"# {title}")
+
+    # 2) Iterate over all other keys
+    for key, value in report_dict.items():
+        # Skip the title key, since we already displayed it
+        if key == "report_title":
+            continue
+
+        # 3) Check if it's code or function
+        # (You can tweak this logic if you have different rules)
+        key_lower = key.lower()
+        if "code" in key_lower or "function" in key_lower:
+            # Treat as code
+            lines.append(f"\n## {format_agent_name(key).upper()}")
+            lines.append(f"```{code_lang}\n" + str(value) + "\n```")
+        else:
+            # 4) Otherwise, just display the key-value as text
+            lines.append(f"\n## {format_agent_name(key).upper()}")
+            lines.append(str(value))
+
+    return "\n".join(lines)
+

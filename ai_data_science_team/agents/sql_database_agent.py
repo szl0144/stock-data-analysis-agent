@@ -11,6 +11,7 @@ from langgraph.types import Command
 from langgraph.checkpoint.memory import MemorySaver
 
 import os
+import json
 import pandas as pd
 import sqlalchemy as sql
 
@@ -20,12 +21,17 @@ from ai_data_science_team.templates import(
     node_func_execute_agent_from_sql_connection,
     node_func_human_review,
     node_func_fix_agent_code, 
-    node_func_explain_agent_code, 
+    node_func_report_agent_outputs,
     create_coding_agent_graph,
     BaseAgent,
 )
 from ai_data_science_team.tools.parsers import SQLOutputParser  
-from ai_data_science_team.tools.regex import add_comments_to_top, format_agent_name, format_recommended_steps
+from ai_data_science_team.tools.regex import (
+    add_comments_to_top, 
+    format_agent_name, 
+    format_recommended_steps, 
+    get_generic_summary,
+)
 from ai_data_science_team.tools.metadata import get_database_metadata
 from ai_data_science_team.tools.logging import log_ai_function
 
@@ -69,7 +75,7 @@ class SQLDatabaseAgent(BaseAgent):
         If True, skips the step that generates recommended SQL steps. Defaults to False.
     bypass_explain_code : bool, optional
         If True, skips the step that provides code explanations. Defaults to False.
-    smart_schema_filtering : bool, optional
+    smart_schema_pruning : bool, optional
         If True, filters the tables and columns based on the user instructions and recommended steps. Defaults to False.
 
     Methods
@@ -80,8 +86,8 @@ class SQLDatabaseAgent(BaseAgent):
         Asynchronously runs the agent to generate and execute a SQL query based on user instructions.
     invoke_agent(user_instructions: str, max_retries=3, retry_count=0)
         Synchronously runs the agent to generate and execute a SQL query based on user instructions.
-    explain_sql_steps()
-        Returns an explanation of the SQL steps performed by the agent.
+    get_workflow_summary()
+        Retrieves a summary of the agent's workflow.
     get_log_summary()
         Retrieves a summary of logged operations if logging is enabled.
     get_data_sql()
@@ -151,7 +157,7 @@ class SQLDatabaseAgent(BaseAgent):
         human_in_the_loop=False,
         bypass_recommended_steps=False,
         bypass_explain_code=False,
-        smart_schema_filtering=False,
+        smart_schema_pruning=False,
     ):
         self._params = {
             "model": model,
@@ -165,7 +171,7 @@ class SQLDatabaseAgent(BaseAgent):
             "human_in_the_loop": human_in_the_loop,
             "bypass_recommended_steps": bypass_recommended_steps,
             "bypass_explain_code": bypass_explain_code,
-            "smart_schema_filtering": smart_schema_filtering,
+            "smart_schema_pruning": smart_schema_pruning,
         }
         self._compiled_graph = self._make_compiled_graph()
         self.response = None
@@ -239,40 +245,34 @@ class SQLDatabaseAgent(BaseAgent):
         }, **kwargs)
         self.response = response
 
-    def explain_sql_steps(self):
+    def get_workflow_summary(self, markdown=False):
         """
-        Provides an explanation of the SQL steps performed by the agent 
-        if the explain step is not bypassed.
-
-        Returns
-        -------
-        str or list
-            An explanation of the SQL steps.
+        Retrieves the agent's workflow summary, if logging is enabled.
         """
-        if self.response:
-            return self.response.get("messages", [])
-        return []
+        if self.response and self.response.get("messages"):
+            summary = get_generic_summary(json.loads(self.response.get("messages")[-1].content))
+            if markdown:
+                return Markdown(summary)
+            else:
+                return summary
 
     def get_log_summary(self, markdown=False):
         """
-        Retrieves a summary of the logging details if logging is enabled.
-
-        Parameters
-        ----------
-        markdown : bool, optional
-            If True, returns the summary in Markdown format.
-
-        Returns
-        -------
-        str or None
-            Log details or None if logging is not used or data is unavailable.
+        Logs a summary of the agent's operations, if logging is enabled.
         """
-        if self.response and self.response.get("sql_database_function_path"):
-            log_details = f"Log Path: {self.response['sql_database_function_path']}"
-            if markdown:
-                return Markdown(log_details)
-            return log_details
-        return None
+        if self.response:
+            if self.response.get('sql_database_function_path'):
+                log_details = f"""
+## SQL Database Agent Log Summary:
+
+Function Path: {self.response.get('sql_database_function_path')}
+
+Function Name: {self.response.get('sql_database_function_name')}
+                """
+                if markdown:
+                    return Markdown(log_details) 
+                else:
+                    return log_details
 
     def get_data_sql(self):
         """
@@ -365,7 +365,7 @@ def make_sql_database_agent(
     human_in_the_loop=False, 
     bypass_recommended_steps=False, 
     bypass_explain_code=False,
-    smart_schema_filtering=False,
+    smart_schema_pruning=False,
 ):
     """
     Creates a SQL Database Agent that can recommend SQL steps and generate SQL code to query a database. 
@@ -394,8 +394,8 @@ def make_sql_database_agent(
         Bypass the recommendation step, by default False
     bypass_explain_code : bool, optional
         Bypass the code explanation step, by default False.
-    smart_schema_filtering : bool, optional
-        If True, filters the tables and columns with an extra LLM step to reduce tokens for large databases. Increases processing time. Defaults to False.
+    smart_schema_pruning : bool, optional
+        If True, filters the tables and columns with an extra LLM step to reduce tokens for large databases. Increases processing time but can avoid errors due to hitting max token limits with large databases. Defaults to False.
     
     Returns
     -------
@@ -466,7 +466,6 @@ def make_sql_database_agent(
     
     def recommend_sql_steps(state: GraphState):
         
-        
         print(format_agent_name(AGENT_NAME))
         
         all_sql_database_summary = get_database_metadata(conn, n_samples=n_samples)
@@ -475,7 +474,7 @@ def make_sql_database_agent(
             llm, 
             state.get("user_instructions"), 
             all_sql_database_summary, 
-            smart_filtering=smart_schema_filtering
+            smart_filtering=smart_schema_pruning
         )
         
         print("    * RECOMMEND STEPS")
@@ -506,7 +505,7 @@ def make_sql_database_agent(
             Below are summaries of the database metadata and the SQL tables:
             {all_sql_database_summary}
 
-            Return the steps as a numbered point list (no code, just the steps).
+            Return steps as a numbered list. You can return short code snippets to demonstrate actions. But do not return a fully coded solution. The code will be generated separately by a Coding Agent.
             
             Consider these:
             
@@ -546,7 +545,7 @@ def make_sql_database_agent(
                 llm, 
                 state.get("user_instructions"), 
                 all_sql_database_summary, 
-                smart_filtering=smart_schema_filtering
+                smart_filtering=smart_schema_pruning
             )
         else:
             all_sql_database_summary = state.get("all_sql_database_summary")    
@@ -706,20 +705,20 @@ def {function_name}(connection):
             function_name=state.get("sql_database_function_name"),
         )
         
-    def explain_sql_database_code(state: GraphState):
-        return node_func_explain_agent_code(
+    # Final reporting node
+    def report_agent_outputs(state: GraphState):
+        return node_func_report_agent_outputs(
             state=state,
-            code_snippet_key="sql_database_function",
+            keys_to_include=[
+                "recommended_steps",
+                "sql_database_function",
+                "sql_database_function_path",
+                "sql_database_function_name",
+                "sql_database_error",
+            ],
             result_key="messages",
-            error_key="sql_database_error",
-            llm=llm,
             role=AGENT_NAME,
-            explanation_prompt_template="""
-            Explain the SQL steps that the SQL Database agent performed in this function. 
-            Keep the summary succinct and to the point.\n\n# SQL Database Agent:\n\n{code}
-            """,
-            success_prefix="# SQL Database Agent:\n\n",  
-            error_message="The SQL Database Agent encountered an error during SQL Query Analysis. No SQL function explanation is returned."
+            custom_title="SQL Database Agent Outputs"
         )
         
     # Create the graph
@@ -729,7 +728,7 @@ def {function_name}(connection):
         "create_sql_query_code": create_sql_query_code,
         "execute_sql_database_code": execute_sql_database_code,
         "fix_sql_database_code": fix_sql_database_code,
-        "explain_sql_database_code": explain_sql_database_code
+        "report_agent_outputs": report_agent_outputs, 
     }
     
     app = create_coding_agent_graph(
@@ -739,7 +738,7 @@ def {function_name}(connection):
         create_code_node_name="create_sql_query_code",
         execute_code_node_name="execute_sql_database_code",
         fix_code_node_name="fix_sql_database_code",
-        explain_code_node_name="explain_sql_database_code",
+        explain_code_node_name="report_agent_outputs",
         error_key="sql_database_error",
         human_in_the_loop=human_in_the_loop,
         human_review_node_name="human_review",

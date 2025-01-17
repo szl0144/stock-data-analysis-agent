@@ -6,6 +6,7 @@ langchain_experimental
 langgraph >= 0.2.57
 openai
 pandas
+sqlalchemy
 numpy
 plotly
 streamlit

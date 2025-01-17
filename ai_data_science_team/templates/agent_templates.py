@@ -8,8 +8,9 @@ from langgraph.pregel.types import StreamMode
 
 import pandas as pd
 import sqlalchemy as sql
+import json
 
-from typing import Any, Callable, Dict, Type, Optional, Union
+from typing import Any, Callable, Dict, Type, Optional, Union, List
 
 from ai_data_science_team.tools.parsers import PythonOutputParser
 from ai_data_science_team.tools.regex import relocate_imports_inside_function, add_comments_to_top
@@ -729,3 +730,50 @@ def node_func_explain_agent_code(
         # Return an error message if there was a problem with the code
         message = AIMessage(content=error_message)
         return {result_key: [message]}
+
+
+
+def node_func_report_agent_outputs(
+    state: Dict[str, Any],
+    keys_to_include: List[str],
+    result_key: str,
+    role: str,
+    custom_title: str = "Agent Output Summary"
+) -> Dict[str, Any]:
+    """
+    Gathers relevant data directly from the state (filtered by `keys_to_include`) 
+    and returns them as a structured message in `state[result_key]`.
+
+    No LLM is used.
+
+    Parameters
+    ----------
+    state : Dict[str, Any]
+        The current state dictionary holding all agent variables.
+    keys_to_include : List[str]
+        The list of keys in `state` to include in the output.
+    result_key : str
+        The key in `state` under which we'll store the final structured message.
+    role : str
+        The role that will be used in the final AIMessage (e.g., "DataCleaningAgent").
+    custom_title : str, optional
+        A title or heading for your report. Defaults to "Agent Output Summary".
+    """
+    print("    * REPORT AGENT OUTPUTS")
+
+    final_report = {"report_title": custom_title}
+
+    for key in keys_to_include:
+        final_report[key] = state.get(key, f"<{key}_not_found_in_state>")
+
+    # Wrap it in a list of messages (like the current "messages" pattern).
+    # You can serialize this dictionary as JSON or just cast it to string.
+    return {
+        result_key: [
+            AIMessage(
+                content=json.dumps(final_report, indent=2), 
+                role=role
+            )
+        ]
+    }
+
