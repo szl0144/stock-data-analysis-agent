@@ -298,11 +298,22 @@ class SQLDataAnalyst(BaseAgent):
             If True, returns the summary as a Markdown-formatted string.
         """
         if self.response and self.get_response()['messages']:
+            
+            agents = [self.get_response()['messages'][i].role for i in range(len(self.get_response()['messages']))]
+            
+            agent_labels = []
+            for i in range(len(agents)):
+                agent_labels.append(f"- **Agent {i+1}:** {agents[i]}")
+            
+            # Construct header
+            header = f"# SQL Data Analyst Workflow Summary Report\n\nThis agentic workflow contains {len(agents)} agents:\n\n" + "\n".join(agent_labels)
+            
             reports = []
             for msg in self.get_response()['messages']:
                 reports.append(get_generic_summary(json.loads(msg.content)))
+                
             if markdown:
-                return Markdown("\n\n".join(reports))
+                return Markdown(header + "\n\n".join(reports))
             return "\n\n".join(reports)
     
     
