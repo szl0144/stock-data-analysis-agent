@@ -13,7 +13,11 @@ import json
 from typing import Any, Callable, Dict, Type, Optional, Union, List
 
 from ai_data_science_team.tools.parsers import PythonOutputParser
-from ai_data_science_team.tools.regex import relocate_imports_inside_function, add_comments_to_top
+from ai_data_science_team.tools.regex import (
+    relocate_imports_inside_function, 
+    add_comments_to_top,
+    remove_consecutive_duplicates
+)
 
 from IPython.display import Image, display
 import pandas as pd
@@ -83,6 +87,10 @@ class BaseAgent(CompiledStateGraph):
             Any: The agent's response.
         """
         self.response = self._compiled_graph.invoke(input=input, config=config,**kwargs)
+        
+        if self.response.get("messages"):
+            self.response["messages"] = remove_consecutive_duplicates(self.response["messages"])
+        
         return self.response
     
     def ainvoke(
@@ -103,6 +111,10 @@ class BaseAgent(CompiledStateGraph):
             Any: The agent's response.
         """
         self.response = self._compiled_graph.ainvoke(input=input, config=config,**kwargs)
+        
+        if self.response.get("messages"):
+            self.response["messages"] = remove_consecutive_duplicates(self.response["messages"])
+        
         return self.response
     
     def stream(
@@ -130,6 +142,10 @@ class BaseAgent(CompiledStateGraph):
             Any: The agent's response.
         """
         self.response = self._compiled_graph.stream(input=input, config=config, stream_mode=stream_mode, **kwargs)
+        
+        if self.response.get("messages"):
+            self.response["messages"] = remove_consecutive_duplicates(self.response["messages"])        
+        
         return self.response
     
     def astream(
@@ -157,6 +173,10 @@ class BaseAgent(CompiledStateGraph):
             Any: The agent's response.
         """
         self.response = self._compiled_graph.astream(input=input, config=config, stream_mode=stream_mode, **kwargs)
+        
+        if self.response.get("messages"):
+            self.response["messages"] = remove_consecutive_duplicates(self.response["messages"])
+        
         return self.response
     
     def get_state_keys(self):
@@ -184,6 +204,9 @@ class BaseAgent(CompiledStateGraph):
         Returns:
             Any: The agent's response.
         """
+        if self.response.get("messages"):
+            self.response["messages"] = remove_consecutive_duplicates(self.response["messages"])  
+        
         return self.response
 
     def show(self, xray: int = 0):

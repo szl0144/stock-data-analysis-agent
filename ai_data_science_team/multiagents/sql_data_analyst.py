@@ -18,7 +18,7 @@ from IPython.display import Markdown
 from ai_data_science_team.templates import BaseAgent
 from ai_data_science_team.agents import SQLDatabaseAgent, DataVisualizationAgent
 from ai_data_science_team.utils.plotly import plotly_from_dict
-
+from ai_data_science_team.tools.regex import remove_consecutive_duplicates
 
 
 class SQLDataAnalyst(BaseAgent):
@@ -146,6 +146,10 @@ class SQLDataAnalyst(BaseAgent):
         response = self._compiled_graph.ainvoke({
             "user_instructions": user_instructions,
         }, **kwargs)
+        
+        if response.get("messages"):
+            response["messages"] = remove_consecutive_duplicates(response["messages"])
+        
         self.response = response
         
     def invoke_agent(self, user_instructions, **kwargs):
@@ -204,7 +208,12 @@ class SQLDataAnalyst(BaseAgent):
         response = self._compiled_graph.invoke({
             "user_instructions": user_instructions,
         }, **kwargs)
+        
+        if response.get("messages"):
+            response["messages"] = remove_consecutive_duplicates(response["messages"])
+        
         self.response = response
+        
         
     def get_data_sql(self):
         """

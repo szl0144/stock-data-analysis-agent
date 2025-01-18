@@ -150,3 +150,15 @@ def get_generic_summary(report_dict: dict, code_lang = "python") -> str:
 
     return "\n".join(lines)
 
+def remove_consecutive_duplicates(messages):
+    unique_messages = []
+    prev_message = None
+
+    for msg in messages:
+        if msg.content != prev_message:
+            unique_messages.append(msg)
+        prev_message = msg.content  # Update previous message to current
+
+    return unique_messages
+
+
