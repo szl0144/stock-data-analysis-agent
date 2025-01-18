@@ -1,7 +1,7 @@
 <div align="center">
   <a href="https://github.com/business-science/ai-data-science-team">
     <picture>
-      <img src="/img/ai_data_science_team_logo_small.jpg" alt="AI Data Science Team" width="400">
+      <img src="/img/ai_data_science_team_logo_sm.jpg" alt="AI Data Science Team" width="400">
   </picture>
   </a>
 </div>
