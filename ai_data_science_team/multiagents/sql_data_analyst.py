@@ -91,7 +91,7 @@ class SQLDataAnalyst(BaseAgent):
             self._params[k] = v
         self._compiled_graph = self._make_compiled_graph()
         
-    def ainvoke_agent(self, user_instructions, **kwargs):
+    def ainvoke_agent(self, user_instructions, max_retries:int=3, retry_count:int=0, **kwargs):
         """
         Asynchronosly nvokes the SQL Data Analyst Multi-Agent.
         
@@ -146,6 +146,8 @@ class SQLDataAnalyst(BaseAgent):
         """
         response = self._compiled_graph.ainvoke({
             "user_instructions": user_instructions,
+            "max_retries": max_retries,
+            "retry_count": retry_count,
         }, **kwargs)
         
         if response.get("messages"):
@@ -153,7 +155,7 @@ class SQLDataAnalyst(BaseAgent):
         
         self.response = response
         
-    def invoke_agent(self, user_instructions, **kwargs):
+    def invoke_agent(self, user_instructions, max_retries:int=3, retry_count:int=0, **kwargs):
         """
         Invokes the SQL Data Analyst Multi-Agent.
         
@@ -161,6 +163,10 @@ class SQLDataAnalyst(BaseAgent):
         ----------
         user_instructions: str
             The user's instructions for the combined SQL and (optionally) Data Visualization agents.
+        max_retries (int): 
+                Maximum retry attempts for cleaning.
+        retry_count (int): 
+            Current retry attempt.
         **kwargs:
             Additional keyword arguments to pass to the compiled graph's `invoke` method.
             
@@ -208,6 +214,8 @@ class SQLDataAnalyst(BaseAgent):
         """
         response = self._compiled_graph.invoke({
             "user_instructions": user_instructions,
+            "max_retries": max_retries,
+            "retry_count": retry_count,
         }, **kwargs)
         
         if response.get("messages"):
@@ -341,6 +349,8 @@ def make_sql_data_analyst(
         plot_required: bool
         data_visualization_function: str
         plotly_graph: dict
+        max_retries: int
+        retry_count: int
         
     def route_to_visualization(state) -> Command[Literal["data_visualization_agent", "__end__"]]: 
         
