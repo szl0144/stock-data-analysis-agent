@@ -44,6 +44,7 @@ The AI Data Science Team of Copilots includes Agents that specialize data cleani
     - [NEW: Multi-Agents](#new-multi-agents)
     - [Coming Soon: Data Science Apps](#coming-soon-data-science-apps)
     - [Agents Available Now](#agents-available-now)
+    - [🔥🔥 NEW! Machine Learning Agents](#-new-machine-learning-agents)
       - [Data Science Agents](#data-science-agents-1)
       - [Multi-Agents](#multi-agents)
     - [Agents Coming Soon](#agents-coming-soon)
@@ -88,22 +89,26 @@ This is a top secret project I'm working on. It's a multi-agent data science app
 
 ### Agents Available Now
 
+### 🔥🔥 NEW! Machine Learning Agents
+
+1. **🔥 H2O Machine Learning Agent:** Builds and logs 100's of high-performance machine learning models. [See Example](https://github.com/business-science/ai-data-science-team/blob/master/examples/ml_agents/h2o_machine_learning_agent.ipynb)
+
 #### Data Science Agents
 
-1. **Data Wrangling Agent:** Merges, Joins, Preps and Wrangles data into a format that is ready for data analysis.
-2. **Data Visualization Agent:** Creates visualizations to help you understand your data. Returns JSON serializable plotly visualizations.
-3. **Data Cleaning Agent:** Performs Data Preparation steps including handling missing values, outliers, and data type conversions.
-4. **Feature Engineering Agent:** Converts the prepared data into ML-ready data. Adds features to increase predictive accuracy of ML models.
-5. **SQL Database Agent:** Connects to SQL databases to pull data into the data science environment. Creates pipelines to automate data extraction. Performs Joins, Aggregations, and other SQL Query operations.
+1. **Data Wrangling Agent:** Merges, Joins, Preps and Wrangles data into a format that is ready for data analysis. [See Example](https://github.com/business-science/ai-data-science-team/blob/master/examples/data_wrangling_agent.ipynb)
+2. **Data Visualization Agent:** Creates visualizations to help you understand your data. Returns JSON serializable plotly visualizations. [See Example](https://github.com/business-science/ai-data-science-team/blob/master/examples/data_visualization_agent.ipynb)
+3. **Data Cleaning Agent:** Performs Data Preparation steps including handling missing values, outliers, and data type conversions. [See Example](https://github.com/business-science/ai-data-science-team/blob/master/examples/data_cleaning_agent.ipynb)
+4. **Feature Engineering Agent:** Converts the prepared data into ML-ready data. Adds features to increase predictive accuracy of ML models. [See Example](https://github.com/business-science/ai-data-science-team/blob/master/examples/feature_engineering_agent.ipynb)
+5. **SQL Database Agent:** Connects to SQL databases to pull data into the data science environment. Creates pipelines to automate data extraction. Performs Joins, Aggregations, and other SQL Query operations. [See Example](https://github.com/business-science/ai-data-science-team/blob/master/examples/sql_database_agent.ipynb)
 
 #### Multi-Agents
 
-1. **SQL Data Analyst Agent:** Connects to SQL databases to pull data into the data science environment. Creates pipelines to automate data extraction. Performs Joins, Aggregations, and other SQL Query operations. Includes a Data Visualization Agent that creates visualizations to help you understand your data.
+1. **SQL Data Analyst Agent:** Connects to SQL databases to pull data into the data science environment. Creates pipelines to automate data extraction. Performs Joins, Aggregations, and other SQL Query operations. Includes a Data Visualization Agent that creates visualizations to help you understand your data. [See Example](https://github.com/business-science/ai-data-science-team/blob/master/examples/multiagents/sql_data_analyst.ipynb)
 
 ### Agents Coming Soon
 
 1. **Data Analyst:** Analyzes data structure, creates exploratory visualizations, and performs correlation analysis to identify relationships.
-2. **Machine Learning Agent:** Builds and logs the machine learning models.
+2. **MLOps Agent:** Track experiments, log models, and deploy models to production.
 3. **Interpretability Agent:** Performs Interpretable ML to explain why the model returned predictions including which features were the most important to the model.
 4. **Supervisor:** Forms task list. Moderates sub-agents. Returns completed assignment. 
 
