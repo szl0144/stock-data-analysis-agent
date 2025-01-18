@@ -7,18 +7,19 @@ from langgraph.graph import START, END, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.types import Command
 
-from typing import TypedDict, Annotated, Sequence
+from typing import TypedDict, Annotated, Sequence, Literal
 import operator
 
-from typing_extensions import TypedDict, Literal
+from typing_extensions import TypedDict
 
 import pandas as pd
+import json
 from IPython.display import Markdown
 
 from ai_data_science_team.templates import BaseAgent
 from ai_data_science_team.agents import SQLDatabaseAgent, DataVisualizationAgent
 from ai_data_science_team.utils.plotly import plotly_from_dict
-from ai_data_science_team.tools.regex import remove_consecutive_duplicates
+from ai_data_science_team.tools.regex import remove_consecutive_duplicates, get_generic_summary
 
 
 class SQLDataAnalyst(BaseAgent):
@@ -278,6 +279,23 @@ class SQLDataAnalyst(BaseAgent):
                 if markdown:
                     return Markdown(f"```python\n{self.response.get('data_visualization_function')}\n```")
                 return self.response.get("data_visualization_function")
+            
+    def get_workflow_summary(self, markdown=False):
+        """
+        Returns a summary of the SQL Data Analyst workflow.
+        
+        Parameters:
+        ----------
+        markdown: bool
+            If True, returns the summary as a Markdown-formatted string.
+        """
+        if self.response and self.get_response()['messages']:
+            reports = []
+            for msg in self.get_response()['messages']:
+                reports.append(get_generic_summary(json.loads(msg.content)))
+            if markdown:
+                return Markdown("\n\n".join(reports))
+            return "\n\n".join(reports)
     
     
 
