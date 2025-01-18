@@ -85,7 +85,7 @@ This is the internals of the SQL Data Analyst Agent that connects to SQL databas
 
 This is a top secret project I'm working on. It's a multi-agent data science app that performs time series forecasting.
 
-![Multi-Agent Data Science App](/img/ai_powered_apps.jpg)
+![Multi-Agent Data Science App](/img/ai_powered_apps.jpg) 
 
 ### Agents Available Now
 
