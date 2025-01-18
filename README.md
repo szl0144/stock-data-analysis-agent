@@ -44,7 +44,7 @@ The AI Data Science Team of Copilots includes Agents that specialize data cleani
     - [NEW: Multi-Agents](#new-multi-agents)
     - [Coming Soon: Data Science Apps](#coming-soon-data-science-apps)
     - [Agents Available Now](#agents-available-now)
-    - [🔥🔥 NEW! Machine Learning Agents](#-new-machine-learning-agents)
+      - [🔥🔥 NEW! Machine Learning Agents](#-new-machine-learning-agents)
       - [Data Science Agents](#data-science-agents-1)
       - [Multi-Agents](#multi-agents)
     - [Agents Coming Soon](#agents-coming-soon)
@@ -89,7 +89,7 @@ This is a top secret project I'm working on. It's a multi-agent data science app
 
 ### Agents Available Now
 
-### 🔥🔥 NEW! Machine Learning Agents
+#### 🔥🔥 NEW! Machine Learning Agents
 
 1. **🔥 H2O Machine Learning Agent:** Builds and logs 100's of high-performance machine learning models. [See Example](https://github.com/business-science/ai-data-science-team/blob/master/examples/ml_agents/h2o_machine_learning_agent.ipynb)
 
