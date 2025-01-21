@@ -38,6 +38,7 @@ with st.expander("Example Questions", expanded=False):
         """
         - What tables exist in the database?
         - What are the first 10 rows in the territory table?
+        - Aggregate sales for each territory. 
         - Aggregate sales by month for each territory.
         """
     )
@@ -133,8 +134,7 @@ async def handle_question(question):
     await sql_db_agent.ainvoke_agent(
         user_instructions=question,
     )
-    result = sql_db_agent.get_response()
-    return result
+    return sql_db_agent
 
 
 if st.session_state["PATH_DB"] and (question := st.chat_input("Enter your question here:", key="query_input")):
@@ -169,8 +169,8 @@ if st.session_state["PATH_DB"] and (question := st.chat_input("Enter your questi
         # Generate the Results
         if not error_occured:
             
-            sql_query = result.get("sql_query_code")
-            data_sql = result.get("data_sql")
+            sql_query = result.get_sql_query_code()
+            response_df = result.get_data_sql()
             
             if sql_query:
                 
@@ -178,7 +178,6 @@ if st.session_state["PATH_DB"] and (question := st.chat_input("Enter your questi
                 response_1 = f"### SQL Results:\n\nSQL Query:\n\n```sql\n{sql_query}\n```\n\nResult:"
                 
                 # Store the forecast df and keep its index
-                response_df = pd.DataFrame(data_sql)
                 df_index = len(st.session_state.dataframes)
                 st.session_state.dataframes.append(response_df)
 
