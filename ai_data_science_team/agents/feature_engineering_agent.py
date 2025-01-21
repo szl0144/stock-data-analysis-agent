@@ -203,7 +203,7 @@ class FeatureEngineeringAgent(BaseAgent):
             self._params[k] = v
         self._compiled_graph = self._make_compiled_graph()
 
-    def ainvoke_agent(
+    async def ainvoke_agent(
         self, 
         data_raw: pd.DataFrame, 
         user_instructions: str=None, 
@@ -235,7 +235,7 @@ class FeatureEngineeringAgent(BaseAgent):
         -------
         None
         """
-        response = self._compiled_graph.ainvoke({
+        response = await self._compiled_graph.ainvoke({
             "user_instructions": user_instructions,
             "data_raw": data_raw.to_dict(),
             "target_variable": target_variable,

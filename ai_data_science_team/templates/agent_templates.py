@@ -93,7 +93,7 @@ class BaseAgent(CompiledStateGraph):
         
         return self.response
     
-    def ainvoke(
+    async def ainvoke(
         self, 
         input: Union[dict[str, Any], Any], 
         config: Optional[RunnableConfig] = None, 
@@ -110,7 +110,7 @@ class BaseAgent(CompiledStateGraph):
         Returns:
             Any: The agent's response.
         """
-        self.response = self._compiled_graph.ainvoke(input=input, config=config,**kwargs)
+        self.response = await self._compiled_graph.ainvoke(input=input, config=config,**kwargs)
         
         if self.response.get("messages"):
             self.response["messages"] = remove_consecutive_duplicates(self.response["messages"])
@@ -148,7 +148,7 @@ class BaseAgent(CompiledStateGraph):
         
         return self.response
     
-    def astream(
+    async def astream(
         self,
         input: dict[str, Any] | Any,
         config: RunnableConfig | None = None,
@@ -172,7 +172,7 @@ class BaseAgent(CompiledStateGraph):
         Returns:
             Any: The agent's response.
         """
-        self.response = self._compiled_graph.astream(input=input, config=config, stream_mode=stream_mode, **kwargs)
+        self.response = await self._compiled_graph.astream(input=input, config=config, stream_mode=stream_mode, **kwargs)
         
         if self.response.get("messages"):
             self.response["messages"] = remove_consecutive_duplicates(self.response["messages"])

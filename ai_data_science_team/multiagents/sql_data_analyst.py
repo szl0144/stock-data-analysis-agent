@@ -91,7 +91,7 @@ class SQLDataAnalyst(BaseAgent):
             self._params[k] = v
         self._compiled_graph = self._make_compiled_graph()
         
-    def ainvoke_agent(self, user_instructions, max_retries:int=3, retry_count:int=0, **kwargs):
+    async def ainvoke_agent(self, user_instructions, max_retries:int=3, retry_count:int=0, **kwargs):
         """
         Asynchronosly nvokes the SQL Data Analyst Multi-Agent.
         
@@ -144,7 +144,7 @@ class SQLDataAnalyst(BaseAgent):
         sql_data_analyst.get_plotly_graph()
         ```
         """
-        response = self._compiled_graph.ainvoke({
+        response = await self._compiled_graph.ainvoke({
             "user_instructions": user_instructions,
             "max_retries": max_retries,
             "retry_count": retry_count,

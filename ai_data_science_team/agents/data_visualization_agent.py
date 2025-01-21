@@ -197,7 +197,7 @@ class DataVisualizationAgent(BaseAgent):
         # Rebuild the compiled graph
         self._compiled_graph = self._make_compiled_graph()
 
-    def ainvoke_agent(self, data_raw: pd.DataFrame, user_instructions: str=None, max_retries:int=3, retry_count:int=0, **kwargs):
+    async def ainvoke_agent(self, data_raw: pd.DataFrame, user_instructions: str=None, max_retries:int=3, retry_count:int=0, **kwargs):
         """
         Asynchronously invokes the agent to generate a visualization. 
         The response is stored in the 'response' attribute.
@@ -219,7 +219,7 @@ class DataVisualizationAgent(BaseAgent):
         -------
         None
         """
-        response = self._compiled_graph.ainvoke({
+        response = await self._compiled_graph.ainvoke({
             "user_instructions": user_instructions,
             "data_raw": data_raw.to_dict(),
             "max_retries": max_retries,

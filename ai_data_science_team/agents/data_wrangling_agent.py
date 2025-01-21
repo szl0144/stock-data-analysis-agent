@@ -213,7 +213,7 @@ class DataWranglingAgent(BaseAgent):
             self._params[k] = v
         self._compiled_graph = self._make_compiled_graph()
 
-    def ainvoke_agent(
+    async def ainvoke_agent(
         self,
         data_raw: Union[pd.DataFrame, dict, list],
         user_instructions: str=None,
@@ -245,7 +245,7 @@ class DataWranglingAgent(BaseAgent):
         None
         """
         data_input = self._convert_data_input(data_raw)
-        response = self._compiled_graph.ainvoke({
+        response = await self._compiled_graph.ainvoke({
             "user_instructions": user_instructions,
             "data_raw": data_input,
             "max_retries": max_retries,
