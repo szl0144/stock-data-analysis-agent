@@ -1,6 +1,11 @@
+# BUSINESS SCIENCE
+# SQL Database Agent App
+# -----------------------
 
+# This app is designed to help you query your SQL database and return data frames that you can interactively inspect and download.
 
 # Imports
+# !pip install git+https://github.com/business-science/ai-data-science-team.git --upgrade
 
 from openai import OpenAI
 
@@ -14,17 +19,18 @@ from langchain_openai import ChatOpenAI
 
 from ai_data_science_team.agents import SQLDatabaseAgent
 
-# AI SETUP
+# * APP INPUTS ----
 
+# MODIFY THIS TO YOUR DATABASE PATH IF YOU WANT TO USE A DIFFERENT DATABASE
 DB_OPTIONS = {
     "Northwind Database": "sqlite:///data/northwind.db",
 }
 
 MODEL_LIST = ['gpt-4o-mini', 'gpt-4o']
 
-# * STREAMLIT APP SETUP ----
-
 TITLE = "Your SQL Database Agent"
+
+# * STREAMLIT APP SETUP ----
 
 st.set_page_config(page_title=TITLE, page_icon="📊", )
 st.title(TITLE)
