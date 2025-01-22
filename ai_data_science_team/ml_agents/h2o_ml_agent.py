@@ -77,7 +77,7 @@ class H2OMLAgent(BaseAgent):
         If provided, sets MLflow tracking URI at runtime.
     mlflow_experiment_name : str
         Name of the MLflow experiment (created if doesn't exist).
-    run_name : str, default "h2o_automl_run"
+    run_name : str, default None
         A custom name for the MLflow run.
     
     
@@ -175,7 +175,7 @@ class H2OMLAgent(BaseAgent):
         enable_mlflow=False,
         mlflow_tracking_uri=None,
         mlflow_experiment_name="H2O AutoML",
-        run_name="h2o_automl_run",
+        run_name=None,
     ):
         self._params = {
             "model": model,
@@ -349,7 +349,7 @@ def make_h2o_ml_agent(
     enable_mlflow=False,
     mlflow_tracking_uri=None,
     mlflow_experiment_name="H2O AutoML",
-    run_name="h2o_automl_run",
+    run_name=None,
 ):
     """
     Creates a machine learning agent that uses H2O for AutoML. 
