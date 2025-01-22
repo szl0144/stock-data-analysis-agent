@@ -21,8 +21,8 @@ def train_h2o_automl(
     log_path: Optional[str] = None,
     enable_mlflow: bool = False,               
     mlflow_tracking_uri: Optional[str] = None, 
-    mlflow_experiment_name: str = "H2O_AutoML_Experiment",
-    run_name: str = "h2o_automl_run",
+    mlflow_experiment_name: str = "H2O AutoML",
+    run_name: str = None,
     **kwargs
 ) -> str:
     """
@@ -120,7 +120,8 @@ def train_h2o_automl(
                 "stopping_rounds": stopping_rounds,
                 "sort_metric": sort_metric,
                 "model_directory": model_directory,
-                "log_path": log_path
+                "log_path": log_path,
+                **kwargs
             })
 
         # Initialize H2O
