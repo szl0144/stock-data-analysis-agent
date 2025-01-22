@@ -168,6 +168,7 @@ cython_debug/
 /temp
 /logs
 h2o_models/
+mlruns/
 
 # Draw.io
 *.drawio
