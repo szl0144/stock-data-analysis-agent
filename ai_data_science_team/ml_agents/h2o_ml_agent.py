@@ -77,7 +77,7 @@ class H2OMLAgent(BaseAgent):
         If provided, sets MLflow tracking URI at runtime.
     mlflow_experiment_name : str
         Name of the MLflow experiment (created if doesn't exist).
-    run_name : str, default None
+    mlflow_run_name : str, default None
         A custom name for the MLflow run.
     
     
@@ -175,7 +175,7 @@ class H2OMLAgent(BaseAgent):
         enable_mlflow=False,
         mlflow_tracking_uri=None,
         mlflow_experiment_name="H2O AutoML",
-        run_name=None,
+        mlflow_run_name=None,
     ):
         self._params = {
             "model": model,
@@ -192,7 +192,7 @@ class H2OMLAgent(BaseAgent):
             "enable_mlflow": enable_mlflow,
             "mlflow_tracking_uri": mlflow_tracking_uri,
             "mlflow_experiment_name": mlflow_experiment_name,
-            "run_name": run_name,
+            "mlflow_run_name": mlflow_run_name,
         }
         self._compiled_graph = self._make_compiled_graph()
         self.response = None
@@ -349,7 +349,7 @@ def make_h2o_ml_agent(
     enable_mlflow=False,
     mlflow_tracking_uri=None,
     mlflow_experiment_name="H2O AutoML",
-    run_name=None,
+    mlflow_run_name=None,
 ):
     """
     Creates a machine learning agent that uses H2O for AutoML. 
@@ -487,13 +487,13 @@ def make_h2o_ml_agent(
             We have two variables for deciding where to save the model:
             model_directory = {model_directory} 
             log_path = {log_path}
+            
+            IMPORTANT: MLflow Parameters if the user wants to enable MLflow with H2O AutoML:
+                enable_mlflow: {enable_mlflow}
+                mlflow_tracking_uri: {mlflow_tracking_uri}
+                mlflow_experiment_name: {mlflow_experiment_name}
+                mlflow_run_name: {mlflow_run_name}
 
-            Logic:
-            1. If both model_directory and log_path are None, do NOT save the model (set model_path = None).
-            2. Otherwise, pick model_directory if it's not None, else pick log_path.
-            Then call `h2o.save_model(model=aml.leader, path=the_directory, force=True)` to save the model.
-            3. Return model_path as part of the final dictionary.
-            4. If enable_mlflow is True, log the top metrics and save the model as an artifact.
 
             Additional Requirements:
             - Convert `data_raw` (pandas DataFrame) into an H2OFrame.
@@ -515,12 +515,6 @@ def make_h2o_ml_agent(
 
             Data summary for reference:
                 {all_datasets_summary}
-                
-            IMPORTANT: MLflow Parameters:
-                enable_mlflow: {enable_mlflow}
-                mlflow_tracking_uri: {mlflow_tracking_uri}
-                mlflow_experiment_name: {mlflow_experiment_name}
-                run_name: {run_name}
 
             Return only code in ```python``` with a single function definition. Use this as an example starting template:
             ```python
@@ -542,8 +536,8 @@ def make_h2o_ml_agent(
                 enable_mlflow: bool,               
                 mlflow_tracking_uri: Optional[str], 
                 mlflow_experiment_name: str,
-                run_name: str,
-                **kwargs
+                mlflow_run_name: str,
+                **kwargs # Additional parameters for H2OAutoML (feel free to add these based on user instructions and recommended steps)
             ):
 
                 import h2o
@@ -557,7 +551,7 @@ def make_h2o_ml_agent(
                     if mlflow_tracking_uri:
                         mlflow.set_tracking_uri(mlflow_tracking_uri)
                     mlflow.set_experiment(mlflow_experiment_name)
-                    run_context = mlflow.start_run(run_name=run_name)
+                    run_context = mlflow.start_run(run_name=mlflow_run_name)
                 else:
                     # Dummy context manager to skip MLflow if not enabled
                     from contextlib import nullcontext
@@ -574,22 +568,7 @@ def make_h2o_ml_agent(
                     if enable_mlflow and run is not None:
                         run_id = run.info.run_id
                         import mlflow
-                        # Log user-specified parameters
-                        mlflow.log_params(dict(
-                            target= target,
-                            max_runtime_secs= max_runtime_secs,
-                            exclude_algos= str(exclude_algos),
-                            balance_classes= balance_classes,
-                            nfolds= nfolds,
-                            seed= seed,
-                            max_models= max_models,
-                            stopping_metric= stopping_metric,
-                            stopping_tolerance= stopping_tolerance,
-                            stopping_rounds= stopping_rounds,
-                            sort_metric= sort_metric,
-                            model_directory= model_directory,
-                            log_path= log_path
-                        ))
+                        
 
                     # Initialize H2O
                     h2o.init()
@@ -628,9 +607,7 @@ def make_h2o_ml_agent(
                     leaderboard_dict = leaderboard_df.to_dict()
 
                     # Gather top-model metrics from the first row
-                    top_row = leaderboard_df.iloc[0].to_dict()  # includes model_id, etc.
-                    # Optionally remove model_id from metrics
-                    top_metrics = {{k: v for k, v in top_row.items() if k.lower() != "model_id"}}
+                    top_metrics = leaderboard_df.iloc[0].to_dict()  
 
                     # Construct model_results
                     model_results = dict(
@@ -640,16 +617,35 @@ def make_h2o_ml_agent(
                         metrics= top_metrics  # all metrics from the top row
                     )
 
-                    # If using MLflow, log the top metrics
+                    # IMPORTANT: Log these to MLflow if enabled
                     if enable_mlflow and run is not None:
-                        for metric_name, metric_value in top_metrics.items():
-                            # Only log floats/ints as metrics
-                            if isinstance(metric_value, (int, float)):
-                                mlflow.log_metric(metric_name, metric_value)
+                        
+                        # Log the top metrics if numeric
+                        numeric_metrics = {{k: v for k, v in top_metrics.items() if isinstance(v, (int, float))}}
+                        mlflow.log_metrics(numeric_metrics)
 
                         # Log artifact if we saved the model
-                        if model_path is not None:
-                            mlflow.log_artifact(model_path, artifact_path="h2o_best_model")
+                        mlflow.h2o.log_model(aml.leader, artifact_path="model")
+                        
+                        # Log the leaderboard
+                        mlflow.log_table(leaderboard_dict, "leaderboard.json")
+                        
+                        # Log these parameters (if specified)
+                        mlflow.log_params(dict(
+                            target= target,
+                            max_runtime_secs= max_runtime_secs,
+                            exclude_algos= str(exclude_algos),
+                            balance_classes= balance_classes,
+                            nfolds= nfolds,
+                            seed= seed,
+                            max_models= max_models,
+                            stopping_metric= stopping_metric,
+                            stopping_tolerance= stopping_tolerance,
+                            stopping_rounds= stopping_rounds,
+                            sort_metric= sort_metric,
+                            model_directory= model_directory,
+                            log_path= log_path
+                        ))
 
                     # Build the output
                     output = dict(
@@ -660,8 +656,22 @@ def make_h2o_ml_agent(
                         mlflow_run_id= run_id
                     )
 
-                return json.dumps(output, indent=2)
+                return output
             ```
+            
+            Avoid these errors:
+            
+            - WARNING mlflow.models.model: Model logged without a signature and input example. Please set `input_example` parameter when logging the model to auto infer the model signature.
+            
+            - 'list' object has no attribute 'tolist'
+            
+            - with h2o.utils.threading.local_context(polars_enabled=True, datatable_enabled=True):  pandas_df = h2o_df.as_data_frame() # Convert to pandas DataFrame using pd.DataFrame(h2o_df)
+            
+            - dtype is only supported for one column frames
+            
+            - h2o.is_running() module 'h2o' has no attribute 'is_running'. Solution: just do h2o.init() and it will check if H2O is running.
+            
+            
             """,
             input_variables=[
                 "user_instructions",
@@ -674,7 +684,7 @@ def make_h2o_ml_agent(
                 "enable_mlflow",
                 "mlflow_tracking_uri",
                 "mlflow_experiment_name",
-                "run_name",
+                "mlflow_run_name",
             ]
         )
 
@@ -692,7 +702,7 @@ def make_h2o_ml_agent(
             "enable_mlflow": enable_mlflow,
             "mlflow_tracking_uri": mlflow_tracking_uri,
             "mlflow_experiment_name": mlflow_experiment_name,
-            "run_name": run_name,
+            "mlflow_run_name": mlflow_run_name,
         })
 
         resp = relocate_imports_inside_function(resp)
