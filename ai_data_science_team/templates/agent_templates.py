@@ -12,8 +12,8 @@ import json
 
 from typing import Any, Callable, Dict, Type, Optional, Union, List
 
-from ai_data_science_team.tools.parsers import PythonOutputParser
-from ai_data_science_team.tools.regex import (
+from ai_data_science_team.parsers.parsers import PythonOutputParser
+from ai_data_science_team.utils.regex import (
     relocate_imports_inside_function, 
     add_comments_to_top,
     remove_consecutive_duplicates

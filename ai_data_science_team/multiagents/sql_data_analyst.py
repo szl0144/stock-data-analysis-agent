@@ -1,6 +1,5 @@
 
 from langchain_core.messages import BaseMessage
-from langgraph.checkpoint.memory import MemorySaver
 from langgraph.types import Checkpointer
 
 from langgraph.graph import START, END, StateGraph
@@ -19,7 +18,7 @@ from IPython.display import Markdown
 from ai_data_science_team.templates import BaseAgent
 from ai_data_science_team.agents import SQLDatabaseAgent, DataVisualizationAgent
 from ai_data_science_team.utils.plotly import plotly_from_dict
-from ai_data_science_team.tools.regex import remove_consecutive_duplicates, get_generic_summary
+from ai_data_science_team.utils.regex import remove_consecutive_duplicates, get_generic_summary
 
 
 class SQLDataAnalyst(BaseAgent):

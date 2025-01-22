@@ -3,7 +3,6 @@
 # ***
 # Parsers
 
-from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.output_parsers import BaseOutputParser
 
 import re

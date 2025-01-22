@@ -25,15 +25,15 @@ from ai_data_science_team.templates import(
     create_coding_agent_graph,
     BaseAgent,
 )
-from ai_data_science_team.tools.parsers import SQLOutputParser  
-from ai_data_science_team.tools.regex import (
+from ai_data_science_team.parsers.parsers import SQLOutputParser  
+from ai_data_science_team.utils.regex import (
     add_comments_to_top, 
     format_agent_name, 
     format_recommended_steps, 
     get_generic_summary,
 )
 from ai_data_science_team.tools.metadata import get_database_metadata
-from ai_data_science_team.tools.logging import log_ai_function
+from ai_data_science_team.templates.logging import log_ai_function
 
 # Setup
 AGENT_NAME = "sql_database_agent"

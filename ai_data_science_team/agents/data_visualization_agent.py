@@ -30,8 +30,8 @@ from ai_data_science_team.templates import(
     create_coding_agent_graph,
     BaseAgent,
 )
-from ai_data_science_team.tools.parsers import PythonOutputParser
-from ai_data_science_team.tools.regex import (
+from ai_data_science_team.parsers.parsers import PythonOutputParser
+from ai_data_science_team.utils.regex import (
     relocate_imports_inside_function, 
     add_comments_to_top, 
     format_agent_name, 
@@ -39,7 +39,7 @@ from ai_data_science_team.tools.regex import (
     get_generic_summary,
 )
 from ai_data_science_team.tools.metadata import get_dataframe_summary
-from ai_data_science_team.tools.logging import log_ai_function
+from ai_data_science_team.templates.logging import log_ai_function
 from ai_data_science_team.utils.plotly import plotly_from_dict
 
 # Setup
