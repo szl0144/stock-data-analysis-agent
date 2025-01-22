@@ -10,7 +10,6 @@ from typing import TypedDict, Annotated, Sequence, Literal
 import operator
 
 from langchain.prompts import PromptTemplate
-from langchain_core.output_parsers import StrOutputParser
 from langchain_core.messages import BaseMessage
 
 from langgraph.types import Command
@@ -38,7 +37,7 @@ from ai_data_science_team.utils.regex import (
     format_recommended_steps, 
     get_generic_summary,
 )
-from ai_data_science_team.tools.metadata import get_dataframe_summary
+from ai_data_science_team.tools.dataframe import get_dataframe_summary
 from ai_data_science_team.utils.logging import log_ai_function
 from ai_data_science_team.utils.plotly import plotly_from_dict
 

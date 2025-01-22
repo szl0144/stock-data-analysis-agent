@@ -32,7 +32,7 @@ from ai_data_science_team.utils.regex import (
     format_recommended_steps, 
     get_generic_summary,
 )
-from ai_data_science_team.tools.metadata import get_database_metadata
+from ai_data_science_team.tools.sql import get_database_metadata
 from ai_data_science_team.utils.logging import log_ai_function
 
 # Setup

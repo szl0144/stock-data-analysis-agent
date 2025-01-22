@@ -35,7 +35,7 @@ from ai_data_science_team.utils.regex import (
     format_recommended_steps, 
     get_generic_summary,
 )
-from ai_data_science_team.tools.metadata import get_dataframe_summary
+from ai_data_science_team.tools.dataframe import get_dataframe_summary
 from ai_data_science_team.utils.logging import log_ai_function
 
 # Setup
