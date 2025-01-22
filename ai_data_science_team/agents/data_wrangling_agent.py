@@ -33,7 +33,7 @@ from ai_data_science_team.utils.regex import (
     get_generic_summary,
 )
 from ai_data_science_team.tools.metadata import get_dataframe_summary
-from ai_data_science_team.templates.logging import log_ai_function
+from ai_data_science_team.utils.logging import log_ai_function
 
 # Setup Logging Path
 AGENT_NAME = "data_wrangling_agent"
