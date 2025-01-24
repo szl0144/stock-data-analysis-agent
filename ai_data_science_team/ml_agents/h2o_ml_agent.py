@@ -199,7 +199,7 @@ class H2OMLAgent(BaseAgent):
 
     def _make_compiled_graph(self):
         """
-        Creates the compiled graph for the H2O ML agent.
+        Creates the compiled graph for the agent.
         """
         self.response = None
         return make_h2o_ml_agent(**self._params)
