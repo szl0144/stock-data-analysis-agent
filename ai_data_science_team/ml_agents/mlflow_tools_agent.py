@@ -1,11 +1,16 @@
 
-from typing import Any, Optional, TypedDict, Annotated, Sequence, Literal
+from typing import Any, Optional, TypedDict, Annotated, Sequence, Literal, List, Dict, AnyStr
 import operator
 
-from langchain_core.messages import BaseMessage, AIMessage, RemoveMessage
+import pandas as pd
 
-from langgraph.prebuilt import create_react_agent
+from langchain_core.messages import BaseMessage, AIMessage
+
+from langgraph.prebuilt import create_react_agent, ToolNode
+from langgraph.prebuilt.chat_agent_executor import AgentState
+from langgraph.managed import IsLastStep, RemainingSteps
 from langgraph.graph import START, END, StateGraph
+
 
 
 from ai_data_science_team.templates import BaseAgent
@@ -95,6 +100,7 @@ class MLflowToolsAgent(BaseAgent):
     async def ainvoke_agent(
         self, 
         user_instructions: str=None, 
+        data: pd.DataFrame=None, 
         **kwargs
     ):
         """
@@ -104,13 +110,17 @@ class MLflowToolsAgent(BaseAgent):
         ----------
         user_instructions : str, optional
             The user instructions to pass to the agent.
+        data : pd.DataFrame, optional
+            The data to pass to the agent. Used for prediction and tool calls where data is required.
         kwargs : dict, optional
             Additional keyword arguments to pass to the agents ainvoke method.
         
         """
         response = await self._compiled_graph.ainvoke(
-            # {"messages": [("user", user_instructions)]},
-            {"user_instructions": user_instructions}, 
+            {
+                "user_instructions": user_instructions,
+                "data": data.to_dict(),
+            }, 
             **kwargs
         )
         self.response = response
@@ -119,6 +129,7 @@ class MLflowToolsAgent(BaseAgent):
     def invoke_agent(
         self, 
         user_instructions: str=None, 
+        data: pd.DataFrame=None, 
         **kwargs
     ):
         """
@@ -128,13 +139,17 @@ class MLflowToolsAgent(BaseAgent):
         ----------
         user_instructions : str, optional
             The user instructions to pass to the agent.
+        data : pd.DataFrame, optional
+            The raw data to pass to the agent. Used for prediction and tool calls where data is required.
         kwargs : dict, optional
-            Additional keyword arguments to pass to the agents ainvoke method.
+            Additional keyword arguments to pass to the agents invoke method.
         
         """
         response = self._compiled_graph.invoke(
-            # {"messages": [("user", user_instructions)]},
-            {"user_instructions": user_instructions},  
+            {
+                "user_instructions": user_instructions,
+                "data": data.to_dict(),
+            },
             **kwargs
         )
         self.response = response
@@ -162,13 +177,13 @@ def make_mlflow_tools_agent(
     if mlflow_registry_uri is not None:
         mlflow.set_registry_uri(mlflow_registry_uri)
     
-    class GraphState(TypedDict):
-        messages: Annotated[Sequence[BaseMessage], operator.add]
+    class GraphState(AgentState):
+        data: dict
         internal_messages: Annotated[Sequence[BaseMessage], operator.add]
         user_instructions: str
         mlflow_artifacts: dict
+
     
-    # 3 - Postprocess the MLflow state
     def mflfow_tools_agent(state):
         """
         Postprocesses the MLflow state, keeping only the last message
@@ -177,13 +192,21 @@ def make_mlflow_tools_agent(
         print(format_agent_name(AGENT_NAME))
         print("    * RUN REACT TOOL-CALLING AGENT")
         
+        tool_node = ToolNode(
+            tools=tools
+        )
+        
         mlflow_agent = create_react_agent(
             model, 
-            tools=tools, 
+            tools=tool_node, 
+            state_schema=GraphState,
         )
         
         response = mlflow_agent.invoke(
-            {"messages": [("user", state["user_instructions"])]}
+            {
+                "messages": [("user", state["user_instructions"])],
+                "data": state["data"],
+            },
         )
         
         print("    * POST-PROCESS RESULTS")

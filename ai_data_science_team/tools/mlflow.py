@@ -1,9 +1,9 @@
 
 
-from typing import Optional, Dict, Any, Union, List
+from typing import Optional, Dict, Any, Union, List, Annotated
+from langgraph.prebuilt import InjectedState
 from langchain.tools import tool
 
-_LOADED_DATA = None
 
 @tool(response_format='content_and_artifact')
 def mlflow_search_experiments(
@@ -161,57 +161,78 @@ def mlflow_create_experiment(experiment_name: str) -> str:
 
 
 @tool(response_format='content_and_artifact')
-def mlflow_predict_from_run_id(run_id: str, tracking_uri: Optional[str] = None) -> tuple:
+def mlflow_predict_from_run_id(
+    run_id: str, 
+    # state: Annotated[dict, InjectedState], 
+    data: Annotated[dict, InjectedState("data")],
+    tracking_uri: Optional[str] = None
+) -> tuple:
     """
     Predict using an MLflow model (PyFunc) directly from a given run ID.
-
+    
     Parameters
     ----------
     run_id : str
         The ID of the MLflow run that logged the model.
+    state : dict
+        The state object containing the raw data to predict on.
     tracking_uri : str, optional
-        The MLflow tracking server URI.
-
+        Address of local or remote tracking server.
+    
     Returns
     -------
     tuple
-        JSON-formatted prediction results and DataFrame output.
+        (user_facing_message, artifact_dict)
     """
     print("    * Tool: mlflow_predict_from_run_id")
-    from mlflow.tracking import MlflowClient
+    import mlflow
     import mlflow.pyfunc
     import pandas as pd
-    import json
     
-    client = MlflowClient(tracking_uri=tracking_uri)
+    # from pprint import pprint
+    # print("STATE:")
+    # pprint(state)
+    # print("/n/n")
 
-    # Fetch model artifact path from run ID
+    # 1. Check if data is loaded
+    if not data:
+        return "No data provided for prediction. Please use `data` parameter inside of `invoke_agent()` or `ainvoke_agent()`.", {}
+    df = pd.DataFrame(data)
+
+    # 2. Prepare model URI
     model_uri = f"runs:/{run_id}/model"
 
+    # 3. Load or cache the MLflow model
+    model = mlflow.pyfunc.load_model(model_uri)
+
+    # 4. Make predictions
     try:
-        # Load model dynamically
-        model = mlflow.pyfunc.load_model(model_uri)
-
-        # Convert input data to DataFrame
-        if "_LOADED_DATA" not in globals():
-            if _LOADED_DATA is None:
-                return "No `_LOADED_DATA` in globals(). To fix, try running: \n\nglobal _LOADED_DATA\n\n_LOADED_DATA = df", pd.DataFrame()
-        df = pd.DataFrame(_LOADED_DATA)
-
-        # Make predictions
         preds = model.predict(df)
-        
-        if preds is pd.DataFrame:
-            return f"The predictions have been returned, here are the first five: {preds[:5].to_json()}", preds.to_dict()
-
-        # Convert output to JSON
-        if hasattr(preds, "to_json"):
-            return f"The predictions have been returned, here are the first five: {preds[:5].to_json()}", preds.to_dict()
-        else:
-            return json.dumps(preds.tolist()[:5]), dict(preds)
-
     except Exception as e:
-        return f"Error loading model or making predictions: {str(e)}", pd.DataFrame()
+        return f"Error during inference: {str(e)}", {}
+
+    # 5. Convert predictions to a user-friendly summary + artifact
+    if isinstance(preds, pd.DataFrame):
+        sample_json = preds.head().to_json(orient='records')
+        artifact_dict = preds.to_dict(orient='records')  # entire DF
+        message = f"Predictions returned. Sample: {sample_json}"
+    elif hasattr(preds, "to_json"):
+        # e.g., pd.Series
+        sample_json = preds[:5].to_json(orient='records')
+        artifact_dict = preds.to_dict()
+        message = f"Predictions returned. Sample: {sample_json}"
+    elif hasattr(preds, "tolist"):
+        # e.g., a NumPy array
+        preds_list = preds.tolist()
+        artifact_dict = {"predictions": preds_list}
+        message = f"Predictions returned. First 5: {preds_list[:5]}"
+    else:
+        # fallback
+        preds_str = str(preds)
+        artifact_dict = {"predictions": preds_str}
+        message = f"Predictions returned (unrecognized type). Example: {preds_str[:100]}..."
+
+    return (message, artifact_dict)
 
 
 
