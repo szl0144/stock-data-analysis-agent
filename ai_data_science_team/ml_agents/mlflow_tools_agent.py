@@ -119,7 +119,7 @@ class MLflowToolsAgent(BaseAgent):
         response = await self._compiled_graph.ainvoke(
             {
                 "user_instructions": user_instructions,
-                "data": data.to_dict(),
+                "data": data.to_dict() if data is not None else None,
             }, 
             **kwargs
         )
@@ -148,7 +148,7 @@ class MLflowToolsAgent(BaseAgent):
         response = self._compiled_graph.invoke(
             {
                 "user_instructions": user_instructions,
-                "data": data.to_dict(),
+                "data": data.to_dict() if data is not None else None,
             },
             **kwargs
         )
