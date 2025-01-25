@@ -163,7 +163,6 @@ def mlflow_create_experiment(experiment_name: str) -> str:
 @tool(response_format='content_and_artifact')
 def mlflow_predict_from_run_id(
     run_id: str, 
-    # state: Annotated[dict, InjectedState], 
     data: Annotated[dict, InjectedState("data")],
     tracking_uri: Optional[str] = None
 ) -> tuple:
@@ -188,11 +187,6 @@ def mlflow_predict_from_run_id(
     import mlflow
     import mlflow.pyfunc
     import pandas as pd
-    
-    # from pprint import pprint
-    # print("STATE:")
-    # pprint(state)
-    # print("/n/n")
 
     # 1. Check if data is loaded
     if not data:

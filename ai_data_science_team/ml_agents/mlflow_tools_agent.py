@@ -1,17 +1,16 @@
 
-from typing import Any, Optional, TypedDict, Annotated, Sequence, Literal, List, Dict, AnyStr
+from typing import Any, Optional, Annotated, Sequence
 import operator
 
 import pandas as pd
+
+from IPython.display import Markdown
 
 from langchain_core.messages import BaseMessage, AIMessage
 
 from langgraph.prebuilt import create_react_agent, ToolNode
 from langgraph.prebuilt.chat_agent_executor import AgentState
-from langgraph.managed import IsLastStep, RemainingSteps
 from langgraph.graph import START, END, StateGraph
-
-
 
 from ai_data_science_team.templates import BaseAgent
 from ai_data_science_team.utils.regex import format_agent_name
@@ -53,12 +52,39 @@ class MLflowToolsAgent(BaseAgent):
     
     Methods:
     --------
-    TODO
+    update_params(**kwargs):
+        Updates the agent's parameters and rebuilds the compiled graph.
+    ainvoke_agent(user_instructions: str=None, data_raw: pd.DataFrame=None, **kwargs):
+        Asynchronously runs the agent with the given user instructions.
+    invoke_agent(user_instructions: str=None, data_raw: pd.DataFrame=None, **kwargs):
+        Runs the agent with the given user instructions.
+    get_internal_messages(markdown: bool=False):
+        Returns the internal messages from the agent's response.
+    get_mlflow_artifacts(as_dataframe: bool=False):
+        Returns the MLflow artifacts from the agent's response.
+    get_ai_message(markdown: bool=False):
+        Returns the AI message from the agent's response
+    
     
     
     Examples:
     --------
-    TODO
+    ```python
+    from ai_data_science_team.ml_agents import MLflowToolsAgent
+    
+    mlflow_agent = MLflowToolsAgent(llm)
+
+    mlflow_agent.invoke_agent(user_instructions="List the MLflow experiments")
+
+    mlflow_agent.get_response()
+
+    mlflow_agent.get_internal_messages(markdown=True)
+
+    mlflow_agent.get_ai_message(markdown=True)
+
+    mlflow_agent.get_mlflow_artifacts(as_dataframe=True)
+    
+    ```
     
     Returns
     -------
@@ -100,7 +126,7 @@ class MLflowToolsAgent(BaseAgent):
     async def ainvoke_agent(
         self, 
         user_instructions: str=None, 
-        data: pd.DataFrame=None, 
+        data_raw: pd.DataFrame=None, 
         **kwargs
     ):
         """
@@ -110,7 +136,7 @@ class MLflowToolsAgent(BaseAgent):
         ----------
         user_instructions : str, optional
             The user instructions to pass to the agent.
-        data : pd.DataFrame, optional
+        data_raw : pd.DataFrame, optional
             The data to pass to the agent. Used for prediction and tool calls where data is required.
         kwargs : dict, optional
             Additional keyword arguments to pass to the agents ainvoke method.
@@ -119,7 +145,7 @@ class MLflowToolsAgent(BaseAgent):
         response = await self._compiled_graph.ainvoke(
             {
                 "user_instructions": user_instructions,
-                "data": data.to_dict() if data is not None else None,
+                "data_raw": data_raw.to_dict() if data_raw is not None else None,
             }, 
             **kwargs
         )
@@ -129,7 +155,7 @@ class MLflowToolsAgent(BaseAgent):
     def invoke_agent(
         self, 
         user_instructions: str=None, 
-        data: pd.DataFrame=None, 
+        data_raw: pd.DataFrame=None, 
         **kwargs
     ):
         """
@@ -139,7 +165,7 @@ class MLflowToolsAgent(BaseAgent):
         ----------
         user_instructions : str, optional
             The user instructions to pass to the agent.
-        data : pd.DataFrame, optional
+        data_raw : pd.DataFrame, optional
             The raw data to pass to the agent. Used for prediction and tool calls where data is required.
         kwargs : dict, optional
             Additional keyword arguments to pass to the agents invoke method.
@@ -148,12 +174,41 @@ class MLflowToolsAgent(BaseAgent):
         response = self._compiled_graph.invoke(
             {
                 "user_instructions": user_instructions,
-                "data": data.to_dict() if data is not None else None,
+                "data_raw": data_raw.to_dict() if data_raw is not None else None,
             },
             **kwargs
         )
         self.response = response
         return None
+    
+    def get_internal_messages(self, markdown: bool=False):
+        """
+        Returns the internal messages from the agent's response.
+        """
+        pretty_print = "\n\n".join([f"### {msg.type.upper()}\n\nID: {msg.id}\n\nContent:\n\n{msg.content}" for msg in self.response["internal_messages"]])       
+        if markdown:
+            return Markdown(pretty_print)
+        else:
+            return self.response["internal_messages"]
+    
+    def get_mlflow_artifacts(self, as_dataframe: bool=False):
+        """
+        Returns the MLflow artifacts from the agent's response.
+        """
+        if as_dataframe:
+            return pd.DataFrame(self.response["mlflow_artifacts"])
+        else:
+            return self.response["mlflow_artifacts"]
+    
+    def get_ai_message(self, markdown: bool=False):
+        """
+        Returns the AI message from the agent's response.
+        """
+        if markdown:
+            return Markdown(self.response["messages"][0].content)
+        else:
+            return self.response["messages"][0].content
+            
     
     
 
@@ -178,7 +233,7 @@ def make_mlflow_tools_agent(
         mlflow.set_registry_uri(mlflow_registry_uri)
     
     class GraphState(AgentState):
-        data: dict
+        data_raw: dict
         internal_messages: Annotated[Sequence[BaseMessage], operator.add]
         user_instructions: str
         mlflow_artifacts: dict
@@ -205,7 +260,7 @@ def make_mlflow_tools_agent(
         response = mlflow_agent.invoke(
             {
                 "messages": [("user", state["user_instructions"])],
-                "data": state["data"],
+                "data": state["data_raw"],
             },
         )
         
