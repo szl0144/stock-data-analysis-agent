@@ -87,6 +87,8 @@ This is a top secret project I'm working on. It's a multi-agent data science app
 
 ![Multi-Agent Data Science App](/img/ai_powered_apps.jpg) 
 
+[See available apps here](/apps/README.md)
+
 ### Agents Available Now
 
 #### 🔥🔥 NEW! Machine Learning Agents
