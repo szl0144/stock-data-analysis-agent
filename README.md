@@ -42,7 +42,7 @@ The AI Data Science Team of Copilots includes Agents that specialize data cleani
   - [Generative AI for Data Scientists Workshop](#generative-ai-for-data-scientists-workshop)
   - [Data Science Agents](#data-science-agents)
     - [NEW: Multi-Agents](#new-multi-agents)
-    - [Coming Soon: Data Science Apps](#coming-soon-data-science-apps)
+    - [Data Science Apps](#coming-soon-data-science-apps)
     - [Apps Available Now](#apps-available-now)
       - [🔥 Agentic Applications](#-agentic-applications)
     - [Agents Available Now](#agents-available-now)
@@ -83,7 +83,7 @@ This is the internals of the SQL Data Analyst Agent that connects to SQL databas
 
 ![Business Intelligence SQL Agent](/img/multi_agent_sql_data_visualization.jpg)
 
-### Coming Soon: Data Science Apps
+### Data Science Apps
 
 This is a top secret project I'm working on. It's a multi-agent data science app that performs time series forecasting.
 
