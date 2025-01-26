@@ -92,7 +92,7 @@ This is a top secret project I'm working on. It's a multi-agent data science app
 
 [See all available apps here](/apps)
 
-- [SQL Database App](/apps/sql_database_app)
+- [SQL Database App](/apps/sql-database-agent-app/)
 
 ### Agents Available Now
 
