@@ -44,6 +44,7 @@ The AI Data Science Team of Copilots includes Agents that specialize data cleani
     - [NEW: Multi-Agents](#new-multi-agents)
     - [Coming Soon: Data Science Apps](#coming-soon-data-science-apps)
     - [Apps Available Now](#apps-available-now)
+      - [🔥 Agentic Applications](#-agentic-applications)
     - [Agents Available Now](#agents-available-now)
       - [🔥🔥 NEW! Machine Learning Agents](#-new-machine-learning-agents)
       - [Data Science Agents](#data-science-agents-1)
@@ -92,7 +93,9 @@ This is a top secret project I'm working on. It's a multi-agent data science app
 
 [See all available apps here](/apps)
 
-- [SQL Database App](/apps/sql-database-agent-app/)
+#### 🔥 Agentic Applications
+
+1. **SQL Database Agent App:** Connects any SQL Database, generates SQL queries from natural language, and returns data as a downloadable table. [See Application](/apps/sql-database-agent-app/)
 
 ### Agents Available Now
 
