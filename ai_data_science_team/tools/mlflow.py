@@ -163,7 +163,7 @@ def mlflow_create_experiment(experiment_name: str) -> str:
 @tool(response_format='content_and_artifact')
 def mlflow_predict_from_run_id(
     run_id: str, 
-    data: Annotated[dict, InjectedState("data")],
+    data_raw: Annotated[dict, InjectedState("data_raw")],
     tracking_uri: Optional[str] = None
 ) -> tuple:
     """
@@ -173,8 +173,8 @@ def mlflow_predict_from_run_id(
     ----------
     run_id : str
         The ID of the MLflow run that logged the model.
-    state : dict
-        The state object containing the raw data to predict on.
+    data_raw : dict
+        The incoming data as a dictionary.
     tracking_uri : str, optional
         Address of local or remote tracking server.
     
@@ -189,9 +189,9 @@ def mlflow_predict_from_run_id(
     import pandas as pd
 
     # 1. Check if data is loaded
-    if not data:
-        return "No data provided for prediction. Please use `data` parameter inside of `invoke_agent()` or `ainvoke_agent()`.", {}
-    df = pd.DataFrame(data)
+    if not data_raw:
+        return "No data provided for prediction. Please use `data_raw` parameter inside of `invoke_agent()` or `ainvoke_agent()`.", {}
+    df = pd.DataFrame(data_raw)
 
     # 2. Prepare model URI
     model_uri = f"runs:/{run_id}/model"
@@ -229,7 +229,340 @@ def mlflow_predict_from_run_id(
     return (message, artifact_dict)
 
 
+# MLflow tool to launch gui for mlflow
+@tool(response_format='content')
+def mlflow_launch_ui(
+    port: int = 5000,
+    host: str = "localhost",
+    tracking_uri: Optional[str] = None
+) -> str:
+    """
+    Launch the MLflow UI.
 
+    Parameters
+    ----------
+    port : int, optional
+        The port on which to run the UI.
+    host : str, optional
+        The host address to bind the UI to.
+    tracking_uri : str, optional
+        Address of local or remote tracking server.
+
+    Returns
+    -------
+    str
+        Confirmation message.
+    """
+    print("    * Tool: mlflow_launch_ui")
+    import subprocess
+    
+    # Try binding to the user-specified port first
+    allocated_port = _find_free_port(start_port=port, host=host)
+
+    cmd = ["mlflow", "ui", "--host", host, "--port", str(allocated_port)]
+    if tracking_uri:
+        cmd.extend(["--backend-store-uri", tracking_uri])
+    
+    process = subprocess.Popen(cmd)
+    return (f"MLflow UI launched at http://{host}:{allocated_port}. "
+            f"(PID: {process.pid})")
+
+def _find_free_port(start_port: int, host: str) -> int:
+    """
+    Find a free port >= start_port on the specified host.
+    If the start_port is free, returns start_port, else tries subsequent ports.
+    """
+    import socket
+    for port_candidate in range(start_port, start_port + 1000):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            try:
+                sock.bind((host, port_candidate))
+            except OSError:
+                # Port is in use, try the next one
+                continue
+            # If bind succeeds, it's free
+            return port_candidate
+    
+    raise OSError("No available ports found in the range "
+                  f"{start_port}-{start_port + 999}")
+
+
+@tool(response_format='content')
+def mlflow_stop_ui(port: int = 5000) -> str:
+    """
+    Kill any process currently listening on the given MLflow UI port.
+    Requires `pip install psutil`.
+    
+    Parameters
+    ----------
+    port : int, optional
+        The port on which the UI is running.
+    """
+    import psutil
+    
+    # Gather system-wide inet connections
+    for conn in psutil.net_connections(kind="inet"):
+        # Check if this connection has a local address (laddr) and if
+        # the port matches the one we're trying to free
+        if conn.laddr and conn.laddr.port == port:
+            # Some connections may not have an associated PID
+            if conn.pid is not None:
+                try:
+                    p = psutil.Process(conn.pid)
+                    p_name = p.name()  # optional: get process name for clarity
+                    p.kill()           # forcibly terminate the process
+                    return (
+                        f"Killed process {conn.pid} ({p_name}) listening on port {port}."
+                    )
+                except psutil.NoSuchProcess:
+                    return (
+                        "Process was already terminated before we could kill it."
+                    )
+    return f"No process found listening on port {port}."
+
+
+@tool(response_format='content_and_artifact')
+def mlflow_list_artifacts(
+    run_id: str,
+    path: Optional[str] = None,
+    tracking_uri: Optional[str] = None
+) -> tuple:
+    """
+    List artifacts under a given MLflow run.
+
+    Parameters
+    ----------
+    run_id : str
+        The ID of the run whose artifacts to list.
+    path : str, optional
+        Path within the run's artifact directory to list. Defaults to the root.
+    tracking_uri : str, optional
+        Custom tracking server URI.
+
+    Returns
+    -------
+    tuple
+        (summary_message, artifact_listing)
+    """
+    from mlflow.tracking import MlflowClient
+    
+    client = MlflowClient(tracking_uri=tracking_uri)
+    # If path is None, list the root folder
+    artifact_list = client.list_artifacts(run_id, path or "")
+    
+    # Convert to a more user-friendly structure
+    artifacts_data = []
+    for artifact in artifact_list:
+        artifacts_data.append({
+            "path": artifact.path,
+            "is_dir": artifact.is_dir,
+            "file_size": artifact.file_size
+        })
+    
+    return (
+        f"Found {len(artifacts_data)} artifacts.",
+        artifacts_data
+    )
+
+
+@tool(response_format='content_and_artifact')
+def mlflow_download_artifacts(
+    run_id: str,
+    path: Optional[str] = None,
+    dst_path: Optional[str] = "./downloaded_artifacts",
+    tracking_uri: Optional[str] = None
+) -> tuple:
+    """
+    Download artifacts from MLflow to a local directory.
+
+    Parameters
+    ----------
+    run_id : str
+        The ID of the run whose artifacts to download.
+    path : str, optional
+        Path within the run's artifact directory to download. Defaults to the root.
+    dst_path : str, optional
+        Local destination path to store artifacts.
+    tracking_uri : str, optional
+        MLflow tracking server URI.
+
+    Returns
+    -------
+    tuple
+        (summary_message, artifact_dict)
+    """
+    from mlflow.tracking import MlflowClient
+    import os
+    
+    client = MlflowClient(tracking_uri=tracking_uri)
+    local_path = client.download_artifacts(run_id, path or "", dst_path)
+    
+    # Build a recursive listing of what was downloaded
+    downloaded_files = []
+    for root, dirs, files in os.walk(local_path):
+        for f in files:
+            downloaded_files.append(os.path.join(root, f))
+    
+    message = (
+        f"Artifacts for run_id='{run_id}' have been downloaded to: {local_path}. "
+        f"Total files: {len(downloaded_files)}."
+    )
+    
+    return (
+        message,
+        {"downloaded_files": downloaded_files}
+    )
+
+
+@tool(response_format='content_and_artifact')
+def mlflow_list_registered_models(
+    max_results: int = 100,
+    tracking_uri: Optional[str] = None,
+    registry_uri: Optional[str] = None
+) -> tuple:
+    """
+    List all registered models in MLflow's model registry.
+
+    Parameters
+    ----------
+    max_results : int, optional
+        Maximum number of models to return.
+    tracking_uri : str, optional
+    registry_uri : str, optional
+
+    Returns
+    -------
+    tuple
+        (summary_message, model_list)
+    """
+    from mlflow.tracking import MlflowClient
+    
+    client = MlflowClient(tracking_uri=tracking_uri, registry_uri=registry_uri)
+    # The list_registered_models() call can be paginated; for simplicity, we just pass max_results
+    models = client.list_registered_models(max_results=max_results)
+    
+    models_data = []
+    for m in models:
+        models_data.append({
+            "name": m.name,
+            "latest_versions": [
+                {
+                    "version": v.version,
+                    "run_id": v.run_id,
+                    "current_stage": v.current_stage,
+                }
+                for v in m.latest_versions
+            ]
+        })
+    
+    return (
+        f"Found {len(models_data)} registered models.",
+        models_data
+    )
+
+
+@tool(response_format='content_and_artifact')
+def mlflow_search_registered_models(
+    filter_string: Optional[str] = None,
+    order_by: Optional[List[str]] = None,
+    max_results: int = 100,
+    tracking_uri: Optional[str] = None,
+    registry_uri: Optional[str] = None
+) -> tuple:
+    """
+    Search registered models in MLflow's registry using optional filters.
+
+    Parameters
+    ----------
+    filter_string : str, optional
+        e.g. "name LIKE 'my_model%'" or "tags.stage = 'production'". 
+    order_by : list, optional
+        e.g. ["name ASC"] or ["timestamp DESC"].
+    max_results : int, optional
+        Max number of results.
+    tracking_uri : str, optional
+    registry_uri : str, optional
+
+    Returns
+    -------
+    tuple
+        (summary_message, model_dict_list)
+    """
+    from mlflow.tracking import MlflowClient
+    
+    client = MlflowClient(tracking_uri=tracking_uri, registry_uri=registry_uri)
+    models = client.search_registered_models(
+        filter_string=filter_string,
+        order_by=order_by,
+        max_results=max_results
+    )
+    
+    models_data = []
+    for m in models:
+        models_data.append({
+            "name": m.name,
+            "description": m.description,
+            "creation_timestamp": m.creation_timestamp,
+            "last_updated_timestamp": m.last_updated_timestamp,
+            "latest_versions": [
+                {
+                    "version": v.version,
+                    "run_id": v.run_id,
+                    "current_stage": v.current_stage
+                }
+                for v in m.latest_versions
+            ]
+        })
+    
+    return (
+        f"Found {len(models_data)} models matching filter={filter_string}.",
+        models_data
+    )
+
+
+@tool(response_format='content_and_artifact')
+def mlflow_get_model_version_details(
+    name: str,
+    version: str,
+    tracking_uri: Optional[str] = None,
+    registry_uri: Optional[str] = None
+) -> tuple:
+    """
+    Retrieve details about a specific model version in the MLflow registry.
+
+    Parameters
+    ----------
+    name : str
+        Name of the registered model.
+    version : str
+        Version number of that model.
+    tracking_uri : str, optional
+    registry_uri : str, optional
+
+    Returns
+    -------
+    tuple
+        (summary_message, version_data_dict)
+    """
+    from mlflow.tracking import MlflowClient
+    
+    client = MlflowClient(tracking_uri=tracking_uri, registry_uri=registry_uri)
+    version_details = client.get_model_version(name, version)
+    
+    data = {
+        "name": version_details.name,
+        "version": version_details.version,
+        "run_id": version_details.run_id,
+        "creation_timestamp": version_details.creation_timestamp,
+        "current_stage": version_details.current_stage,
+        "description": version_details.description,
+        "status": version_details.status
+    }
+    
+    return (
+        f"Model version details retrieved for {name} v{version}",
+        data
+    )
 
 
 # @tool

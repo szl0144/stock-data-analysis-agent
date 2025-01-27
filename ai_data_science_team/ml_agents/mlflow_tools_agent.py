@@ -18,7 +18,14 @@ from ai_data_science_team.tools.mlflow import (
     mlflow_search_experiments, 
     mlflow_search_runs,
     mlflow_create_experiment, 
-    mlflow_predict_from_run_id 
+    mlflow_predict_from_run_id,
+    mlflow_launch_ui,
+    mlflow_stop_ui,
+    mlflow_list_artifacts,
+    mlflow_download_artifacts,
+    mlflow_list_registered_models,
+    mlflow_search_registered_models,
+    mlflow_get_model_version_details,
 )
 
 AGENT_NAME = "mlflow_tools_agent"
@@ -28,7 +35,14 @@ tools = [
     mlflow_search_experiments, 
     mlflow_search_runs, 
     mlflow_create_experiment, 
-    mlflow_predict_from_run_id
+    mlflow_predict_from_run_id,
+    mlflow_launch_ui,
+    mlflow_stop_ui,
+    mlflow_list_artifacts,
+    mlflow_download_artifacts,
+    mlflow_list_registered_models,
+    mlflow_search_registered_models,
+    mlflow_get_model_version_details,
 ]
 
 class MLflowToolsAgent(BaseAgent):
@@ -49,6 +63,8 @@ class MLflowToolsAgent(BaseAgent):
         The tracking URI for MLflow. Defaults to None.
     mlflow_registry_uri : str, optional
         The registry URI for MLflow. Defaults to None.
+    **react_agent_kwargs : dict, optional
+        Additional keyword arguments to pass to the agent's react agent.
     
     Methods:
     --------
@@ -98,11 +114,13 @@ class MLflowToolsAgent(BaseAgent):
         model: Any,
         mlflow_tracking_uri: Optional[str]=None,
         mlflow_registry_uri: Optional[str]=None,
+        **react_agent_kwargs,
     ):
         self._params = {
             "model": model,
             "mlflow_tracking_uri": mlflow_tracking_uri,
             "mlflow_registry_uri": mlflow_registry_uri,
+            **react_agent_kwargs,
         }
         self._compiled_graph = self._make_compiled_graph()
         self.response = None
@@ -216,6 +234,7 @@ def make_mlflow_tools_agent(
     model: Any,
     mlflow_tracking_uri: str=None,
     mlflow_registry_uri: str=None,
+    **react_agent_kwargs,
 ):
     """
     MLflow Tool Calling Agent
@@ -233,9 +252,9 @@ def make_mlflow_tools_agent(
         mlflow.set_registry_uri(mlflow_registry_uri)
     
     class GraphState(AgentState):
-        data_raw: dict
         internal_messages: Annotated[Sequence[BaseMessage], operator.add]
         user_instructions: str
+        data_raw: dict
         mlflow_artifacts: dict
 
     
@@ -255,12 +274,13 @@ def make_mlflow_tools_agent(
             model, 
             tools=tool_node, 
             state_schema=GraphState,
+            **react_agent_kwargs,
         )
         
         response = mlflow_agent.invoke(
             {
                 "messages": [("user", state["user_instructions"])],
-                "data": state["data_raw"],
+                "data_raw": state["data_raw"],
             },
         )
         
