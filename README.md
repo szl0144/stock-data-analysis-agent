@@ -102,7 +102,7 @@ This is a top secret project I'm working on. It's a multi-agent data science app
 #### 🔥🔥 NEW! Machine Learning Agents
 
 1. **🔥 H2O Machine Learning Agent:** Builds and logs 100's of high-performance machine learning models. [See Example](https://github.com/business-science/ai-data-science-team/blob/master/examples/ml_agents/h2o_machine_learning_agent.ipynb)
-2. **🔥 MLflow Tools Agent (MLOps):** This agent has 11+ tools for managing models, ML projects, and making production ML predictions with MLflow.
+2. **🔥 MLflow Tools Agent (MLOps):** This agent has 11+ tools for managing models, ML projects, and making production ML predictions with MLflow. [See Example](https://github.com/business-science/ai-data-science-team/blob/master/examples/ml_agents/mlflow_tools_agent.ipynb)
 
 #### Data Science Agents
 
