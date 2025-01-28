@@ -42,7 +42,7 @@ The AI Data Science Team of Copilots includes Agents that specialize data cleani
   - [Generative AI for Data Scientists Workshop](#generative-ai-for-data-scientists-workshop)
   - [Data Science Agents](#data-science-agents)
     - [NEW: Multi-Agents](#new-multi-agents)
-    - [Data Science Apps](#coming-soon-data-science-apps)
+    - [Data Science Apps](#data-science-apps)
     - [Apps Available Now](#apps-available-now)
       - [🔥 Agentic Applications](#-agentic-applications)
     - [Agents Available Now](#agents-available-now)
@@ -102,6 +102,7 @@ This is a top secret project I'm working on. It's a multi-agent data science app
 #### 🔥🔥 NEW! Machine Learning Agents
 
 1. **🔥 H2O Machine Learning Agent:** Builds and logs 100's of high-performance machine learning models. [See Example](https://github.com/business-science/ai-data-science-team/blob/master/examples/ml_agents/h2o_machine_learning_agent.ipynb)
+2. **🔥 MLflow Tools Agent (MLOps):** This agent has 11+ tools for managing models, ML projects, and making production ML predictions with MLflow.
 
 #### Data Science Agents
 
@@ -118,9 +119,8 @@ This is a top secret project I'm working on. It's a multi-agent data science app
 ### Agents Coming Soon
 
 1. **Data Analyst:** Analyzes data structure, creates exploratory visualizations, and performs correlation analysis to identify relationships.
-2. **MLOps Agent:** Track experiments, log models, and deploy models to production.
-3. **Interpretability Agent:** Performs Interpretable ML to explain why the model returned predictions including which features were the most important to the model.
-4. **Supervisor:** Forms task list. Moderates sub-agents. Returns completed assignment. 
+2. **Interpretability Agent:** Performs Interpretable ML to explain why the model returned predictions including which features were the most important to the model.
+3. **Supervisor:** Forms task list. Moderates sub-agents. Returns completed assignment. 
 
 ## Disclaimer
 
