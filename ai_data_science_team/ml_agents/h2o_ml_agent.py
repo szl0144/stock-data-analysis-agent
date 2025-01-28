@@ -506,6 +506,7 @@ def make_h2o_ml_agent(
             while remaining flexible to user instructions.
             - Return a dict with keys: leaderboard, best_model_id, model_path, and model_results.
             - If enable_mlfow is True, log the top metrics and save the model as an artifact. (See example function)
+            - IMPORTANT: if enable_mlflow is True, make sure to set enable_mlflow to True in the function definition.
             
             Initial User Instructions (Disregard any instructions that are unrelated to modeling):
                 {user_instructions}
@@ -533,7 +534,7 @@ def make_h2o_ml_agent(
                 sort_metric: str ,
                 model_directory: Optional[str] = None,
                 log_path: Optional[str] = None,
-                enable_mlflow: bool,               
+                enable_mlflow: bool, # If use has specified to enable MLflow, make sure to make this True              
                 mlflow_tracking_uri: Optional[str], 
                 mlflow_experiment_name: str,
                 mlflow_run_name: str,
