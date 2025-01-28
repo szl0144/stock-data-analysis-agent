@@ -298,6 +298,7 @@ def mlflow_stop_ui(port: int = 5000) -> str:
     port : int, optional
         The port on which the UI is running.
     """
+    print("    * Tool: mlflow_stop_ui")
     import psutil
     
     # Gather system-wide inet connections
@@ -344,6 +345,7 @@ def mlflow_list_artifacts(
     tuple
         (summary_message, artifact_listing)
     """
+    print("    * Tool: mlflow_list_artifacts")
     from mlflow.tracking import MlflowClient
     
     client = MlflowClient(tracking_uri=tracking_uri)
@@ -391,6 +393,7 @@ def mlflow_download_artifacts(
     tuple
         (summary_message, artifact_dict)
     """
+    print("    * Tool: mlflow_download_artifacts")
     from mlflow.tracking import MlflowClient
     import os
     
@@ -435,6 +438,7 @@ def mlflow_list_registered_models(
     tuple
         (summary_message, model_list)
     """
+    print("    * Tool: mlflow_list_registered_models")
     from mlflow.tracking import MlflowClient
     
     client = MlflowClient(tracking_uri=tracking_uri, registry_uri=registry_uri)
@@ -488,6 +492,7 @@ def mlflow_search_registered_models(
     tuple
         (summary_message, model_dict_list)
     """
+    print("    * Tool: mlflow_search_registered_models")
     from mlflow.tracking import MlflowClient
     
     client = MlflowClient(tracking_uri=tracking_uri, registry_uri=registry_uri)
@@ -544,6 +549,7 @@ def mlflow_get_model_version_details(
     tuple
         (summary_message, version_data_dict)
     """
+    print("    * Tool: mlflow_get_model_version_details")
     from mlflow.tracking import MlflowClient
     
     client = MlflowClient(tracking_uri=tracking_uri, registry_uri=registry_uri)
