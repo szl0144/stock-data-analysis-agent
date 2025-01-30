@@ -46,8 +46,8 @@ The AI Data Science Team of Copilots includes Agents that specialize data cleani
     - [Apps Available Now](#apps-available-now)
       - [🔥 Agentic Applications](#-agentic-applications)
     - [Agents Available Now](#agents-available-now)
+      - [Agents](#agents)
       - [🔥🔥 NEW! Machine Learning Agents](#-new-machine-learning-agents)
-      - [Data Science Agents](#data-science-agents-1)
       - [Multi-Agents](#multi-agents)
     - [Agents Coming Soon](#agents-coming-soon)
   - [Disclaimer](#disclaimer)
@@ -99,18 +99,21 @@ This is a top secret project I'm working on. It's a multi-agent data science app
 
 ### Agents Available Now
 
-#### 🔥🔥 NEW! Machine Learning Agents
-
-1. **🔥 H2O Machine Learning Agent:** Builds and logs 100's of high-performance machine learning models. [See Example](https://github.com/business-science/ai-data-science-team/blob/master/examples/ml_agents/h2o_machine_learning_agent.ipynb)
-2. **🔥 MLflow Tools Agent (MLOps):** This agent has 11+ tools for managing models, ML projects, and making production ML predictions with MLflow. [See Example](https://github.com/business-science/ai-data-science-team/blob/master/examples/ml_agents/mlflow_tools_agent.ipynb)
-
-#### Data Science Agents
+#### Agents
 
 1. **Data Wrangling Agent:** Merges, Joins, Preps and Wrangles data into a format that is ready for data analysis. [See Example](https://github.com/business-science/ai-data-science-team/blob/master/examples/data_wrangling_agent.ipynb)
 2. **Data Visualization Agent:** Creates visualizations to help you understand your data. Returns JSON serializable plotly visualizations. [See Example](https://github.com/business-science/ai-data-science-team/blob/master/examples/data_visualization_agent.ipynb)
 3. **🔥 Data Cleaning Agent:** Performs Data Preparation steps including handling missing values, outliers, and data type conversions. [See Example](https://github.com/business-science/ai-data-science-team/blob/master/examples/data_cleaning_agent.ipynb)
 4. **Feature Engineering Agent:** Converts the prepared data into ML-ready data. Adds features to increase predictive accuracy of ML models. [See Example](https://github.com/business-science/ai-data-science-team/blob/master/examples/feature_engineering_agent.ipynb)
 5. **🔥 SQL Database Agent:** Connects to SQL databases to pull data into the data science environment. Creates pipelines to automate data extraction. Performs Joins, Aggregations, and other SQL Query operations. [See Example](https://github.com/business-science/ai-data-science-team/blob/master/examples/sql_database_agent.ipynb)
+6. **Data Loader Tools Agent:** Loads data from various sources including CSV, Excel, Parquet, and Pickle files. [See Example](https://github.com/business-science/ai-data-science-team/blob/master/examples/data_loader_tools_agent.ipynb)
+
+
+#### 🔥🔥 NEW! Machine Learning Agents
+
+1. **🔥 H2O Machine Learning Agent:** Builds and logs 100's of high-performance machine learning models. [See Example](https://github.com/business-science/ai-data-science-team/blob/master/examples/ml_agents/h2o_machine_learning_agent.ipynb)
+2. **🔥 MLflow Tools Agent (MLOps):** This agent has 11+ tools for managing models, ML projects, and making production ML predictions with MLflow. [See Example](https://github.com/business-science/ai-data-science-team/blob/master/examples/ml_agents/mlflow_tools_agent.ipynb)
+
 
 #### Multi-Agents
 
