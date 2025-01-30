@@ -75,7 +75,7 @@ If you're an aspiring data scientist who wants to learn how to build AI Agents a
 
 This project is a work in progress. New data science agents will be released soon.
 
-![AI Data Science Team](/img/ai_data_science_team.jpg) 
+![AI Data Science Team](/img/ai_data_science_team_.jpg) 
 
 ### NEW: Multi-Agents
 
