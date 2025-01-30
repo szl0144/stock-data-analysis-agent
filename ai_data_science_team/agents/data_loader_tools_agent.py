@@ -40,6 +40,31 @@ tools = [
 class DataLoaderToolsAgent(BaseAgent):
     """
     A Data Loader Agent that can interact with data loading tools and search for files in your file system.
+    
+    Parameters:
+    ----------
+    model : langchain.llms.base.LLM
+        The language model used to generate the tool calling agent.
+    react_agent_kwargs : dict
+        Additional keyword arguments to pass to the create_react_agent function.
+    invoke_react_agent_kwargs : dict
+        Additional keyword arguments to pass to the invoke method of the react agent.
+        
+    Methods:
+    --------
+    update_params(**kwargs)
+        Updates the agent's parameters and rebuilds the compiled graph.
+    ainvoke_agent(user_instructions: str=None, **kwargs)
+        Runs the agent with the given user instructions asynchronously.
+    invoke_agent(user_instructions: str=None, **kwargs)
+        Runs the agent with the given user instructions.
+    get_internal_messages(markdown: bool=False)
+        Returns the internal messages from the agent's response.
+    get_artifacts(as_dataframe: bool=False)
+        Returns the MLflow artifacts from the agent's response.
+    get_ai_message(markdown: bool=False)
+        Returns the AI message from the agent's response.
+    
     """
     
     def __init__(
@@ -166,6 +191,8 @@ def make_data_loader_tools_agent(
         The language model used to generate the tool calling agent.
     react_agent_kwargs : dict
         Additional keyword arguments to pass to the create_react_agent function.
+    invoke_react_agent_kwargs : dict
+        Additional keyword arguments to pass to the invoke method of the react agent.
     
     Returns:
     --------
