@@ -125,6 +125,7 @@ def list_directory_contents(
         if not show_hidden and item.startswith('.'):
             continue
         items.append(item)
+    items.reverse()
 
     # content: just the raw list of item names (files/folders).
     content = items.copy()

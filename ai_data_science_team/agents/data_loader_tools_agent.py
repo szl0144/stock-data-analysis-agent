@@ -45,11 +45,13 @@ class DataLoaderToolsAgent(BaseAgent):
     def __init__(
         self, 
         model: Any,
-        **react_agent_kwargs,
+        create_react_agent_kwargs: Optional[Dict]={},
+        invoke_react_agent_kwargs: Optional[Dict]={},
     ):
         self._params = {
             "model": model,
-            **react_agent_kwargs,
+            "create_react_agent_kwargs": create_react_agent_kwargs,
+            "invoke_react_agent_kwargs": invoke_react_agent_kwargs,
         }
         self._compiled_graph = self._make_compiled_graph()
         self.response = None
@@ -152,7 +154,8 @@ class DataLoaderToolsAgent(BaseAgent):
 
 def make_data_loader_tools_agent(
     model: Any,
-    **react_agent_kwargs,
+    create_react_agent_kwargs: Optional[Dict]={},
+    invoke_react_agent_kwargs: Optional[Dict]={},
 ):
     """
     Creates a Data Loader Agent that can interact with data loading tools.
@@ -190,13 +193,14 @@ def make_data_loader_tools_agent(
             model, 
             tools=tool_node, 
             state_schema=GraphState,
-            **react_agent_kwargs,
+            **create_react_agent_kwargs,
         )
         
         response = data_loader_agent.invoke(
             {
                 "messages": [("user", state["user_instructions"])],
             },
+            invoke_react_agent_kwargs,
         )
         
         print("    * POST-PROCESS RESULTS")
