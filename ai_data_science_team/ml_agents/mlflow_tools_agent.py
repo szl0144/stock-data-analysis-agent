@@ -1,5 +1,5 @@
 
-from typing import Any, Optional, Annotated, Sequence
+from typing import Any, Optional, Annotated, Sequence, Dict
 import operator
 
 import pandas as pd
@@ -63,8 +63,10 @@ class MLflowToolsAgent(BaseAgent):
         The tracking URI for MLflow. Defaults to None.
     mlflow_registry_uri : str, optional
         The registry URI for MLflow. Defaults to None.
-    **react_agent_kwargs : dict, optional
-        Additional keyword arguments to pass to the agent's react agent.
+    react_agent_kwargs : dict
+        Additional keyword arguments to pass to the create_react_agent function.
+    invoke_react_agent_kwargs : dict
+        Additional keyword arguments to pass to the invoke method of the react agent.
     
     Methods:
     --------
@@ -114,13 +116,15 @@ class MLflowToolsAgent(BaseAgent):
         model: Any,
         mlflow_tracking_uri: Optional[str]=None,
         mlflow_registry_uri: Optional[str]=None,
-        **react_agent_kwargs,
+        create_react_agent_kwargs: Optional[Dict]={},
+        invoke_react_agent_kwargs: Optional[Dict]={},
     ):
         self._params = {
             "model": model,
             "mlflow_tracking_uri": mlflow_tracking_uri,
             "mlflow_registry_uri": mlflow_registry_uri,
-            **react_agent_kwargs,
+            "create_react_agent_kwargs": create_react_agent_kwargs,
+            "invoke_react_agent_kwargs": invoke_react_agent_kwargs,
         }
         self._compiled_graph = self._make_compiled_graph()
         self.response = None
@@ -185,8 +189,6 @@ class MLflowToolsAgent(BaseAgent):
             The user instructions to pass to the agent.
         data_raw : pd.DataFrame, optional
             The raw data to pass to the agent. Used for prediction and tool calls where data is required.
-        kwargs : dict, optional
-            Additional keyword arguments to pass to the agents invoke method.
         
         """
         response = self._compiled_graph.invoke(
@@ -234,10 +236,30 @@ def make_mlflow_tools_agent(
     model: Any,
     mlflow_tracking_uri: str=None,
     mlflow_registry_uri: str=None,
-    **react_agent_kwargs,
+    create_react_agent_kwargs: Optional[Dict]={},
+    invoke_react_agent_kwargs: Optional[Dict]={},
 ):
     """
     MLflow Tool Calling Agent
+    
+    Parameters:
+    ----------
+    model : Any
+        The language model used to generate the agent.
+    mlflow_tracking_uri : str, optional
+        The tracking URI for MLflow. Defaults to None.
+    mlflow_registry_uri : str, optional
+        The registry URI for MLflow. Defaults to None.
+    create_react_agent_kwargs : dict, optional
+        Additional keyword arguments to pass to the agent's create_react_agent method.
+    invoke_react_agent_kwargs : dict, optional
+        Additional keyword arguments to pass to the agent's invoke method.
+        
+    Returns
+    -------
+    app : langchain.graphs.CompiledStateGraph
+        A compiled state graph for the MLflow Tool Calling Agent.
+    
     """
     
     try:
@@ -274,7 +296,7 @@ def make_mlflow_tools_agent(
             model, 
             tools=tool_node, 
             state_schema=GraphState,
-            **react_agent_kwargs,
+            **create_react_agent_kwargs,
         )
         
         response = mlflow_agent.invoke(
@@ -282,6 +304,7 @@ def make_mlflow_tools_agent(
                 "messages": [("user", state["user_instructions"])],
                 "data_raw": state["data_raw"],
             },
+            invoke_react_agent_kwargs,
         )
         
         print("    * POST-PROCESS RESULTS")

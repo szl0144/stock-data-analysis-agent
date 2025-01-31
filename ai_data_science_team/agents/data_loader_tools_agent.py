@@ -196,7 +196,7 @@ def make_data_loader_tools_agent(
     
     Returns:
     --------
-    Data Loader Agent
+    app : langchain.graphs.CompiledStateGraph
         An agent that can interact with data loading tools.
     """
     
