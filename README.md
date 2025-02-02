@@ -76,7 +76,7 @@ If you're an aspiring data scientist who wants to learn how to build AI Agents a
 
 This project is a work in progress. New data science agents will be released soon.
 
-![AI Data Science Team](/img/ai_data_science_team_.jpg) 
+![AI Data Science Team](/img/ai_data_science_team.jpg) 
 
 ### NEW: Multi-Agents
 
@@ -107,7 +107,7 @@ This is a top secret project I'm working on. It's a multi-agent data science app
 3. **🔥 Data Cleaning Agent:** Performs Data Preparation steps including handling missing values, outliers, and data type conversions. [See Example](https://github.com/business-science/ai-data-science-team/blob/master/examples/data_cleaning_agent.ipynb)
 4. **Feature Engineering Agent:** Converts the prepared data into ML-ready data. Adds features to increase predictive accuracy of ML models. [See Example](https://github.com/business-science/ai-data-science-team/blob/master/examples/feature_engineering_agent.ipynb)
 5. **🔥 SQL Database Agent:** Connects to SQL databases to pull data into the data science environment. Creates pipelines to automate data extraction. Performs Joins, Aggregations, and other SQL Query operations. [See Example](https://github.com/business-science/ai-data-science-team/blob/master/examples/sql_database_agent.ipynb)
-6. **Data Loader Tools Agent:** Loads data from various sources including CSV, Excel, Parquet, and Pickle files. [See Example](https://github.com/business-science/ai-data-science-team/blob/master/examples/data_loader_tools_agent.ipynb)
+6. **🔥 Data Loader Tools Agent:** Loads data from various sources including CSV, Excel, Parquet, and Pickle files. [See Example](https://github.com/business-science/ai-data-science-team/blob/master/examples/data_loader_tools_agent.ipynb)
 
 
 #### 🔥🔥 NEW! Machine Learning Agents
@@ -117,7 +117,7 @@ This is a top secret project I'm working on. It's a multi-agent data science app
 
 #### 🔥 NEW! Data Science Agents
 
-Coming Soon!
+1. **🔥🔥 EDA Tools Agent:** Performs automated exploratory data analysis (EDA) with EDA Reporting, Missing Data Analysis, Correlation Analysis, and more. [See Example](https://github.com/business-science/ai-data-science-team/blob/master/examples/ds_agents/eda_tools_agent.ipynb)
 
 
 #### Multi-Agents
