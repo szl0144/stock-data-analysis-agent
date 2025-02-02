@@ -35,21 +35,32 @@ def describe_dataset(
 
 @tool(response_format='content_and_artifact')
 def visualize_missing(
-    data_raw: Annotated[dict, InjectedState("data_raw")]
+    data_raw: Annotated[dict, InjectedState("data_raw")],
+    n_sample: int = None
 ) -> Tuple[str, Dict]:
     """
     Tool: visualize_missing
     Description:
-        Converts injected raw data (a dict) into a DataFrame, generates a missing data visualization
-        (using missingno), and returns a base64-encoded PNG image.
+        Converts injected raw data (a dict) into a DataFrame, optionally samples the data
+        if n_sample is provided, generates three missing data visualizations using missingno
+        (matrix, bar, and heatmap), and returns base64-encoded PNG images for each plot.
+        
+    Parameters:
+    -----------
+    data_raw : dict
+        The raw data in dictionary format.
+    n_sample : int, optional (default: None)
+        The number of rows to sample from the dataset if it is large.
         
     Returns:
     -------
     Tuple[str, Dict]:
-        content: A message describing the generated plot.
-        artifact: A dict with key 'plot_image' containing the base64 encoded image.
+        content: A message describing the generated plots.
+        artifact: A dict with keys 'matrix_plot', 'bar_plot', and 'heatmap_plot' each containing the
+                  corresponding base64 encoded PNG image.
     """
     print("    * Tool: visualize_missing")
+    
     try:
         import missingno as msno  # Ensure missingno is installed
     except ImportError:
@@ -59,22 +70,40 @@ def visualize_missing(
     import base64
     from io import BytesIO
     import matplotlib.pyplot as plt
-    
+
+    # Create the DataFrame and sample if n_sample is provided.
     df = pd.DataFrame(data_raw)
+    if n_sample is not None:
+        df = df.sample(n=n_sample, random_state=42)
+
+    # Dictionary to store the base64 encoded images for each plot.
+    encoded_plots = {}
+
+    # Define a helper function to create a plot, save it, and encode it.
+    def create_and_encode_plot(plot_func, plot_name: str):
+        plt.figure(figsize=(8, 6))
+        # Call the missingno plotting function.
+        plot_func(df)
+        plt.tight_layout()
+        buf = BytesIO()
+        plt.savefig(buf, format="png")
+        plt.close()
+        buf.seek(0)
+        return base64.b64encode(buf.getvalue()).decode("utf-8")
+
+    # Create and encode the matrix plot.
+    encoded_plots["matrix_plot"] = create_and_encode_plot(msno.matrix, "matrix")
     
-    plt.figure(figsize=(8, 6))
-    msno.matrix(df)
-    plt.tight_layout()
+    # Create and encode the bar plot.
+    encoded_plots["bar_plot"] = create_and_encode_plot(msno.bar, "bar")
     
-    buf = BytesIO()
-    plt.savefig(buf, format="png")
-    plt.close()
-    buf.seek(0)
-    encoded = base64.b64encode(buf.getvalue()).decode("utf-8")
-    
-    content = "Missing data visualization generated."
-    artifact = {"plot_image": encoded}
+    # Create and encode the heatmap plot.
+    encoded_plots["heatmap_plot"] = create_and_encode_plot(msno.heatmap, "heatmap")
+
+    content = "Missing data visualizations (matrix, bar, and heatmap) have been generated."
+    artifact = encoded_plots
     return content, artifact
+
 
 
 @tool(response_format='content_and_artifact')
