@@ -21,7 +21,8 @@ from ai_data_science_team.utils.regex import format_agent_name
 from ai_data_science_team.tools.exploratory import (
     describe_dataset, 
     visualize_missing, 
-    correlation_funnel
+    correlation_funnel,
+    generate_sweetviz_report,
 )
 
 
@@ -32,7 +33,7 @@ EDA_TOOLS = [
     describe_dataset,
     visualize_missing,
     correlation_funnel,
-    # Additional EDA tools can be appended here.
+    generate_sweetviz_report,
 ]
 
 class ExploratoryDataAnalystAgent(BaseAgent):
