@@ -1,1 +1,1 @@
-from ai_data_science_team.ds_agents.exploratory_agent import ExploratoryDataAnalystAgent, make_exploratory_data_analyst_agent
+from ai_data_science_team.ds_agents.eda_tools_agent import EDAToolsAgent, make_eda_tools_agent

@@ -81,8 +81,8 @@ def visualize_missing(
 def correlation_funnel(
     data_raw: Annotated[dict, InjectedState("data_raw")],
     target: str,
-    index: int = -1,
-    method: str = "pearson",
+    target_bin_index: int = -1,
+    corr_method: str = "pearson",
     n_bins: int = 4,
     thresh_infreq: float = 0.01,
     name_infreq: str = "-OTHER",
@@ -97,11 +97,11 @@ def correlation_funnel(
     ----------
     target : str
         The base target column name (e.g., 'Member_Status'). The tool will look for columns that begin
-        with this string followed by '__' (e.g., 'Member_Status__Gold', 'Member_Status__Silver', etc.).
-    index : int, default -1
-        The index of the target level to select from the list of matching columns. For example, -1 selects
-        the last matching column.
-    method : str
+        with this string followed by '__' (e.g., 'Member_Status__Gold', 'Member_Status__Platinum').
+    target_bin_index : int, default -1
+        The target_bin_index of the target level to select from the list of matching columns. For example, -1 selects
+        the last matching column ('Platinum').
+    corr_method : str
         The correlation method ('pearson', 'kendall', or 'spearman'). Default is 'pearson'.
     n_bins : int
         The number of bins to use for binarization. Default is 4.
@@ -141,14 +141,14 @@ def correlation_funnel(
         # If no matching columns are found, warn and use the provided target as-is.
         full_target = target
     else:
-        # Use the provided index (e.g., -1 for the last item)
+        # Use the provided target_bin_index (e.g., -1 for the last item)
         try:
-            full_target = matching_columns[index]
-        except IndexError:
-            raise IndexError(f"Index {index} is out of bounds for target levels: {matching_columns}")
+            full_target = matching_columns[target_bin_index]
+        except target_bin_indexError:
+            raise target_bin_indexError(f"target_bin_index {target_bin_index} is out of bounds for target levels: {matching_columns}")
     
     # Compute correlation funnel using the full target column name.
-    df_correlated = df_binarized.correlate(target=full_target, method=method)
+    df_correlated = df_binarized.correlate(target=full_target, method=corr_method)
     
     # Attempt to generate a static plot.
     try:
@@ -171,8 +171,8 @@ def correlation_funnel(
     except Exception as e:
         fig_dict = {"error": str(e)}
 
-    content = (f"Correlation funnel computed using method '{method}' for target level '{full_target}'. "
-               f"Base target was '{target}' with index {index}.")
+    content = (f"Correlation funnel computed using method '{corr_method}' for target level '{full_target}'. "
+               f"Base target was '{target}' with target_bin_index {target_bin_index}.")
     artifact = {
         "correlation_data": df_correlated.to_dict(orient="list"),
         "plot_image": encoded,

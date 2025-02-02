@@ -18,7 +18,7 @@ from langgraph.graph import START, END, StateGraph
 from ai_data_science_team.templates import BaseAgent
 from ai_data_science_team.utils.regex import format_agent_name
 
-from ai_data_science_team.tools.exploratory import (
+from ai_data_science_team.tools.eda import (
     describe_dataset, 
     visualize_missing, 
     correlation_funnel,
@@ -36,10 +36,10 @@ EDA_TOOLS = [
     generate_sweetviz_report,
 ]
 
-class ExploratoryDataAnalystAgent(BaseAgent):
+class EDAToolsAgent(BaseAgent):
     """
-    An Exploratory Data Analyst Agent that interacts with EDA tools to generate summary statistics,
-    missing data visualizations, correlation funnels, etc.
+    An Exploratory Data Analysis Tools Agent that interacts with EDA tools to generate summary statistics,
+    missing data visualizations, correlation funnels, EDA reports, etc.
     
     Parameters:
     ----------
@@ -70,7 +70,7 @@ class ExploratoryDataAnalystAgent(BaseAgent):
         Creates the compiled state graph for the EDA agent.
         """
         self.response = None
-        return make_exploratory_data_analyst_agent(**self._params)
+        return make_eda_tools_agent(**self._params)
     
     def update_params(self, **kwargs):
         """
@@ -163,7 +163,7 @@ class ExploratoryDataAnalystAgent(BaseAgent):
         else:
             return self.response["messages"][0].content
 
-def make_exploratory_data_analyst_agent(
+def make_eda_tools_agent(
     model: Any,
     create_react_agent_kwargs: Optional[Dict] = {},
     invoke_react_agent_kwargs: Optional[Dict] = {},
