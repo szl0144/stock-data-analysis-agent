@@ -1,5 +1,5 @@
 
-from typing import Any, Optional, Annotated, Sequence, List, Dict, Tuple
+from typing import Annotated, Dict, Tuple, Union
 
 import os
 
@@ -15,7 +15,7 @@ def describe_dataset(
     """
     Tool: describe_dataset
     Description:
-        Converts injected raw data (a dict) into a pandas DataFrame and computes summary
+        Describe the dataset by computing summary
         statistics using the DataFrame's describe() method.
         
     Returns:
@@ -41,9 +41,7 @@ def visualize_missing(
     """
     Tool: visualize_missing
     Description:
-        Converts injected raw data (a dict) into a DataFrame, optionally samples the data
-        if n_sample is provided, generates three missing data visualizations using missingno
-        (matrix, bar, and heatmap), and returns base64-encoded PNG images for each plot.
+        Missing value analysis using the missingno library. Generates a matrix plot, bar plot, and heatmap plot.
         
     Parameters:
     -----------
@@ -110,7 +108,7 @@ def visualize_missing(
 def correlation_funnel(
     data_raw: Annotated[dict, InjectedState("data_raw")],
     target: str,
-    target_bin_index: int = -1,
+    target_bin_index: Union[int, str] = -1,
     corr_method: str = "pearson",
     n_bins: int = 4,
     thresh_infreq: float = 0.01,
@@ -119,17 +117,17 @@ def correlation_funnel(
     """
     Tool: correlation_funnel
     Description:
-        Converts injected raw data (a dict) into a DataFrame, applies binarization, computes the
-        correlation funnel with respect to the specified target level, and (optionally) generates a static plot.
+        Correlation analysis using the correlation funnel method. The tool binarizes the data and computes correlation versus a target column.
     
     Parameters:
     ----------
     target : str
         The base target column name (e.g., 'Member_Status'). The tool will look for columns that begin
         with this string followed by '__' (e.g., 'Member_Status__Gold', 'Member_Status__Platinum').
-    target_bin_index : int, default -1
-        The target_bin_index of the target level to select from the list of matching columns. For example, -1 selects
-        the last matching column ('Platinum').
+    target_bin_index : int or str, default -1
+        If an integer, selects the target level by position from the matching columns.
+        If a string (e.g., "Yes"), attempts to match to the suffix of a column name 
+        (i.e., 'target__Yes'). 
     corr_method : str
         The correlation method ('pearson', 'kendall', or 'spearman'). Default is 'pearson'.
     n_bins : int
@@ -151,7 +149,8 @@ def correlation_funnel(
     import json
     import plotly.graph_objects as go
     import plotly.io as pio
-    
+    from typing import Union
+
     # Convert the raw injected state into a DataFrame.
     df = pd.DataFrame(data_raw)
     
@@ -170,11 +169,22 @@ def correlation_funnel(
         # If no matching columns are found, warn and use the provided target as-is.
         full_target = target
     else:
-        # Use the provided target_bin_index (e.g., -1 for the last item)
-        try:
-            full_target = matching_columns[target_bin_index]
-        except target_bin_indexError:
-            raise target_bin_indexError(f"target_bin_index {target_bin_index} is out of bounds for target levels: {matching_columns}")
+        # Determine the full target based on target_bin_index.
+        if isinstance(target_bin_index, str):
+            # Build the candidate column name
+            candidate = f"{target}__{target_bin_index}"
+            if candidate in matching_columns:
+                full_target = candidate
+            else:
+                # If no matching candidate is found, default to the last matching column.
+                full_target = matching_columns[-1]
+        else:
+            # target_bin_index is an integer.
+            try:
+                full_target = matching_columns[target_bin_index]
+            except IndexError:
+                # If index is out of bounds, use the last matching column.
+                full_target = matching_columns[-1]
     
     # Compute correlation funnel using the full target column name.
     df_correlated = df_binarized.correlate(target=full_target, method=corr_method)
@@ -192,7 +202,7 @@ def correlation_funnel(
     except Exception as e:
         encoded = {"error": str(e)}
     
-    # Attempt to generate plotly plot.
+    # Attempt to generate a Plotly plot.
     try:
         fig = df_correlated.plot_correlation_funnel(engine='plotly')
         fig_json = pio.to_json(fig)
@@ -201,13 +211,14 @@ def correlation_funnel(
         fig_dict = {"error": str(e)}
 
     content = (f"Correlation funnel computed using method '{corr_method}' for target level '{full_target}'. "
-               f"Base target was '{target}' with target_bin_index {target_bin_index}.")
+               f"Base target was '{target}' with target_bin_index '{target_bin_index}'.")
     artifact = {
         "correlation_data": df_correlated.to_dict(orient="list"),
         "plot_image": encoded,
         "plotly_figure": fig_dict,
     }
     return content, artifact
+
 
 
 @tool(response_format='content_and_artifact')
@@ -221,8 +232,7 @@ def generate_sweetviz_report(
     """
     Tool: generate_sweetviz_report
     Description:
-        Converts injected raw data (a dict) into a pandas DataFrame and uses Sweetviz
-        to generate an EDA report saved as an HTML file in the specified directory.
+        Make an Exploratory Data Analysis (EDA) report using the Sweetviz library.
     
     Parameters:
     -----------
