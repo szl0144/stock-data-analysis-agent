@@ -169,6 +169,7 @@ cython_debug/
 /logs
 h2o_models/
 mlruns/
+reports/
 
 # Draw.io
 *.drawio
