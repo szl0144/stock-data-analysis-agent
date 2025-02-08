@@ -2,6 +2,7 @@
 from typing import Annotated, Dict, Tuple, Union
 
 import os
+import tempfile
 
 from langchain.tools import tool
 
@@ -226,8 +227,8 @@ def generate_sweetviz_report(
     data_raw: Annotated[dict, InjectedState("data_raw")],
     target: str = None,
     report_name: str = "sweetviz_report.html",
-    report_directory: str = os.path.join(os.getcwd(), "reports"),
-    open_browser: bool = True,
+    report_directory: str = None,  # <-- Default to None
+    open_browser: bool = False,
 ) -> Tuple[str, Dict]:
     """
     Tool: generate_sweetviz_report
@@ -243,9 +244,10 @@ def generate_sweetviz_report(
     report_name : str, optional
         The file name to save the Sweetviz HTML report. Default is "sweetviz_report.html".
     report_directory : str, optional
-        The directory where the report should be saved. Defaults to a 'reports' directory in the current working directory.
+        The directory where the report should be saved. 
+        If None, a temporary directory is created and used.
     open_browser : bool, optional
-        Whether to open the report in a web browser. Default is True.
+        Whether to open the report in a web browser. Default is False.
     
     Returns:
     --------
@@ -254,20 +256,29 @@ def generate_sweetviz_report(
         artifact: A dictionary with the report file path and optionally the report's HTML content.
     """
     print("    * Tool: generate_sweetviz_report")
+
+    # Import sweetviz
     try:
         import sweetviz as sv
     except ImportError:
         raise ImportError("Please install the 'sweetviz' package to use this tool. Run: pip install sweetviz")
+    
     import pandas as pd
+    
     # Convert injected raw data to a DataFrame.
     df = pd.DataFrame(data_raw)
     
+    # If no directory is specified, use a temporary directory.
+    if not report_directory:
+        report_directory = tempfile.mkdtemp()
+        print(f"    * Using temporary directory: {report_directory}")
+    else:
+        # Ensure user-specified directory exists.
+        if not os.path.exists(report_directory):
+            os.makedirs(report_directory)
+    
     # Create the Sweetviz report.
     report = sv.analyze(df, target_feat=target)
-    
-    # Ensure the directory exists; default is os.getcwd()/reports
-    if not os.path.exists(report_directory):
-        os.makedirs(report_directory)
     
     # Determine the full path for the report.
     full_report_path = os.path.join(report_directory, report_name)
@@ -275,7 +286,7 @@ def generate_sweetviz_report(
     # Save the report to the specified HTML file.
     report.show_html(
         filepath=full_report_path,
-        open_browser=True,
+        open_browser=open_browser,
     )
     
     # Optionally, read the HTML content (if desired to pass along in the artifact).
@@ -285,9 +296,13 @@ def generate_sweetviz_report(
     except Exception:
         html_content = None
     
-    content = f"Sweetviz EDA report generated and saved as '{os.path.abspath(full_report_path)}'."
+    content = (
+        f"Sweetviz EDA report generated and saved as '{os.path.abspath(full_report_path)}'. "
+        f"{'This was saved in a temporary directory.' if 'tmp' in report_directory else ''}"
+    )
     artifact = {
         "report_file": os.path.abspath(full_report_path),
         "report_html": html_content,
     }
     return content, artifact
+
