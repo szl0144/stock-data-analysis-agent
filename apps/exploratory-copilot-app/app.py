@@ -16,8 +16,6 @@ import pandas as pd
 import asyncio
 
 from pathlib import Path
-import sqlite3
-import tempfile
 import sys
 
 from langchain_community.chat_message_histories import StreamlitChatMessageHistory
@@ -34,11 +32,13 @@ TITLE = "Your Exploratory Data Analysis (EDA) Copilot"
 
 # * STREAMLIT APP SETUP ----
 
-st.set_page_config(page_title=TITLE, page_icon="📊", )
+st.set_page_config(page_title=TITLE, page_icon="📊")
 st.title("📊 " + TITLE)
 
 st.markdown("""
-Welcome to the EDA Copilot. This AI agent is designed to help you find and load data and return exploratory data analysis reports that can be used to understand the data prior to other analysis (e.g. modeling, feature engineering, etc).
+Welcome to the EDA Copilot. This AI agent is designed to help you find and load data 
+and return exploratory data analysis reports that can be used to understand the data 
+prior to other analysis (e.g. modeling, feature engineering, etc).
 """)
 
 with st.expander("Example Questions", expanded=False):
@@ -50,39 +50,32 @@ with st.expander("Example Questions", expanded=False):
         - Generate a missing data report.
         """
     )
-    
 
-# * Streamlit Excel Upload App (Replaces a physical database with excel upload and temp SQLite database)
+# * STREAMLIT EXCEL/CSV UPLOAD (REPLACING DATABASE WITH SESSION STORAGE) ----
 
-st.sidebar.header("Time Series Forecast AI Copilot", divider=True)
+st.sidebar.header("EDA Copilot: Data Upload/Selection", divider=True)
 
 # Add a checkbox for using demo data
 st.sidebar.header("Upload Data (CSV or Excel)")
 use_demo_data = st.sidebar.checkbox("Use demo data", value=False)
 
-st.session_state["DATA_FRAME"] = None
+# Initialize session state "DATA_RAW" if not present
+if "DATA_RAW" not in st.session_state:
+    st.session_state["DATA_RAW"] = None
 
 if use_demo_data:
     # Load the demo data from 'data/churn_data.csv'
     demo_file_path = Path("data/churn_data.csv")
     if demo_file_path.exists():
         df = pd.read_csv(demo_file_path)
-        
         file_name = "churn_data"
-        
-        # Create a temporary SQLite file-based database for demo data
-        with tempfile.NamedTemporaryFile(suffix=".sqlite", delete=False) as temp_db:
-            st.session_state["PATH_DB_RAW"] = temp_db.name
-            st.session_state["PATH_DB"] = "sqlite:///" + st.session_state["PATH_DB_RAW"]
-            conn = sqlite3.connect(st.session_state["PATH_DB_RAW"])
-            df.to_sql("churn_data", conn, if_exists='replace', index=False)
-            conn.close()
-        
+
+        # Store DataFrame in session state
+        st.session_state["DATA_RAW"] = df.copy()
+
         # Display demo data preview
-        st.write(f"## Preview of {file_name} table:")
-        st.write("Temporary SQL database created at:", st.session_state["PATH_DB"])
-        st.write(f"Tables in the SQL database: {file_name}")
-        st.dataframe(df)
+        st.write(f"## Preview of {file_name} data:")
+        st.dataframe(st.session_state["DATA_RAW"])
     else:
         st.error(f"Demo data file not found at {demo_file_path}. Please ensure it exists.")
 
@@ -97,21 +90,13 @@ else:
         elif uploaded_file.name.endswith('.xlsx'):
             df = pd.read_excel(uploaded_file)
             
+        # Store DataFrame in session state
+        st.session_state["DATA_RAW"] = df.copy()
         file_name = Path(uploaded_file.name).stem
-        
-        # Create a temporary SQLite file-based database
-        with tempfile.NamedTemporaryFile(suffix=".sqlite", delete=False) as temp_db:
-            st.session_state["PATH_DB_RAW"] = temp_db.name
-            st.session_state["PATH_DB"] = "sqlite:///" + st.session_state["PATH_DB_RAW"]
-            conn = sqlite3.connect(st.session_state["PATH_DB_RAW"])
-            df.to_sql(file_name, conn, if_exists='replace', index=False)
-            conn.close()
-        
+
         # Show uploaded data preview
-        st.write(f"## Preview of {file_name} table:")
-        st.write("Temporary SQL database created at:", st.session_state["PATH_DB"])
-        st.write(f"Tables in the SQL database: {file_name}")
-        st.dataframe(df)
+        st.write(f"## Preview of {file_name} data:")
+        st.dataframe(st.session_state["DATA_RAW"])
     else:
         st.info("Please upload a CSV or Excel file or Use Demo Data to proceed.")
 
@@ -120,7 +105,11 @@ else:
 
 st.sidebar.header("Enter your OpenAI API Key")
 
-st.session_state["OPENAI_API_KEY"] = st.sidebar.text_input("API Key", type="password", help="Your OpenAI API key is required for the app to function.")
+st.session_state["OPENAI_API_KEY"] = st.sidebar.text_input(
+    "API Key", 
+    type="password", 
+    help="Your OpenAI API key is required for the app to function."
+)
 
 # Test OpenAI API Key
 if st.session_state["OPENAI_API_KEY"]:
@@ -138,7 +127,6 @@ else:
     st.info("Please enter your OpenAI API Key to proceed.")
     st.stop()
 
-
 # * OpenAI Model Selection
 
 # Sidebar for model selection
@@ -149,13 +137,13 @@ model_option = st.sidebar.selectbox(
 )
 
 OPENAI_LLM = ChatOpenAI(
-    model = model_option,
+    model=model_option,
     api_key=st.session_state["OPENAI_API_KEY"]
 )
 
 llm = OPENAI_LLM
 
-# * STREAMLIT 
+# * STREAMLIT MESSAGE HANDLING
 
 # Set up memory
 msgs = StreamlitChatMessageHistory(key="langchain_messages")
@@ -185,6 +173,7 @@ def display_chat_history():
 
 # Render current messages from StreamlitChatMessageHistory
 display_chat_history()
+
 
 
 # html_code = """
