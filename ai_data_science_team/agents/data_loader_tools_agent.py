@@ -25,6 +25,7 @@ from ai_data_science_team.tools.data_loader import (
     get_file_info,
     search_files_by_pattern,
 )
+from ai_data_science_team.utils.messages import get_tool_call_names
 
 AGENT_NAME = "data_loader_tools_agent"
 
@@ -174,6 +175,12 @@ class DataLoaderToolsAgent(BaseAgent):
             return Markdown(self.response["messages"][0].content)
         else:
             return self.response["messages"][0].content
+    
+    def get_tool_calls(self):
+        """
+        Returns the tool calls made by the agent.
+        """
+        return self.response["tool_calls"]
 
     
 
@@ -204,6 +211,7 @@ def make_data_loader_tools_agent(
         internal_messages: Annotated[Sequence[BaseMessage], operator.add]
         user_instructions: str
         data_loader_artifacts: dict
+        tool_calls: List[str]
         
     def data_loader_agent(state):
         
@@ -253,10 +261,13 @@ def make_data_loader_tools_agent(
             elif isinstance(last_message, dict) and "artifact" in last_message:
                 last_tool_artifact = last_message["artifact"]
 
+        tool_calls = get_tool_call_names(internal_messages)
+        
         return {
             "messages": [last_ai_message], 
             "internal_messages": internal_messages,
             "data_loader_artifacts": last_tool_artifact,
+            "tool_calls": tool_calls,
         }
         
     workflow = StateGraph(GraphState)

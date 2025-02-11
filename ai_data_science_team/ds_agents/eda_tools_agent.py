@@ -24,6 +24,7 @@ from ai_data_science_team.tools.eda import (
     correlation_funnel,
     generate_sweetviz_report,
 )
+from ai_data_science_team.utils.messages import get_tool_call_names
 
 
 AGENT_NAME = "exploratory_data_analyst_agent"
@@ -162,6 +163,12 @@ class EDAToolsAgent(BaseAgent):
             return Markdown(self.response["messages"][0].content)
         else:
             return self.response["messages"][0].content
+        
+    def get_tool_calls(self):
+        """
+        Returns the tool calls made by the agent.
+        """
+        return self.response["tool_calls"]
 
 def make_eda_tools_agent(
     model: Any,
@@ -191,6 +198,7 @@ def make_eda_tools_agent(
         user_instructions: str
         data_raw: dict
         eda_artifacts: dict
+        tool_calls: list
 
     def exploratory_agent(state):
         print(format_agent_name(AGENT_NAME))
@@ -229,11 +237,14 @@ def make_eda_tools_agent(
                 last_tool_artifact = last_message.artifact
             elif isinstance(last_message, dict) and "artifact" in last_message:
                 last_tool_artifact = last_message["artifact"]
+                
+        tool_calls = get_tool_call_names(internal_messages)
         
         return {
             "messages": [last_ai_message],
             "internal_messages": internal_messages,
             "eda_artifacts": last_tool_artifact,
+            "tool_calls": tool_calls,
         }
     
     workflow = StateGraph(GraphState)
