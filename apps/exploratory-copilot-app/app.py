@@ -137,7 +137,7 @@ def display_chat_history():
 display_chat_history()
 
 # =============================================================================
-# UPDATED process_exploratory() FUNCTION
+# PROCESS AGENTS AND ARTIFACTS
 # =============================================================================
 
 def process_exploratory(question: str, llm, data: pd.DataFrame) -> dict:
@@ -217,12 +217,6 @@ def process_exploratory(question: str, llm, data: pd.DataFrame) -> dict:
                         result["correlation_data"] = corr_df
                     except Exception as e:
                         st.error(f"Error processing correlation_data: {e}")
-                # if "plot_image" in artifacts:
-                #     try:
-                #         corr_fig = matplotlib_from_base64(artifacts["plot_image"])
-                #         result["correlation_plot"] = corr_fig
-                #     except Exception as e:
-                #         st.error(f"Error processing correlation funnel plot image: {e}")
                 if "plotly_figure" in artifacts:
                     try:
                         corr_plotly = plotly_from_dict(artifacts["plotly_figure"])
@@ -325,13 +319,23 @@ if st.session_state["DATA_RAW"] is not None and (question := st.chat_input("Ente
                 with st.expander("Missing Data Visualizations"):
                     if "matrix_plot_fig" in result:
                         st.subheader("Missing Data Matrix")
-                        st.pyplot(result["matrix_plot_fig"])
+                        fig = result["matrix_plot_fig"]
+                        # If the figure is a tuple, extract the first element.
+                        if isinstance(fig, tuple):
+                            fig = fig[0]
+                        st.pyplot(fig)
                     if "bar_plot_fig" in result:
                         st.subheader("Missing Data Bar Plot")
-                        st.pyplot(result["bar_plot_fig"])
+                        fig = result["bar_plot_fig"]
+                        if isinstance(fig, tuple):
+                            fig = fig[0]
+                        st.pyplot(fig)
                     if "heatmap_fig" in result:
                         st.subheader("Missing Data Heatmap")
-                        st.pyplot(result["heatmap_fig"])
+                        fig = result["heatmap_plot_fig"]
+                        if isinstance(fig, tuple):
+                            fig = fig[0]
+                        st.pyplot(fig)
                         
             elif tool_name == "correlation_funnel":
                 # Display correlation data and plots.
