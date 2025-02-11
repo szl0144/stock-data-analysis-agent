@@ -4,6 +4,13 @@ This repository contains a collection of AI-powered applications that are built 
 
 More applications are coming soon! Stay tuned!
 
+## Exploratory Data Analysis Copilot App
+
+
+This application allows you to perform exploratory data analysis on a dataset. It uses tools to generate EDA reports, missing value analysis, correlation analysis, and more.
+
+![Exploratory Copilot App](../img/apps/ai_exploratory_copilot.jpg)
+
 ## SQL Database App
 
 This application allows you to connect to a SQL database and generate SQL queries from natural language. The application generates the SQL query. The application will display the results of the query in a table format.
