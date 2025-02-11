@@ -98,7 +98,11 @@ This is a top secret project I'm working on. It's a multi-agent data science app
 
 #### 🔥 Agentic Applications
 
-1. **SQL Database Agent App:** Connects any SQL Database, generates SQL queries from natural language, and returns data as a downloadable table. [See Application](/apps/sql-database-agent-app/)
+1. **NEW Exploratory Data Copilot**: An AI-powered data science app that performs automated exploratory data analysis (EDA) with EDA Reporting, Missing Data Analysis, Correlation Analysis, and more. [See Application](/apps/exploratory-copilot-app/)
+
+![Exploratory Data Copilot](/img/apps/ai_exploratory_copilot.jpg)
+
+2. **SQL Database Agent App:** Connects any SQL Database, generates SQL queries from natural language, and returns data as a downloadable table. [See Application](/apps/sql-database-agent-app/)
 
 ### Agents Available Now
 
