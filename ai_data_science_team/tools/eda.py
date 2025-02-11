@@ -74,7 +74,7 @@ def describe_dataset(
     df = pd.DataFrame(data_raw)
     description_df = df.describe(include='all')
     content = "Summary statistics computed using pandas describe()."
-    artifact = description_df.to_dict()
+    artifact = {'describe_df': description_df.to_dict()}
     return content, artifact
 
 
