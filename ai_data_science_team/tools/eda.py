@@ -8,6 +8,38 @@ from langchain.tools import tool
 
 from langgraph.prebuilt import InjectedState  
 
+from ai_data_science_team.tools.dataframe import get_dataframe_summary
+
+
+@tool(response_format='content')
+def explain_data(
+    data_raw: Annotated[dict, InjectedState("data_raw")],
+    n_sample: int = 30,
+    skip_stats: bool = False,
+):
+    """
+    Tool: explain_data
+    Description:
+        Provides an extensive, narrative summary of a DataFrame including its shape, column types,
+        missing value percentages, unique counts, sample rows, and (if not skipped) descriptive stats/info.
+
+    Parameters:
+        data_raw (dict): Raw data.
+        n_sample (int, default=30): Number of rows to display.
+        skip_stats (bool, default=False): If True, omit descriptive stats/info.
+
+    LLM Guidance:
+        Use when a detailed, human-readable explanation is needed—i.e., a full overview is preferred over a concise numerical summary.
+
+    Returns:
+        str: Detailed DataFrame summary.
+    """
+    print("    * Tool: explain_data")
+    import pandas as pd
+    
+    result = get_dataframe_summary(pd.DataFrame(data_raw), n_sample=n_sample, skip_stats=skip_stats)
+    
+    return result
 
 @tool(response_format='content_and_artifact')
 def describe_dataset(
@@ -16,14 +48,26 @@ def describe_dataset(
     """
     Tool: describe_dataset
     Description:
-        Describe the dataset by computing summary
-        statistics using the DataFrame's describe() method.
-        
+        Compute and return summary statistics for the dataset using pandas' describe() method.
+        The tool provides both a textual summary and a structured artifact (a dictionary) for further processing.
+
+    Parameters:
+    -----------
+    data_raw : dict
+        The raw data in dictionary format.
+
+    LLM Selection Guidance:
+    ------------------------
+    Use this tool when:
+      - The request emphasizes numerical descriptive statistics (e.g., count, mean, std, min, quartiles, max).
+      - The user needs a concise statistical snapshot rather than a detailed narrative.
+      - Both a brief text explanation and a structured data artifact (for downstream tasks) are required.
+
     Returns:
     -------
     Tuple[str, Dict]:
-        content: A textual summary of the DataFrame's descriptive statistics.
-        artifact: A dictionary (from DataFrame.describe()) for further inspection.
+        - content: A textual summary indicating that summary statistics have been computed.
+        - artifact: A dictionary (derived from DataFrame.describe()) containing detailed statistical measures.
     """
     print("    * Tool: describe_dataset")
     import pandas as pd

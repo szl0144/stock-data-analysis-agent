@@ -74,7 +74,12 @@ def get_dataframe_summary(
     return summaries
 
 
-def _summarize_dataframe(df: pd.DataFrame, dataset_name: str, n_sample=30, skip_stats=False) -> str:
+def _summarize_dataframe(
+    df: pd.DataFrame, 
+    dataset_name: str, 
+    n_sample=30, 
+    skip_stats=False
+) -> str:
     """Generate a summary string for a single DataFrame."""
     # 1. Convert dictionary-type cells to strings
     #    This prevents unhashable dict errors during df.nunique().

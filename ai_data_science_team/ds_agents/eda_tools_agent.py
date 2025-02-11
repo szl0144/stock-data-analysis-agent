@@ -19,6 +19,7 @@ from ai_data_science_team.templates import BaseAgent
 from ai_data_science_team.utils.regex import format_agent_name
 
 from ai_data_science_team.tools.eda import (
+    explain_data,
     describe_dataset, 
     visualize_missing, 
     correlation_funnel,
@@ -31,6 +32,7 @@ AGENT_NAME = "exploratory_data_analyst_agent"
 
 # Updated tool list for EDA
 EDA_TOOLS = [
+    explain_data,
     describe_dataset,
     visualize_missing,
     correlation_funnel,
