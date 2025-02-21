@@ -14,6 +14,7 @@ from langchain_core.messages import BaseMessage
 
 from langgraph.types import Command
 from langgraph.checkpoint.memory import MemorySaver
+from langgraph.types import Checkpointer
 
 import os
 import json 
@@ -85,6 +86,8 @@ class DataVisualizationAgent(BaseAgent):
         If True, skips the default recommended visualization steps. Defaults to False.
     bypass_explain_code : bool, optional
         If True, skips the step that provides code explanations. Defaults to False.
+    checkpointer : langgraph.types.Checkpointer
+        A checkpointer to use for saving and loading the agent
 
     Methods
     -------
@@ -161,7 +164,8 @@ class DataVisualizationAgent(BaseAgent):
         overwrite=True, 
         human_in_the_loop=False, 
         bypass_recommended_steps=False, 
-        bypass_explain_code=False
+        bypass_explain_code=False,
+        checkpointer=None,
     ):
         self._params = {
             "model": model,
@@ -174,6 +178,7 @@ class DataVisualizationAgent(BaseAgent):
             "human_in_the_loop": human_in_the_loop,
             "bypass_recommended_steps": bypass_recommended_steps,
             "bypass_explain_code": bypass_explain_code,
+            "checkpointer": checkpointer,
         }
         self._compiled_graph = self._make_compiled_graph()
         self.response = None
@@ -385,7 +390,8 @@ def make_data_visualization_agent(
     overwrite=True, 
     human_in_the_loop=False, 
     bypass_recommended_steps=False, 
-    bypass_explain_code=False
+    bypass_explain_code=False,
+    checkpointer=None,
 ):
     """
     Creates a data visualization agent that can generate Plotly charts based on user-defined instructions or
@@ -423,6 +429,8 @@ def make_data_visualization_agent(
         If True, skips the default recommended visualization steps. Defaults to False.
     bypass_explain_code : bool, optional
         If True, skips the step that provides code explanations. Defaults to False.
+    checkpointer : langgraph.types.Checkpointer
+        A checkpointer to use for saving and loading the agent
 
     Examples
     --------
@@ -454,6 +462,11 @@ def make_data_visualization_agent(
     """
     
     llm = model
+    
+    if human_in_the_loop:
+        if checkpointer is None:
+            print("Human in the loop is enabled. A checkpointer is required. Setting to MemorySaver().")
+            checkpointer = MemorySaver()
     
     # Human in th loop requires recommended steps
     if bypass_recommended_steps and human_in_the_loop:
@@ -751,9 +764,10 @@ def make_data_visualization_agent(
         error_key="data_visualization_error",
         human_in_the_loop=human_in_the_loop,  # or False
         human_review_node_name="human_review",
-        checkpointer=MemorySaver() if human_in_the_loop else None,
+        checkpointer=checkpointer,
         bypass_recommended_steps=bypass_recommended_steps,
         bypass_explain_code=bypass_explain_code,
+        agent_name=AGENT_NAME,
     )
         
     return app

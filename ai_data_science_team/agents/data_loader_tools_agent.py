@@ -13,6 +13,7 @@ from langchain_core.messages import BaseMessage, AIMessage
 
 from langgraph.prebuilt import create_react_agent, ToolNode
 from langgraph.prebuilt.chat_agent_executor import AgentState
+from langgraph.types import Checkpointer
 from langgraph.graph import START, END, StateGraph
 
 from ai_data_science_team.templates import BaseAgent
@@ -50,6 +51,8 @@ class DataLoaderToolsAgent(BaseAgent):
         Additional keyword arguments to pass to the create_react_agent function.
     invoke_react_agent_kwargs : dict
         Additional keyword arguments to pass to the invoke method of the react agent.
+    checkpointer : langgraph.types.Checkpointer
+        A checkpointer to use for saving and loading the agent's state.
         
     Methods:
     --------
@@ -73,11 +76,13 @@ class DataLoaderToolsAgent(BaseAgent):
         model: Any,
         create_react_agent_kwargs: Optional[Dict]={},
         invoke_react_agent_kwargs: Optional[Dict]={},
+        checkpointer: Optional[Checkpointer]=None,
     ):
         self._params = {
             "model": model,
             "create_react_agent_kwargs": create_react_agent_kwargs,
             "invoke_react_agent_kwargs": invoke_react_agent_kwargs,
+            "checkpointer": checkpointer,
         }
         self._compiled_graph = self._make_compiled_graph()
         self.response = None
@@ -188,6 +193,7 @@ def make_data_loader_tools_agent(
     model: Any,
     create_react_agent_kwargs: Optional[Dict]={},
     invoke_react_agent_kwargs: Optional[Dict]={},
+    checkpointer: Optional[Checkpointer]=None,
 ):
     """
     Creates a Data Loader Agent that can interact with data loading tools.
@@ -200,6 +206,8 @@ def make_data_loader_tools_agent(
         Additional keyword arguments to pass to the create_react_agent function.
     invoke_react_agent_kwargs : dict
         Additional keyword arguments to pass to the invoke method of the react agent.
+    checkpointer : langgraph.types.Checkpointer
+        A checkpointer to use for saving and loading the agent's state.
     
     Returns:
     --------
@@ -228,6 +236,7 @@ def make_data_loader_tools_agent(
             model, 
             tools=tool_node, 
             state_schema=GraphState,
+            checkpointer=checkpointer,
             **create_react_agent_kwargs,
         )
         
@@ -277,7 +286,10 @@ def make_data_loader_tools_agent(
     workflow.add_edge(START, "data_loader_agent")
     workflow.add_edge("data_loader_agent", END)
     
-    app = workflow.compile()
+    app = workflow.compile(
+        checkpointer=checkpointer,
+        name=AGENT_NAME,
+    )
 
     return app
 

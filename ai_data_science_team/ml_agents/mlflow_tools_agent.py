@@ -10,6 +10,7 @@ from langchain_core.messages import BaseMessage, AIMessage
 
 from langgraph.prebuilt import create_react_agent, ToolNode
 from langgraph.prebuilt.chat_agent_executor import AgentState
+from langgraph.types import Checkpointer
 from langgraph.graph import START, END, StateGraph
 
 from ai_data_science_team.templates import BaseAgent
@@ -68,6 +69,8 @@ class MLflowToolsAgent(BaseAgent):
         Additional keyword arguments to pass to the create_react_agent function.
     invoke_react_agent_kwargs : dict
         Additional keyword arguments to pass to the invoke method of the react agent.
+    checkpointer : langchain.checkpointing.Checkpointer, optional
+        A checkpointer to use for saving and loading the agent's state. Defaults to None.
     
     Methods:
     --------
@@ -119,6 +122,7 @@ class MLflowToolsAgent(BaseAgent):
         mlflow_registry_uri: Optional[str]=None,
         create_react_agent_kwargs: Optional[Dict]={},
         invoke_react_agent_kwargs: Optional[Dict]={},
+        checkpointer: Optional[Checkpointer]=None,
     ):
         self._params = {
             "model": model,
@@ -126,6 +130,7 @@ class MLflowToolsAgent(BaseAgent):
             "mlflow_registry_uri": mlflow_registry_uri,
             "create_react_agent_kwargs": create_react_agent_kwargs,
             "invoke_react_agent_kwargs": invoke_react_agent_kwargs,
+            "checkpointer": checkpointer,            
         }
         self._compiled_graph = self._make_compiled_graph()
         self.response = None
@@ -245,6 +250,7 @@ def make_mlflow_tools_agent(
     mlflow_registry_uri: str=None,
     create_react_agent_kwargs: Optional[Dict]={},
     invoke_react_agent_kwargs: Optional[Dict]={},
+    checkpointer: Optional[Checkpointer]=None,
 ):
     """
     MLflow Tool Calling Agent
@@ -261,6 +267,8 @@ def make_mlflow_tools_agent(
         Additional keyword arguments to pass to the agent's create_react_agent method.
     invoke_react_agent_kwargs : dict, optional
         Additional keyword arguments to pass to the agent's invoke method.
+    checkpointer : langchain.checkpointing.Checkpointer, optional
+        A checkpointer to use for saving and loading the agent's state. Defaults to None.
         
     Returns
     -------
@@ -303,6 +311,7 @@ def make_mlflow_tools_agent(
             model, 
             tools=tool_node, 
             state_schema=GraphState,
+            checkpointer=checkpointer,
             **create_react_agent_kwargs,
         )
         
@@ -354,7 +363,10 @@ def make_mlflow_tools_agent(
     workflow.add_edge(START, "mlflow_tools_agent")
     workflow.add_edge("mlflow_tools_agent", END)
     
-    app = workflow.compile()
+    app = workflow.compile(
+        checkpointer=checkpointer,
+        name=AGENT_NAME,
+    )
 
     return app
     

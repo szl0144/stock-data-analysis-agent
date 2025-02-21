@@ -3,7 +3,7 @@ langchain
 langchain_community
 langchain_openai
 langchain_experimental
-langgraph >= 0.2.57
+langgraph >= 0.2.74
 openai
 pandas
 sqlalchemy

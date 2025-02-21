@@ -12,6 +12,7 @@ from langchain_core.messages import BaseMessage
 
 from langgraph.types import Command
 from langgraph.checkpoint.memory import MemorySaver
+from langgraph.types import Checkpointer
 
 import os
 import json
@@ -85,6 +86,8 @@ class DataCleaningAgent(BaseAgent):
         If True, skips the default recommended cleaning steps. Defaults to False.
     bypass_explain_code : bool, optional
         If True, skips the step that provides code explanations. Defaults to False.
+    checkpointer : langgraph.types.Checkpointer, optional
+        Checkpointer to save and load the agent's state. Defaults to None.
 
     Methods
     -------
@@ -159,7 +162,8 @@ class DataCleaningAgent(BaseAgent):
         overwrite=True, 
         human_in_the_loop=False, 
         bypass_recommended_steps=False, 
-        bypass_explain_code=False
+        bypass_explain_code=False,
+        checkpointer: Checkpointer = None
     ):
         self._params = {
             "model": model,
@@ -172,6 +176,7 @@ class DataCleaningAgent(BaseAgent):
             "human_in_the_loop": human_in_the_loop,
             "bypass_recommended_steps": bypass_recommended_steps,
             "bypass_explain_code": bypass_explain_code,
+            "checkpointer": checkpointer
         }
         self._compiled_graph = self._make_compiled_graph()
         self.response = None
@@ -320,7 +325,8 @@ def make_data_cleaning_agent(
     overwrite = True, 
     human_in_the_loop=False, 
     bypass_recommended_steps=False, 
-    bypass_explain_code=False
+    bypass_explain_code=False,
+    checkpointer: Checkpointer = None
 ):
     """
     Creates a data cleaning agent that can be run on a dataset. The agent can be used to clean a dataset in a variety of
@@ -369,6 +375,8 @@ def make_data_cleaning_agent(
         Bypass the recommendation step, by default False
     bypass_explain_code : bool, optional
         Bypass the code explanation step, by default False.
+    checkpointer : langgraph.types.Checkpointer, optional
+        Checkpointer to save and load the agent's state. Defaults to None.
         
     Examples
     -------
@@ -399,6 +407,11 @@ def make_data_cleaning_agent(
         The data cleaning agent as a state graph.
     """
     llm = model
+    
+    if human_in_the_loop:
+        if checkpointer is None:
+            print("Human in the loop is enabled. A checkpointer is required. Setting to MemorySaver().")
+            checkpointer = MemorySaver()
     
     # Human in th loop requires recommended steps
     if bypass_recommended_steps and human_in_the_loop:
@@ -680,9 +693,10 @@ def make_data_cleaning_agent(
         error_key="data_cleaner_error",
         human_in_the_loop=human_in_the_loop,
         human_review_node_name="human_review",
-        checkpointer=MemorySaver() if human_in_the_loop else None,
+        checkpointer=checkpointer,
         bypass_recommended_steps=bypass_recommended_steps,
         bypass_explain_code=bypass_explain_code,
+        agent_name=AGENT_NAME,
     )
 
     return app

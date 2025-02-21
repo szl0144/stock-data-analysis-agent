@@ -7,7 +7,7 @@ from langchain.prompts import PromptTemplate
 from langchain_core.messages import BaseMessage
 from langchain_core.output_parsers import JsonOutputParser
 
-from langgraph.types import Command
+from langgraph.types import Command, Checkpointer
 from langgraph.checkpoint.memory import MemorySaver
 
 import os
@@ -75,6 +75,8 @@ class SQLDatabaseAgent(BaseAgent):
         If True, skips the step that generates recommended SQL steps. Defaults to False.
     bypass_explain_code : bool, optional
         If True, skips the step that provides code explanations. Defaults to False.
+    checkpointer : Checkpointer, optional
+        A checkpointer to save and load the agent's state. Defaults to None.
     smart_schema_pruning : bool, optional
         If True, filters the tables and columns based on the user instructions and recommended steps. Defaults to False.
 
@@ -157,6 +159,7 @@ class SQLDatabaseAgent(BaseAgent):
         human_in_the_loop=False,
         bypass_recommended_steps=False,
         bypass_explain_code=False,
+        checkpointer=None,
         smart_schema_pruning=False,
     ):
         self._params = {
@@ -171,6 +174,7 @@ class SQLDatabaseAgent(BaseAgent):
             "human_in_the_loop": human_in_the_loop,
             "bypass_recommended_steps": bypass_recommended_steps,
             "bypass_explain_code": bypass_explain_code,
+            "checkpointer": checkpointer,
             "smart_schema_pruning": smart_schema_pruning,
         }
         self._compiled_graph = self._make_compiled_graph()
@@ -365,6 +369,7 @@ def make_sql_database_agent(
     human_in_the_loop=False, 
     bypass_recommended_steps=False, 
     bypass_explain_code=False,
+    checkpointer=None,
     smart_schema_pruning=False,
 ):
     """
@@ -394,6 +399,8 @@ def make_sql_database_agent(
         Bypass the recommendation step, by default False
     bypass_explain_code : bool, optional
         Bypass the code explanation step, by default False.
+    checkpointer : Checkpointer, optional
+        A checkpointer to save and load the agent's state. Defaults to None.
     smart_schema_pruning : bool, optional
         If True, filters the tables and columns with an extra LLM step to reduce tokens for large databases. Increases processing time but can avoid errors due to hitting max token limits with large databases. Defaults to False.
     
@@ -431,6 +438,11 @@ def make_sql_database_agent(
     """
     
     llm = model
+    
+    if human_in_the_loop:
+        if checkpointer is None:
+            print("Human in the loop is enabled. A checkpointer is required. Setting to MemorySaver().")
+            checkpointer = MemorySaver()
     
     # Human in th loop requires recommended steps
     if bypass_recommended_steps and human_in_the_loop:
@@ -742,9 +754,10 @@ def {function_name}(connection):
         error_key="sql_database_error",
         human_in_the_loop=human_in_the_loop,
         human_review_node_name="human_review",
-        checkpointer=MemorySaver() if human_in_the_loop else None,
+        checkpointer=checkpointer,
         bypass_recommended_steps=bypass_recommended_steps,
         bypass_explain_code=bypass_explain_code,
+        agent_name=AGENT_NAME,
     )
         
     return app

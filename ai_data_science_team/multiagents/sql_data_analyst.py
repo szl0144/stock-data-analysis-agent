@@ -20,6 +20,7 @@ from ai_data_science_team.agents import SQLDatabaseAgent, DataVisualizationAgent
 from ai_data_science_team.utils.plotly import plotly_from_dict
 from ai_data_science_team.utils.regex import remove_consecutive_duplicates, get_generic_summary
 
+AGENT_NAME = "sql_data_analyst"
 
 class SQLDataAnalyst(BaseAgent):
     """
@@ -33,6 +34,8 @@ class SQLDataAnalyst(BaseAgent):
         The SQL Database Agent.
     data_visualization_agent: DataVisualizationAgent
         The Data Visualization Agent.
+    checkpointer: Checkpointer (optional)
+        The checkpointer to save the state of the multi-agent system.
         
     Methods:
     --------
@@ -391,7 +394,10 @@ def make_sql_data_analyst(
     workflow.add_edge("sql_database_agent", "route_to_visualization")
     workflow.add_edge("data_visualization_agent", END)
 
-    app = workflow.compile(checkpointer=checkpointer)
+    app = workflow.compile(
+        checkpointer=checkpointer, 
+        name=AGENT_NAME
+    )
 
     return app
 

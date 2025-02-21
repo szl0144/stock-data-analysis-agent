@@ -1,12 +1,8 @@
 
 
-from typing import Any, Optional, Annotated, Sequence, List, Dict, Tuple
+from typing import Any, Optional, Annotated, Sequence, Dict
 import operator
 import pandas as pd
-import os
-from io import StringIO, BytesIO
-import base64
-import matplotlib.pyplot as plt
 
 from IPython.display import Markdown
 
@@ -14,6 +10,7 @@ from langchain_core.messages import BaseMessage, AIMessage
 from langgraph.prebuilt import create_react_agent, ToolNode
 from langgraph.prebuilt.chat_agent_executor import AgentState
 from langgraph.graph import START, END, StateGraph
+from langgraph.types import Checkpointer
 
 from ai_data_science_team.templates import BaseAgent
 from ai_data_science_team.utils.regex import format_agent_name
@@ -52,6 +49,8 @@ class EDAToolsAgent(BaseAgent):
         Additional kwargs for create_react_agent.
     invoke_react_agent_kwargs : dict
         Additional kwargs for agent invocation.
+    checkpointer : Checkpointer, optional
+        The checkpointer for the agent.
     """
     
     def __init__(
@@ -59,11 +58,13 @@ class EDAToolsAgent(BaseAgent):
         model: Any,
         create_react_agent_kwargs: Optional[Dict] = {},
         invoke_react_agent_kwargs: Optional[Dict] = {},
+        checkpointer: Optional[Checkpointer] = None,
     ):
         self._params = {
             "model": model,
             "create_react_agent_kwargs": create_react_agent_kwargs,
             "invoke_react_agent_kwargs": invoke_react_agent_kwargs,
+            "checkpointer": checkpointer
         }
         self._compiled_graph = self._make_compiled_graph()
         self.response = None
@@ -176,6 +177,7 @@ def make_eda_tools_agent(
     model: Any,
     create_react_agent_kwargs: Optional[Dict] = {},
     invoke_react_agent_kwargs: Optional[Dict] = {},
+    checkpointer: Optional[Checkpointer] = None,
 ):
     """
     Creates an Exploratory Data Analyst Agent that can interact with EDA tools.
@@ -188,6 +190,8 @@ def make_eda_tools_agent(
         Additional kwargs for create_react_agent.
     invoke_react_agent_kwargs : dict
         Additional kwargs for agent invocation.
+    checkpointer : Checkpointer, optional
+        The checkpointer for the agent.
     
     Returns:
     -------
@@ -215,6 +219,7 @@ def make_eda_tools_agent(
             tools=tool_node,
             state_schema=GraphState,
             **create_react_agent_kwargs,
+            checkpointer=checkpointer,
         )
         
         response = eda_agent.invoke(
@@ -254,5 +259,9 @@ def make_eda_tools_agent(
     workflow.add_edge(START, "exploratory_agent")
     workflow.add_edge("exploratory_agent", END)
     
-    app = workflow.compile()
+    app = workflow.compile(
+        checkpointer=checkpointer,
+        name=AGENT_NAME,
+    )
+    
     return app

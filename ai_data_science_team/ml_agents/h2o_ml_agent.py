@@ -5,7 +5,7 @@
 
 import os
 import json
-from typing import TypedDict, Annotated, Sequence, Literal
+from typing import TypedDict, Annotated, Sequence, Literal, Optional
 import operator
 
 import pandas as pd
@@ -14,7 +14,7 @@ from IPython.display import Markdown
 from langchain.prompts import PromptTemplate
 from langchain_core.messages import BaseMessage
 
-from langgraph.types import Command
+from langgraph.types import Command, Checkpointer
 from langgraph.checkpoint.memory import MemorySaver
 
 from ai_data_science_team.templates import(
@@ -79,6 +79,8 @@ class H2OMLAgent(BaseAgent):
         Name of the MLflow experiment (created if doesn't exist).
     mlflow_run_name : str, default None
         A custom name for the MLflow run.
+    checkpointer : langgraph.checkpoint.memory.MemorySaver, optional
+        A checkpointer object for saving the agent's state. Defaults to None.
     
     
     Methods
@@ -176,6 +178,7 @@ class H2OMLAgent(BaseAgent):
         mlflow_tracking_uri=None,
         mlflow_experiment_name="H2O AutoML",
         mlflow_run_name=None,
+        checkpointer: Optional[Checkpointer]=None,
     ):
         self._params = {
             "model": model,
@@ -193,6 +196,7 @@ class H2OMLAgent(BaseAgent):
             "mlflow_tracking_uri": mlflow_tracking_uri,
             "mlflow_experiment_name": mlflow_experiment_name,
             "mlflow_run_name": mlflow_run_name,
+            "checkpointer": checkpointer,
         }
         self._compiled_graph = self._make_compiled_graph()
         self.response = None
@@ -350,6 +354,7 @@ def make_h2o_ml_agent(
     mlflow_tracking_uri=None,
     mlflow_experiment_name="H2O AutoML",
     mlflow_run_name=None,
+    checkpointer=None,
 ):
     """
     Creates a machine learning agent that uses H2O for AutoML. 
@@ -384,6 +389,12 @@ def make_h2o_ml_agent(
             "    pip install h2o\n\n"
             "Visit https://docs.h2o.ai/h2o/latest-stable/h2o-docs/downloading.html for details."
         ) from e
+        
+    if human_in_the_loop:
+        if checkpointer is None:
+            print("Human in the loop is enabled. A checkpointer is required. Setting to MemorySaver().")
+            checkpointer = MemorySaver()
+        
 
     # Define GraphState
     class GraphState(TypedDict):
@@ -844,9 +855,10 @@ def make_h2o_ml_agent(
         retry_count_key="retry_count",
         human_in_the_loop=human_in_the_loop,
         human_review_node_name="human_review",  
-        checkpointer=MemorySaver(),
+        checkpointer=checkpointer,
         bypass_recommended_steps=bypass_recommended_steps,
         bypass_explain_code=bypass_explain_code,
+        agent_name=AGENT_NAME,
     )
 
     return app

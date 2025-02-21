@@ -10,7 +10,7 @@ import operator
 from langchain.prompts import PromptTemplate
 from langchain_core.messages import BaseMessage
 
-from langgraph.types import Command
+from langgraph.types import Command, Checkpointer
 from langgraph.checkpoint.memory import MemorySaver
 
 import os
@@ -84,6 +84,8 @@ class FeatureEngineeringAgent(BaseAgent):
         If True, skips the default recommended steps. Defaults to False.
     bypass_explain_code : bool, optional
         If True, skips the step that provides code explanations. Defaults to False.
+    checkpointer : Checkpointer, optional
+        Checkpointer to save and load the agent's state. Defaults to None.
 
     Methods
     -------
@@ -170,7 +172,8 @@ class FeatureEngineeringAgent(BaseAgent):
         overwrite=True,
         human_in_the_loop=False,
         bypass_recommended_steps=False,
-        bypass_explain_code=False
+        bypass_explain_code=False,
+        checkpointer=None,
     ):
         self._params = {
             "model": model,
@@ -182,7 +185,8 @@ class FeatureEngineeringAgent(BaseAgent):
             "overwrite": overwrite,
             "human_in_the_loop": human_in_the_loop,
             "bypass_recommended_steps": bypass_recommended_steps,
-            "bypass_explain_code": bypass_explain_code
+            "bypass_explain_code": bypass_explain_code,
+            "checkpointer": checkpointer,
         }
         self._compiled_graph = self._make_compiled_graph()
         self.response = None
@@ -400,6 +404,7 @@ def make_feature_engineering_agent(
     human_in_the_loop=False, 
     bypass_recommended_steps=False, 
     bypass_explain_code=False,
+    checkpointer=None,
 ):
     """
     Creates a feature engineering agent that can be run on a dataset. The agent applies various feature engineering
@@ -448,6 +453,8 @@ def make_feature_engineering_agent(
         Bypass the recommendation step, by default False
     bypass_explain_code : bool, optional
         Bypass the code explanation step, by default False.
+    checkpointer : Checkpointer, optional
+        Checkpointer to save and load the agent's state. Defaults to None.
 
     Examples
     -------
@@ -479,6 +486,11 @@ def make_feature_engineering_agent(
         The feature engineering agent as a state graph.
     """
     llm = model
+    
+    if human_in_the_loop:
+        if checkpointer is None:
+            print("Human in the loop is enabled. A checkpointer is required. Setting to MemorySaver().")
+            checkpointer = MemorySaver()
     
     # Human in th loop requires recommended steps
     if bypass_recommended_steps and human_in_the_loop:
@@ -782,9 +794,10 @@ def make_feature_engineering_agent(
         retry_count_key = "retry_count",
         human_in_the_loop=human_in_the_loop,
         human_review_node_name="human_review",
-        checkpointer=MemorySaver(),
+        checkpointer=checkpointer,
         bypass_recommended_steps=bypass_recommended_steps,
         bypass_explain_code=bypass_explain_code,
+        agent_name=AGENT_NAME,
     )
 
     return app
