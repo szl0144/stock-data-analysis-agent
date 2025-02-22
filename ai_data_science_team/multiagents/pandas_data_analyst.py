@@ -219,8 +219,8 @@ def make_pandas_data_analyst(
         
     def preprocess_routing(state: PrimaryState):
         print("---PANDAS DATA ANALYST---")
-        
-        print("---ROUTER---")
+        print("*************************")
+        print("---PREPROCESS ROUTER---")
         question = state.get("user_instructions")
         
         # Chart Routing and SQL Prep
@@ -233,7 +233,7 @@ def make_pandas_data_analyst(
         }
     
     def router_chart_or_table(state: PrimaryState):
-        print("---DECIDE CHART OR TABLE---")
+        print("---ROUTER: CHART OR TABLE---")
         return "chart" if state.get('routing_preprocessor_decision') == "chart" else "table"
     
     
@@ -242,6 +242,8 @@ def make_pandas_data_analyst(
         response = data_wrangling_agent.invoke({
             "user_instructions": state.get("user_instructions_data_wrangling"),
             "data_raw": state.get("data_raw"),
+            "max_retries": state.get("max_retries"),
+            "retry_count": state.get("retry_count"),
         })
 
         return {
@@ -257,6 +259,8 @@ def make_pandas_data_analyst(
         response = data_visualization_agent.invoke({
             "user_instructions": state.get("user_instructions_data_visualization"),
             "data_raw": state.get("data_wrangled") if state.get("data_wrangled") else state.get("data_raw"),
+            "max_retries": state.get("max_retries"),
+            "retry_count": state.get("retry_count"),
         })
         
         return {
@@ -266,27 +270,33 @@ def make_pandas_data_analyst(
             "plotly_error": response.get("data_visualization_error"),
         }
 
+    def route_printer(state: PrimaryState):
+        print("---ROUTE PRINTER---")
+        print(f"    Route: {state.get('routing_preprocessor_decision')}")
+        print("---END---")
+        return {}
+    
     workflow = StateGraph(PrimaryState)
     
     workflow.add_node("routing_preprocessor", preprocess_routing)
     workflow.add_node("data_wrangling_agent", invoke_data_wrangling_agent)
-    # workflow.add_node("router_chart_or_table", router_chart_or_table)
     workflow.add_node("data_visualization_agent", invoke_data_visualization_agent)
+    workflow.add_node("route_printer", route_printer)
 
     workflow.add_edge(START, "routing_preprocessor")
     workflow.add_edge("routing_preprocessor", "data_wrangling_agent")
-    # workflow.add_edge("data_wrangling_agent", "router_chart_or_table")
     
     workflow.add_conditional_edges(
         "data_wrangling_agent", 
         router_chart_or_table,
         {
             "chart": "data_visualization_agent",
-            "table": END
+            "table": "route_printer"
         }
     )
     
-    workflow.add_edge("data_visualization_agent", END)
+    workflow.add_edge("data_visualization_agent", "route_printer")
+    workflow.add_edge("route_printer", END)
 
     app = workflow.compile(
         checkpointer=checkpointer, 
