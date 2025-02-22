@@ -581,7 +581,7 @@ def make_data_wrangling_agent(
 
         # Create a summary for all datasets
         # We'll include a short sample and info for each dataset
-        all_datasets_summary = get_dataframe_summary(dataframes, n_sample=n_samples)
+        all_datasets_summary = get_dataframe_summary(dataframes, n_sample=n_samples, skip_stats=True)
 
         # Join all datasets summaries into one big text block
         all_datasets_summary_str = "\n\n".join(all_datasets_summary)
@@ -654,7 +654,7 @@ def make_data_wrangling_agent(
 
             # Create a summary for all datasets
             # We'll include a short sample and info for each dataset
-            all_datasets_summary = get_dataframe_summary(dataframes, n_sample=n_samples)
+            all_datasets_summary = get_dataframe_summary(dataframes, n_sample=n_samples, skip_stats=True)
 
             # Join all datasets summaries into one big text block
             all_datasets_summary_str = "\n\n".join(all_datasets_summary)
@@ -666,9 +666,12 @@ def make_data_wrangling_agent(
         
         data_wrangling_prompt = PromptTemplate(
             template="""
-            You are a Data Wrangling Coding Agent. Your job is to create a {function_name}() function that can be run on the provided data. 
+            You are a Pandas Data Wrangling Coding Agent. Your job is to create a {function_name}() function that can be run on the provided data. You should use Pandas and NumPy for data wrangling operations.
             
-            Follow these recommended steps:
+            User instructions:
+            {user_instructions}
+            
+            Follow these recommended steps (if present):
             {recommended_steps}
             
             If multiple datasets are provided, you may need to merge or join them. Make sure to handle that scenario based on the recommended steps and user instructions.
@@ -697,17 +700,21 @@ def make_data_wrangling_agent(
             1. If the incoming data is not a list. Convert it to a list first. 
             2. Do not specify data types inside the function arguments.
             
+            Important Notes:
+            1. Do Not use Print statements to display the data. Return the data frame instead with the data wrangling operation performed.
+            
             Make sure to explain any non-trivial steps with inline comments. Follow user instructions. Comment code thoroughly.
             
             
             """,
-            input_variables=["recommended_steps", "all_datasets_summary", "function_name"]
+            input_variables=["recommended_steps", "user_instructions", "all_datasets_summary", "function_name"]
         )
 
         data_wrangling_agent = data_wrangling_prompt | llm | PythonOutputParser()
 
         response = data_wrangling_agent.invoke({
             "recommended_steps": state.get("recommended_steps"),
+            "user_instructions": state.get("user_instructions"),
             "all_datasets_summary": all_datasets_summary_str,
             "function_name": function_name
         })
