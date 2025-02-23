@@ -4,9 +4,8 @@ from langchain_core.output_parsers import JsonOutputParser
 from langgraph.types import Checkpointer
 from langgraph.graph import START, END, StateGraph
 from langgraph.graph.state import CompiledStateGraph
-from langgraph.types import Command
 
-from typing import TypedDict, Annotated, Sequence, Literal, Union
+from typing import TypedDict, Annotated, Sequence, Union
 import operator
 
 import pandas as pd
@@ -186,11 +185,11 @@ def make_pandas_data_analyst(
         
         Use the following criteria on how to route the the initial user question:
         
-        From the incoming user question, remove any details about the format of the final response as either a Chart or Table and return only the important part of the incoming user question that is relevant for the SQL generator agent. This will be the 'formatted_user_question_data_wrangling_only'. If 'None' is found, return the original user question.
+        From the incoming user question, remove any details about the format of the final response as either a Chart or Table and return only the important part of the incoming user question that is relevant for the SQL generator agent. This will be the 'user_instructions_data_wrangling'. If 'None' is found, return the original user question.
         
         Next, determine if the user would like a data visualization ('chart') or a 'table' returned with the results of the Data Wrangling Agent. If unknown, not specified or 'None' is found, then select 'table'.  
         
-        If a 'chart' is requested, return the 'formatted_user_question_data_visualization_only'. If 'None' is found, return None.
+        If a 'chart' is requested, return the 'user_instructions_data_visualization'. If 'None' is found, return None.
         
         Return JSON with 'user_instructions_data_wrangling', 'user_instructions_data_visualization' and 'routing_preprocessor_decision'.
         
