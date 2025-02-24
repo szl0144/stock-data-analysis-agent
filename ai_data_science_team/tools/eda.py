@@ -235,6 +235,7 @@ def correlation_funnel(
     df_correlated = df_binarized.correlate(target=full_target, method=corr_method)
     
     # Attempt to generate a static plot.
+    encoded = None
     try:
         # Here we assume that your DataFrame has a method plot_correlation_funnel.
         fig = df_correlated.plot_correlation_funnel(engine='plotnine', height=600)
@@ -248,6 +249,7 @@ def correlation_funnel(
         encoded = {"error": str(e)}
     
     # Attempt to generate a Plotly plot.
+    fig_dict = None
     try:
         fig = df_correlated.plot_correlation_funnel(engine='plotly')
         fig_json = pio.to_json(fig)

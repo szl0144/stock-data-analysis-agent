@@ -82,9 +82,9 @@ This project is a work in progress. New data science agents will be released soo
 
 ### NEW: Multi-Agents
 
-This is the internals of the SQL Data Analyst Agent that connects to SQL databases to pull data into the data science environment. It creates pipelines to automate data extraction, performs Joins, Aggregations, and other SQL Query operations. And it includes a Data Visualization Agent that creates visualizations to help you understand your data.:
+**🔥 Pandas Data Analyst Agent:** Combines the ability to wrangle, transform, and analyze data with an optional data visualization agent that can create interactive plots.
 
-![Business Intelligence SQL Agent](/img/multi_agent_sql_data_visualization.jpg)
+![Business Intelligence SQL Agent](/img/multi_agent_pandas_data_analyst.jpg)
 
 ### Data Science Apps
 
@@ -128,7 +128,8 @@ This is a top secret project I'm working on. It's a multi-agent data science app
 
 #### Multi-Agents
 
-1. **SQL Data Analyst Agent:** Connects to SQL databases to pull data into the data science environment. Creates pipelines to automate data extraction. Performs Joins, Aggregations, and other SQL Query operations. Includes a Data Visualization Agent that creates visualizations to help you understand your data. [See Example](https://github.com/business-science/ai-data-science-team/blob/master/examples/multiagents/sql_data_analyst.ipynb)
+1. **Pandas Data Analyst Agent:** Combines the ability to wrangle, transform, and analyze data with an optional data visualization agent that can create interactive plots. [See Example](https://github.com/business-science/ai-data-science-team/blob/master/examples/multiagents/pandas_data_analyst.ipynb)
+2. **SQL Data Analyst Agent:** Connects to SQL databases to pull data into the data science environment. Creates pipelines to automate data extraction. Performs Joins, Aggregations, and other SQL Query operations. Includes a Data Visualization Agent that creates visualizations to help you understand your data. [See Example](https://github.com/business-science/ai-data-science-team/blob/master/examples/multiagents/sql_data_analyst.ipynb)
 
 ### Agents Coming Soon
 
