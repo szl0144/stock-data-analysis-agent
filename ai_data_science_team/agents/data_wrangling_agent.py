@@ -702,6 +702,7 @@ def make_data_wrangling_agent(
             
             Important Notes:
             1. Do Not use Print statements to display the data. Return the data frame instead with the data wrangling operation performed.
+            2. Do not plot graphs. Only return the data frame.
             
             Make sure to explain any non-trivial steps with inline comments. Follow user instructions. Comment code thoroughly.
             

@@ -514,12 +514,22 @@ def make_data_visualization_agent(
             Previously Recommended Instructions (if any):
             {recommended_steps}
             
-            DATA: 
+            DATA SUMMARY: 
             {all_datasets_summary}
             
-            Formulate chart generator instructions by informing the chart generator of what type of plotly plot to use (e.g. bar, line, scatter, etc) to best represent the data. 
+            IMPORTANT:
             
-            Come up with an informative title from the user's question and data provided. Also provide X and Y axis titles.
+            - Formulate chart generator instructions by informing the chart generator of what type of plotly plot to use (e.g. bar, line, scatter, etc) to best represent the data. 
+            - Think about how best to convey the information in the data to the user.
+            - If the user does not specify a type of plot, select the appropriate chart type based on the data summary provided and the user's question and how best to show the results.
+            - Come up with an informative title from the user's question and data provided. Also provide X and Y axis titles.
+            
+            CHART TYPE SELECTION TIPS:
+            
+            - If a numeric column has less than 10 unique values, consider this column to be treated as a categorical column. Pick a chart that is appropriate for categorical data.
+            - If a numeric column has more than 10 unique values, consider this column to be treated as a continuous column. Pick a chart that is appropriate for continuous data.       
+            
+            PLOT THEME:
             
             Instruct the chart generator to use the following theme colors, sizes, etc:
             
@@ -533,6 +543,8 @@ def make_data_visualization_agent(
             - Add smoothers or trendlines to scatter plots unless not desired by the user
             - Do not use color_discrete_map (this will result in an error)
             - Hover tip size: 8.8
+            
+            RETURN FORMAT:
             
             Return your instructions in the following format:
             CHART GENERATOR INSTRUCTIONS: 
