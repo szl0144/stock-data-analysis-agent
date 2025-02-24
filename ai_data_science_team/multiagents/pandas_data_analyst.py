@@ -132,10 +132,10 @@ class PandasDataAnalyst(BaseAgent):
         """Returns a summary of the workflow."""
         if self.response and self.response.get("messages"):
             agents = [msg.role for msg in self.response["messages"]]
-            agent_labels = [f"- **Agent {i+1}:** {role}" for i, role in enumerate(agents)]
+            agent_labels = [f"- **Agent {i+1}:** {role}\n" for i, role in enumerate(agents)]
             header = f"# Pandas Data Analyst Workflow Summary\n\nThis workflow contains {len(agents)} agents:\n\n" + "\n".join(agent_labels)
             reports = [get_generic_summary(json.loads(msg.content)) for msg in self.response["messages"]]
-            summary = "\n" +header + "\n\n".join(reports)
+            summary = "\n\n" + header + "\n\n".join(reports)
             return Markdown(summary) if markdown else summary
 
     @staticmethod
@@ -177,15 +177,15 @@ def make_pandas_data_analyst(
     
     routing_preprocessor_prompt = PromptTemplate(
         template="""
-        You are an expert in routing decisions for a Pandas Data Manipulation Wrangling Agent, a Charting Visualization Agent, and a Pandas Table Agent. Your job is to:
+        You are an expert in routing decisions for a Pandas Data Manipulation Wrangling Agent, a Charting Visualization Agent, and a Pandas Table Agent. Your job is to tell the agents which actions to perform and determine the correct routing for the incoming user question:
         
-        1. Determine what the correct format for a Users Question should be for use with a Pandas Data Wrangling Agent based on the incoming user question. Anything related to data wrangling and manipulation should be passed along.
+        1. Determine what the correct format for a Users Question should be for use with a Pandas Data Wrangling Agent based on the incoming user question. Anything related to data wrangling and manipulation should be passed along. Don't pass along anything about plotting or visualization.
         2. Determine whether or not a chart should be generated or a table should be returned based on the users question.
         3. If a chart is requested, determine the correct format of a Users Question should be used with a Data Visualization Agent. Anything related to plotting and visualization should be passed along.
         
         Use the following criteria on how to route the the initial user question:
         
-        From the incoming user question, remove any details about the format of the final response as either a Chart or Table and return only the important part of the incoming user question that is relevant for the SQL generator agent. This will be the 'user_instructions_data_wrangling'. If 'None' is found, return the original user question.
+        From the incoming user question, remove any details about the format of the final response as either a Chart or Table and return only the important part of the incoming user question that is relevant for the Pandas Data Wrangling and Transformation agent. This will be the 'user_instructions_data_wrangling'. If 'None' is found, return the original user question.
         
         Next, determine if the user would like a data visualization ('chart') or a 'table' returned with the results of the Data Wrangling Agent. If unknown, not specified or 'None' is found, then select 'table'.  
         

@@ -301,24 +301,13 @@ class SQLDataAnalyst(BaseAgent):
         markdown: bool
             If True, returns the summary as a Markdown-formatted string.
         """
-        if self.response and self.get_response()['messages']:
-            
-            agents = [self.get_response()['messages'][i].role for i in range(len(self.get_response()['messages']))]
-            
-            agent_labels = []
-            for i in range(len(agents)):
-                agent_labels.append(f"- **Agent {i+1}:** {agents[i]}")
-            
-            # Construct header
-            header = f"# SQL Data Analyst Workflow Summary Report\n\nThis agentic workflow contains {len(agents)} agents:\n\n" + "\n".join(agent_labels)
-            
-            reports = []
-            for msg in self.get_response()['messages']:
-                reports.append(get_generic_summary(json.loads(msg.content)))
-                
-            if markdown:
-                return Markdown(header + "\n\n".join(reports))
-            return "\n\n".join(reports)
+        if self.response and self.response.get("messages"):
+            agents = [msg.role for msg in self.response["messages"]]
+            agent_labels = [f"- **Agent {i+1}:** {role}\n" for i, role in enumerate(agents)]
+            header = f"# SQL Data Analyst Workflow Summary\n\nThis workflow contains {len(agents)} agents:\n\n" + "\n".join(agent_labels)
+            reports = [get_generic_summary(json.loads(msg.content)) for msg in self.response["messages"]]
+            summary = "\n\n" + header + "\n\n".join(reports)
+            return Markdown(summary) if markdown else summary
     
     
 
