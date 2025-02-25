@@ -128,8 +128,8 @@ This is a top secret project I'm working on. It's a multi-agent data science app
 
 #### Multi-Agents
 
-1. **Pandas Data Analyst Agent:** Combines the ability to wrangle, transform, and analyze data with an optional data visualization agent that can create interactive plots. [See Example](https://github.com/business-science/ai-data-science-team/blob/master/examples/multiagents/pandas_data_analyst.ipynb)
-2. **SQL Data Analyst Agent:** Connects to SQL databases to pull data into the data science environment. Creates pipelines to automate data extraction. Performs Joins, Aggregations, and other SQL Query operations. Includes a Data Visualization Agent that creates visualizations to help you understand your data. [See Example](https://github.com/business-science/ai-data-science-team/blob/master/examples/multiagents/sql_data_analyst.ipynb)
+1. **🔥🔥 Pandas Data Analyst Agent:** Combines the ability to wrangle, transform, and analyze data with an optional data visualization agent that can create interactive plots. [See Example](https://github.com/business-science/ai-data-science-team/blob/master/examples/multiagents/pandas_data_analyst.ipynb)
+2. **🔥🔥 SQL Data Analyst Agent:** Connects to SQL databases to pull data into the data science environment. Creates pipelines to automate data extraction. Performs Joins, Aggregations, and other SQL Query operations. Includes a Data Visualization Agent that creates visualizations to help you understand your data. [See Example](https://github.com/business-science/ai-data-science-team/blob/master/examples/multiagents/sql_data_analyst.ipynb)
 
 ### Agents Coming Soon
 
