@@ -4,6 +4,12 @@ This repository contains a collection of AI-powered applications that are built 
 
 More applications are coming soon! Stay tuned!
 
+## Pandas AI Data Analyst App
+
+Upload an Excel or CSV file and the Pandas AI Data Analyst can summarize data, analyze and return plots and data frames.
+
+![Pandas AI Data Analyst App](../img/apps/ai_pandas_data_analyst.jpg)
+
 ## Exploratory Data Analysis Copilot App
 
 

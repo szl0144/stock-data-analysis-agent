@@ -43,9 +43,8 @@ The AI Data Science Team of Copilots includes Agents that specialize data cleani
   - [Companies That Want A Custom AI Data Science Team (And AI Apps)](#companies-that-want-a-custom-ai-data-science-team-and-ai-apps)
   - [Generative AI for Data Scientists Workshop](#generative-ai-for-data-scientists-workshop)
   - [Data Science Agents](#data-science-agents)
+    - [🔥 NEW: Data Science Apps](#-new-data-science-apps)
     - [NEW: Multi-Agents](#new-multi-agents)
-    - [Data Science Apps](#data-science-apps)
-    - [Apps Available Now](#apps-available-now)
       - [🔥 Agentic Applications](#-agentic-applications)
     - [Agents Available Now](#agents-available-now)
       - [Standard Agents](#standard-agents)
@@ -80,21 +79,24 @@ This project is a work in progress. New data science agents will be released soo
 
 ![AI Data Science Team](/img/ai_data_science_team.jpg) 
 
+### 🔥 NEW: Data Science Apps
+
+**🔥 Open Pandas AI Data Analyst:** Load an Excel or CSV file and ask it questions. Get data and charts back. 
+
+![Pandas Data Analyst App](/img/apps/ai_pandas_data_analyst_app.jpg)
+
+**🔥 SQL Database Agent:** Connects any SQL Database, generates SQL queries from natural language, and returns data as a downloadable table.
+
+**🔥 Exploratory Data Copilot:** An AI-powered data science app that performs automated exploratory data analysis (EDA) with EDA Reporting, Missing Data Analysis, Correlation Analysis, and more.
+
+[See all available apps here](/apps)
+
 ### NEW: Multi-Agents
 
 **🔥 Pandas Data Analyst Agent:** Combines the ability to wrangle, transform, and analyze data with an optional data visualization agent that can create interactive plots.
 
-![Business Intelligence SQL Agent](/img/multi_agent_pandas_data_analyst.jpg)
+![Pandas Data Analyst Agent](/img/multi_agent_pandas_data_analyst.jpg)
 
-### Data Science Apps
-
-This is a top secret project I'm working on. It's a multi-agent data science app that performs time series forecasting.
-
-![Multi-Agent Data Science App](/img/ai_powered_apps.jpg) 
-
-### Apps Available Now
-
-[See all available apps here](/apps)
 
 #### 🔥 Agentic Applications
 
