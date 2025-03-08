@@ -4,7 +4,6 @@
 # * Agents: Data Visualization Agent
 
 
-
 # Libraries
 from typing import TypedDict, Annotated, Sequence, Literal
 import operator
@@ -17,25 +16,25 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.types import Checkpointer
 
 import os
-import json 
+import json
 import pandas as pd
 
 from IPython.display import Markdown
 
-from ai_data_science_team.templates import(
-    node_func_execute_agent_code_on_data, 
+from ai_data_science_team.templates import (
+    node_func_execute_agent_code_on_data,
     node_func_human_review,
-    node_func_fix_agent_code, 
+    node_func_fix_agent_code,
     node_func_report_agent_outputs,
     create_coding_agent_graph,
     BaseAgent,
 )
 from ai_data_science_team.parsers.parsers import PythonOutputParser
 from ai_data_science_team.utils.regex import (
-    relocate_imports_inside_function, 
-    add_comments_to_top, 
-    format_agent_name, 
-    format_recommended_steps, 
+    relocate_imports_inside_function,
+    add_comments_to_top,
+    format_agent_name,
+    format_recommended_steps,
     get_generic_summary,
 )
 from ai_data_science_team.tools.dataframe import get_dataframe_summary
@@ -48,11 +47,12 @@ LOG_PATH = os.path.join(os.getcwd(), "logs/")
 
 # Class
 
+
 class DataVisualizationAgent(BaseAgent):
     """
     Creates a data visualization agent that can generate Plotly charts based on user-defined instructions or
-    default visualization steps (if any). The agent generates a Python function to produce the visualization, 
-    executes it, and logs the process, including code and errors. It is designed to facilitate reproducible 
+    default visualization steps (if any). The agent generates a Python function to produce the visualization,
+    executes it, and logs the process, including code and errors. It is designed to facilitate reproducible
     and customizable data visualization workflows.
 
     The agent may use default instructions for creating charts unless instructed otherwise, such as:
@@ -124,10 +124,10 @@ class DataVisualizationAgent(BaseAgent):
     llm = ChatOpenAI(model="gpt-4o-mini")
 
     data_visualization_agent = DataVisualizationAgent(
-        model=llm, 
+        model=llm,
         n_samples=30,
-        log=True, 
-        log_path="logs", 
+        log=True,
+        log_path="logs",
         human_in_the_loop=True
     )
 
@@ -141,7 +141,7 @@ class DataVisualizationAgent(BaseAgent):
     )
 
     plotly_graph_dict = data_visualization_agent.get_plotly_graph()
-    # You can render plotly_graph_dict with plotly.io.from_json or 
+    # You can render plotly_graph_dict with plotly.io.from_json or
     # something similar in a Jupyter Notebook.
 
     response = data_visualization_agent.get_response()
@@ -149,21 +149,21 @@ class DataVisualizationAgent(BaseAgent):
 
     Returns
     --------
-    DataVisualizationAgent : langchain.graphs.CompiledStateGraph 
-        A data visualization agent implemented as a compiled state graph. 
+    DataVisualizationAgent : langchain.graphs.CompiledStateGraph
+        A data visualization agent implemented as a compiled state graph.
     """
 
     def __init__(
-        self, 
-        model, 
-        n_samples=30, 
-        log=False, 
-        log_path=None, 
-        file_name="data_visualization.py", 
+        self,
+        model,
+        n_samples=30,
+        log=False,
+        log_path=None,
+        file_name="data_visualization.py",
         function_name="data_visualization",
-        overwrite=True, 
-        human_in_the_loop=False, 
-        bypass_recommended_steps=False, 
+        overwrite=True,
+        human_in_the_loop=False,
+        bypass_recommended_steps=False,
         bypass_explain_code=False,
         checkpointer=None,
     ):
@@ -185,7 +185,7 @@ class DataVisualizationAgent(BaseAgent):
 
     def _make_compiled_graph(self):
         """
-        Create the compiled graph for the data visualization agent. 
+        Create the compiled graph for the data visualization agent.
         Running this method will reset the response to None.
         """
         self.response = None
@@ -201,9 +201,16 @@ class DataVisualizationAgent(BaseAgent):
         # Rebuild the compiled graph
         self._compiled_graph = self._make_compiled_graph()
 
-    async def ainvoke_agent(self, data_raw: pd.DataFrame, user_instructions: str=None, max_retries:int=3, retry_count:int=0, **kwargs):
+    async def ainvoke_agent(
+        self,
+        data_raw: pd.DataFrame,
+        user_instructions: str = None,
+        max_retries: int = 3,
+        retry_count: int = 0,
+        **kwargs,
+    ):
         """
-        Asynchronously invokes the agent to generate a visualization. 
+        Asynchronously invokes the agent to generate a visualization.
         The response is stored in the 'response' attribute.
 
         Parameters
@@ -223,18 +230,28 @@ class DataVisualizationAgent(BaseAgent):
         -------
         None
         """
-        response = await self._compiled_graph.ainvoke({
-            "user_instructions": user_instructions,
-            "data_raw": data_raw.to_dict(),
-            "max_retries": max_retries,
-            "retry_count": retry_count,
-        }, **kwargs)
+        response = await self._compiled_graph.ainvoke(
+            {
+                "user_instructions": user_instructions,
+                "data_raw": data_raw.to_dict(),
+                "max_retries": max_retries,
+                "retry_count": retry_count,
+            },
+            **kwargs,
+        )
         self.response = response
         return None
 
-    def invoke_agent(self, data_raw: pd.DataFrame, user_instructions: str=None,  max_retries:int=3, retry_count:int=0, **kwargs):
+    def invoke_agent(
+        self,
+        data_raw: pd.DataFrame,
+        user_instructions: str = None,
+        max_retries: int = 3,
+        retry_count: int = 0,
+        **kwargs,
+    ):
         """
-        Synchronously invokes the agent to generate a visualization. 
+        Synchronously invokes the agent to generate a visualization.
         The response is stored in the 'response' attribute.
 
         Parameters
@@ -254,12 +271,15 @@ class DataVisualizationAgent(BaseAgent):
         -------
         None
         """
-        response = self._compiled_graph.invoke({
-            "user_instructions": user_instructions,
-            "data_raw": data_raw.to_dict(),
-            "max_retries": max_retries,
-            "retry_count": retry_count,
-        }, **kwargs)
+        response = self._compiled_graph.invoke(
+            {
+                "user_instructions": user_instructions,
+                "data_raw": data_raw.to_dict(),
+                "max_retries": max_retries,
+                "retry_count": retry_count,
+            },
+            **kwargs,
+        )
         self.response = response
         return None
 
@@ -268,7 +288,9 @@ class DataVisualizationAgent(BaseAgent):
         Retrieves the agent's workflow summary, if logging is enabled.
         """
         if self.response and self.response.get("messages"):
-            summary = get_generic_summary(json.loads(self.response.get("messages")[-1].content))
+            summary = get_generic_summary(
+                json.loads(self.response.get("messages")[-1].content)
+            )
             if markdown:
                 return Markdown(summary)
             else:
@@ -279,7 +301,7 @@ class DataVisualizationAgent(BaseAgent):
         Logs a summary of the agent's operations, if logging is enabled.
         """
         if self.response:
-            if self.response.get('data_visualization_function_path'):
+            if self.response.get("data_visualization_function_path"):
                 log_details = f"""
 ## Data Visualization Agent Log Summary:
 
@@ -288,7 +310,7 @@ Function Path: {self.response.get('data_visualization_function_path')}
 Function Name: {self.response.get('data_visualization_function_name')}
                 """
                 if markdown:
-                    return Markdown(log_details) 
+                    return Markdown(log_details)
                 else:
                     return log_details
 
@@ -380,16 +402,17 @@ Function Name: {self.response.get('data_visualization_function_name')}
 
 # Agent
 
+
 def make_data_visualization_agent(
-    model, 
+    model,
     n_samples=30,
-    log=False, 
-    log_path=None, 
+    log=False,
+    log_path=None,
     file_name="data_visualization.py",
     function_name="data_visualization",
-    overwrite=True, 
-    human_in_the_loop=False, 
-    bypass_recommended_steps=False, 
+    overwrite=True,
+    human_in_the_loop=False,
+    bypass_recommended_steps=False,
     bypass_explain_code=False,
     checkpointer=None,
 ):
@@ -460,25 +483,27 @@ def make_data_visualization_agent(
     app : langchain.graphs.CompiledStateGraph
         The data visualization agent as a state graph.
     """
-    
+
     llm = model
-    
+
     if human_in_the_loop:
         if checkpointer is None:
-            print("Human in the loop is enabled. A checkpointer is required. Setting to MemorySaver().")
+            print(
+                "Human in the loop is enabled. A checkpointer is required. Setting to MemorySaver()."
+            )
             checkpointer = MemorySaver()
-    
+
     # Human in th loop requires recommended steps
     if bypass_recommended_steps and human_in_the_loop:
         bypass_recommended_steps = False
         print("Bypass recommended steps set to False to enable human in the loop.")
-    
+
     # Setup Log Directory
     if log:
         if log_path is None:
             log_path = LOG_PATH
         if not os.path.exists(log_path):
-            os.makedirs(log_path)    
+            os.makedirs(log_path)
 
     # Define GraphState for the router
     class GraphState(TypedDict):
@@ -496,12 +521,11 @@ def make_data_visualization_agent(
         data_visualization_error: str
         max_retries: int
         retry_count: int
-        
+
     def chart_instructor(state: GraphState):
-        
         print(format_agent_name(AGENT_NAME))
         print("    * CREATE CHART GENERATOR INSTRUCTIONS")
-        
+
         recommend_steps_prompt = PromptTemplate(
             template="""
             You are a supervisor that is an expert in providing instructions to a chart generator agent for plotting. 
@@ -529,20 +553,6 @@ def make_data_visualization_agent(
             - If a numeric column has less than 10 unique values, consider this column to be treated as a categorical column. Pick a chart that is appropriate for categorical data.
             - If a numeric column has more than 10 unique values, consider this column to be treated as a continuous column. Pick a chart that is appropriate for continuous data.       
             
-            PLOT THEME:
-            
-            Instruct the chart generator to use the following theme colors, sizes, etc:
-            
-            - Start with the "plotly_white" template
-            - Use a white background
-            - Use this color for bars and lines:
-                'blue': '#3381ff',
-            - Base Font Size: 8.8 (Used for x and y axes tickfont, any annotations, hovertips)
-            - Title Font Size: 13.2
-            - Line Size: 0.65 (specify these within the xaxis and yaxis dictionaries)
-            - Add smoothers or trendlines to scatter plots unless not desired by the user
-            - Do not use color_discrete_map (this will result in an error)
-            - Hover tip size: 8.8
             
             RETURN FORMAT:
             
@@ -554,51 +564,61 @@ def make_data_visualization_agent(
             1. Do not include steps to save files.
             2. Do not include unrelated user instructions that are not related to the chart generation.
             """,
-            input_variables=["user_instructions", "recommended_steps", "all_datasets_summary"]
-            
+            input_variables=[
+                "user_instructions",
+                "recommended_steps",
+                "all_datasets_summary",
+            ],
         )
-        
+
         data_raw = state.get("data_raw")
         df = pd.DataFrame.from_dict(data_raw)
 
-        all_datasets_summary = get_dataframe_summary([df], n_sample=n_samples, skip_stats=False)
-        
+        all_datasets_summary = get_dataframe_summary(
+            [df], n_sample=n_samples, skip_stats=False
+        )
+
         all_datasets_summary_str = "\n\n".join(all_datasets_summary)
 
-        chart_instructor = recommend_steps_prompt | llm 
-        
-        recommended_steps = chart_instructor.invoke({
-            "user_instructions": state.get("user_instructions"),
-            "recommended_steps": state.get("recommended_steps"),
-            "all_datasets_summary": all_datasets_summary_str
-        })
-        
+        chart_instructor = recommend_steps_prompt | llm
+
+        recommended_steps = chart_instructor.invoke(
+            {
+                "user_instructions": state.get("user_instructions"),
+                "recommended_steps": state.get("recommended_steps"),
+                "all_datasets_summary": all_datasets_summary_str,
+            }
+        )
+
         return {
-            "recommended_steps": format_recommended_steps(recommended_steps.content.strip(), heading="# Recommended Data Cleaning Steps:"),
-            "all_datasets_summary": all_datasets_summary_str
+            "recommended_steps": format_recommended_steps(
+                recommended_steps.content.strip(),
+                heading="# Recommended Data Cleaning Steps:",
+            ),
+            "all_datasets_summary": all_datasets_summary_str,
         }
-        
+
     def chart_generator(state: GraphState):
-        
         print("    * CREATE DATA VISUALIZATION CODE")
 
-        
         if bypass_recommended_steps:
             print(format_agent_name(AGENT_NAME))
-            
+
             data_raw = state.get("data_raw")
             df = pd.DataFrame.from_dict(data_raw)
 
-            all_datasets_summary = get_dataframe_summary([df], n_sample=n_samples, skip_stats=False)
-            
+            all_datasets_summary = get_dataframe_summary(
+                [df], n_sample=n_samples, skip_stats=False
+            )
+
             all_datasets_summary_str = "\n\n".join(all_datasets_summary)
-            
+
             chart_generator_instructions = state.get("user_instructions")
-            
+
         else:
             all_datasets_summary_str = state.get("all_datasets_summary")
             chart_generator_instructions = state.get("recommended_steps")
-        
+
         prompt_template = PromptTemplate(
             template="""
             You are a chart generator agent that is an expert in generating plotly charts. You must use plotly or plotly.express to produce plots.
@@ -640,65 +660,76 @@ def make_data_visualization_agent(
             2. Do not include unrelated user instructions that are not related to the chart generation.
             
             """,
-            input_variables=["chart_generator_instructions", "all_datasets_summary", "function_name"]
+            input_variables=[
+                "chart_generator_instructions",
+                "all_datasets_summary",
+                "function_name",
+            ],
         )
 
         data_visualization_agent = prompt_template | llm | PythonOutputParser()
-        
-        response = data_visualization_agent.invoke({
-            "chart_generator_instructions": chart_generator_instructions,
-            "all_datasets_summary": all_datasets_summary_str,
-            "function_name": function_name
-        })
-        
+
+        response = data_visualization_agent.invoke(
+            {
+                "chart_generator_instructions": chart_generator_instructions,
+                "all_datasets_summary": all_datasets_summary_str,
+                "function_name": function_name,
+            }
+        )
+
         response = relocate_imports_inside_function(response)
         response = add_comments_to_top(response, agent_name=AGENT_NAME)
-        
+
         # For logging: store the code generated:
         file_path, file_name_2 = log_ai_function(
             response=response,
             file_name=file_name,
             log=log,
             log_path=log_path,
-            overwrite=overwrite
+            overwrite=overwrite,
         )
-        
+
         return {
             "data_visualization_function": response,
             "data_visualization_function_path": file_path,
             "data_visualization_function_file_name": file_name_2,
             "data_visualization_function_name": function_name,
-            "all_datasets_summary": all_datasets_summary_str
+            "all_datasets_summary": all_datasets_summary_str,
         }
-    
+
     # Human Review
-        
+
     prompt_text_human_review = "Are the following data visualization instructions correct? (Answer 'yes' or provide modifications)\n{steps}"
-    
+
     if not bypass_explain_code:
-        def human_review(state: GraphState) -> Command[Literal["chart_instructor", "explain_data_visualization_code"]]:
+
+        def human_review(
+            state: GraphState,
+        ) -> Command[Literal["chart_instructor", "explain_data_visualization_code"]]:
             return node_func_human_review(
                 state=state,
                 prompt_text=prompt_text_human_review,
-                yes_goto= 'explain_data_visualization_code',
+                yes_goto="explain_data_visualization_code",
                 no_goto="chart_instructor",
                 user_instructions_key="user_instructions",
                 recommended_steps_key="recommended_steps",
                 code_snippet_key="data_visualization_function",
             )
     else:
-        def human_review(state: GraphState) -> Command[Literal["chart_instructor", "__end__"]]:
+
+        def human_review(
+            state: GraphState,
+        ) -> Command[Literal["chart_instructor", "__end__"]]:
             return node_func_human_review(
                 state=state,
                 prompt_text=prompt_text_human_review,
-                yes_goto= '__end__',
+                yes_goto="__end__",
                 no_goto="chart_instructor",
                 user_instructions_key="user_instructions",
                 recommended_steps_key="recommended_steps",
-                code_snippet_key="data_visualization_function", 
+                code_snippet_key="data_visualization_function",
             )
-    
-        
+
     def execute_data_visualization_code(state):
         return node_func_execute_agent_code_on_data(
             state=state,
@@ -709,9 +740,9 @@ def make_data_visualization_agent(
             agent_function_name=state.get("data_visualization_function_name"),
             pre_processing=lambda data: pd.DataFrame.from_dict(data),
             # post_processing=lambda df: df.to_dict() if isinstance(df, pd.DataFrame) else df,
-            error_message_prefix="An error occurred during data visualization: "
+            error_message_prefix="An error occurred during data visualization: ",
         )
-    
+
     def fix_data_visualization_code(state: GraphState):
         prompt = """
         You are a Data Visualization Agent. Your job is to create a {function_name}() function that can be run on the data provided. The function is currently broken and needs to be fixed.
@@ -731,14 +762,14 @@ def make_data_visualization_agent(
             state=state,
             code_snippet_key="data_visualization_function",
             error_key="data_visualization_error",
-            llm=llm,  
+            llm=llm,
             prompt_template=prompt,
             agent_name=AGENT_NAME,
             log=log,
             file_path=state.get("data_visualization_function_path"),
             function_name=state.get("data_visualization_function_name"),
         )
-    
+
     # Final reporting node
     def report_agent_outputs(state: GraphState):
         return node_func_report_agent_outputs(
@@ -752,9 +783,9 @@ def make_data_visualization_agent(
             ],
             result_key="messages",
             role=AGENT_NAME,
-            custom_title="Data Visualization Agent Outputs"
+            custom_title="Data Visualization Agent Outputs",
         )
-        
+
     # Define the graph
     node_functions = {
         "chart_instructor": chart_instructor,
@@ -764,7 +795,7 @@ def make_data_visualization_agent(
         "fix_data_visualization_code": fix_data_visualization_code,
         "report_agent_outputs": report_agent_outputs,
     }
-    
+
     app = create_coding_agent_graph(
         GraphState=GraphState,
         node_functions=node_functions,
@@ -781,5 +812,5 @@ def make_data_visualization_agent(
         bypass_explain_code=bypass_explain_code,
         agent_name=AGENT_NAME,
     )
-        
+
     return app
