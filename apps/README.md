@@ -8,7 +8,7 @@ More applications are coming soon! Stay tuned!
 
 Upload an Excel or CSV file and the Pandas AI Data Analyst can summarize data, analyze and return plots and data frames.
 
-![Pandas AI Data Analyst App](../img/apps/ai_pandas_data_analyst.jpg)
+![Pandas AI Data Analyst App](../img/apps/ai_pandas_data_analyst_app.jpg)
 
 ## Exploratory Data Analysis Copilot App
 
