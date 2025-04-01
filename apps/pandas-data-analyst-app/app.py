@@ -52,7 +52,7 @@ with st.expander("Example Questions", expanded=False):
         -  Show the top 5 bike models by extended sales.
         -  Show the top 5 bike models by extended sales in a bar chart.
         -  Show the top 5 bike models by extended sales in a pie chart.
-        -  Make a plot of extended sales by month for each bike model. Use a plotly dropdown to filter by bike model.
+        -  Make a plot of extended sales by month for each bike model. Use a color to identify the bike models.
         """
     )
 
