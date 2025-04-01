@@ -59,7 +59,7 @@ The AI Data Science Team of Copilots includes Agents that specialize data cleani
   - [Contributing](#contributing)
   - [License](#license)
 - [Want To Become A Full-Stack Generative AI Data Scientist?](#want-to-become-a-full-stack-generative-ai-data-scientist)
-  - [⭐️ Star History](#️-star-history)
+- [⭐️ Star History](#️-star-history)
 
 ## Companies That Want A Custom AI Data Science Team (And AI Apps)
 
@@ -229,7 +229,7 @@ This project is licensed under the MIT License. See LICENSE file for details.
 
 I teach Generative AI Data Science to help you build AI-powered data science apps. [**Register for my next Generative AI for Data Scientists workshop here.**](https://learn.business-science.io/ai-register)
 
-## ⭐️ Star History
+# ⭐️ Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=business-science/ai-data-science-team&type=Date)](https://star-history.com/#)
 
