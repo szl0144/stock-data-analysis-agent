@@ -233,4 +233,4 @@ I teach Generative AI Data Science to help you build AI-powered data science app
 
 [![Star History Chart](https://api.star-history.com/svg?repos=business-science/ai-data-science-team&type=Date)](https://star-history.com/#)
 
-Please consider giving a star, if you find this repository useful. 
+[**Please ⭐ us on GitHub (it takes 2 seconds and means a lot).**](https://github.com/business-science/ai-data-science-team)
