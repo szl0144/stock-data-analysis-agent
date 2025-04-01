@@ -55,8 +55,7 @@ The AI Data Science Team of Copilots includes Agents that specialize data cleani
   - [Disclaimer](#disclaimer)
   - [Installation](#installation)
   - [Usage](#usage)
-    - [Example 1: Feature Engineering with the Feature Engineering Agent](#example-1-feature-engineering-with-the-feature-engineering-agent)
-    - [Example 2: Cleaning Data with the Data Cleaning Agent](#example-2-cleaning-data-with-the-data-cleaning-agent)
+    - [Example: H2O Machine Learning Agent](#example-h2o-machine-learning-agent)
   - [Contributing](#contributing)
   - [License](#license)
 - [Want To Become A Full-Stack Generative AI Data Scientist?](#want-to-become-a-full-stack-generative-ai-data-scientist)
@@ -153,6 +152,14 @@ By using this software, you agree to use it solely for learning purposes.
 
 ## Installation
 
+You can install via PyPI (note that this is a beta version and breaking changes may occur until 0.1.0):
+
+``` bash
+pip install ai-data-science-team
+```
+
+Or, if you want the latest version from GitHub:
+
 ``` bash
 pip install git+https://github.com/business-science/ai-data-science-team.git --upgrade
 ```
@@ -161,55 +168,46 @@ pip install git+https://github.com/business-science/ai-data-science-team.git --u
 
 [See all examples here.](/examples)
 
-### Example 1: Feature Engineering with the Feature Engineering Agent
+### Example: H2O Machine Learning Agent
 
-[See the full example here.](/examples/feature_engineering_agent.ipynb)
+[See the full example here.](https://github.com/business-science/ai-data-science-team/blob/master/examples/ml_agents/h2o_machine_learning_agent.ipynb)
 
 ``` python
-feature_engineering_agent = FeatureEngineeringAgent(model = llm)
+# Import libraries
+from langchain_openai import ChatOpenAI
+import pandas as pd
+import h2o 
+import os
+from ai_data_science_team.ml_agents import H2OMLAgent
 
-feature_engineering_agent.invoke_agent(
-    data_raw = df,
-    user_instructions = "Make sure to scale and center numeric features",
-    target_variable = "Churn",
-    max_retries = 3,
+# Load the data
+df = pd.read_csv("data/churn_data.csv")
+df
+
+# Initialize the language model
+os.environ['OPENAI_API_KEY'] = "YOUR_OPENAI_API_KEY"
+llm = ChatOpenAI(model=MODEL)
+llm
+
+# Initialize the H2O ML Agent
+ml_agent = H2OMLAgent(
+    model=llm, 
+    log=True, 
+    log_path="logs/",
+    model_directory="h2o_models/", 
+    enable_mlflow=True, # Use this if you wish to log models to MLflow 
 )
-```
+ml_agent
 
-``` bash
----FEATURE ENGINEERING AGENT----
-    * CREATE FEATURE ENGINEER CODE
-    * EXECUTING AGENT CODE
-    * EXPLAIN AGENT CODE
-```
-
-``` python
-feature_engineering_agent.get_data_engineered()
-```
-
-### Example 2: Cleaning Data with the Data Cleaning Agent
-
-[See the full example here.](/examples/data_cleaning_agent.ipynb) 
-
-``` python
-data_cleaning_agent = DataCleaningAgent(model = llm)
-
-response = data_cleaning_agent.invoke_agent(
-    data_raw = df,
-    user_instructions = "Don't remove outliers when cleaning the data.",
-    max_retries = 3,
+# Run the agent
+ml_agent.invoke_agent(
+    data_raw=df.drop(columns=["customerID"]),
+    user_instructions="Please do classification on 'Churn'. Use a max runtime of 30 seconds.",
+    target_variable="Churn"
 )
-```
 
-``` bash
----DATA CLEANING AGENT----
-    * CREATE DATA CLEANER CODE
-    * EXECUTING AGENT CODE
-    * EXPLAIN AGENT CODE
-```
-
-``` python
-data_cleaning_agent.get_data_cleaned()
+# Retrieve and display the leaderboard of models
+ml_agent.get_leaderboard()
 ```
 
 ## Contributing
