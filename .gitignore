@@ -173,3 +173,6 @@ reports/
 
 # Draw.io
 *.drawio
+
+# Conda Environments
+environment_ds4b_301p_dev.yml
