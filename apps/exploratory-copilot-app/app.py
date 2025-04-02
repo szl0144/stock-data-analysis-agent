@@ -324,7 +324,7 @@ def process_exploratory(question: str, llm, data: pd.DataFrame) -> dict:
                 except Exception as e:
                     st.error(f"Error processing visualize_missing artifact: {e}")
 
-        elif tool_name == "correlation_funnel":
+        elif tool_name == "generate_correlation_funnel":
             if artifacts and isinstance(artifacts, dict):
                 if "correlation_data" in artifacts:
                     try:
@@ -442,7 +442,7 @@ if st.session_state["DATA_RAW"] is not None:
                                 "data": result["heatmap_plot_fig"],
                             }
                         )
-                elif tool_name == "correlation_funnel":
+                elif tool_name == "generate_correlation_funnel":
                     if "correlation_data" in result:
                         artifact_list.append(
                             {

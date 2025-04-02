@@ -17,7 +17,7 @@ from ai_data_science_team.tools.eda import (
     explain_data,
     describe_dataset,
     visualize_missing,
-    correlation_funnel,
+    generate_correlation_funnel,
     generate_sweetviz_report,
     generate_dtale_report,
 )
@@ -31,7 +31,7 @@ EDA_TOOLS = [
     explain_data,
     describe_dataset,
     visualize_missing,
-    correlation_funnel,
+    generate_correlation_funnel,
     generate_sweetviz_report,
     generate_dtale_report,
 ]

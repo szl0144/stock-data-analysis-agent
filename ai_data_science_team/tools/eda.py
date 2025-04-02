@@ -155,7 +155,7 @@ def visualize_missing(
 
 
 @tool(response_format="content_and_artifact")
-def correlation_funnel(
+def generate_correlation_funnel(
     data_raw: Annotated[dict, InjectedState("data_raw")],
     target: str,
     target_bin_index: Union[int, str] = -1,
@@ -165,7 +165,7 @@ def correlation_funnel(
     name_infreq: str = "-OTHER",
 ) -> Tuple[str, Dict]:
     """
-    Tool: correlation_funnel
+    Tool: generate_correlation_funnel
     Description:
         Correlation analysis using the correlation funnel method. The tool binarizes the data and computes correlation versus a target column.
 
@@ -187,7 +187,7 @@ def correlation_funnel(
     name_infreq : str
         The name to use for infrequent levels. Default is '-OTHER'.
     """
-    print("    * Tool: correlation_funnel")
+    print("    * Tool: generate_correlation_funnel")
     try:
         import pytimetk as tk
     except ImportError:
