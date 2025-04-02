@@ -1,4 +1,3 @@
-
 from typing import Annotated, Dict, Tuple, Union
 
 import os
@@ -6,12 +5,12 @@ import tempfile
 
 from langchain.tools import tool
 
-from langgraph.prebuilt import InjectedState  
+from langgraph.prebuilt import InjectedState
 
 from ai_data_science_team.tools.dataframe import get_dataframe_summary
 
 
-@tool(response_format='content')
+@tool(response_format="content")
 def explain_data(
     data_raw: Annotated[dict, InjectedState("data_raw")],
     n_sample: int = 30,
@@ -36,14 +35,17 @@ def explain_data(
     """
     print("    * Tool: explain_data")
     import pandas as pd
-    
-    result = get_dataframe_summary(pd.DataFrame(data_raw), n_sample=n_sample, skip_stats=skip_stats)
-    
+
+    result = get_dataframe_summary(
+        pd.DataFrame(data_raw), n_sample=n_sample, skip_stats=skip_stats
+    )
+
     return result
 
-@tool(response_format='content_and_artifact')
+
+@tool(response_format="content_and_artifact")
 def describe_dataset(
-    data_raw: Annotated[dict, InjectedState("data_raw")]
+    data_raw: Annotated[dict, InjectedState("data_raw")],
 ) -> Tuple[str, Dict]:
     """
     Tool: describe_dataset
@@ -71,30 +73,30 @@ def describe_dataset(
     """
     print("    * Tool: describe_dataset")
     import pandas as pd
+
     df = pd.DataFrame(data_raw)
-    description_df = df.describe(include='all')
+    description_df = df.describe(include="all")
     content = "Summary statistics computed using pandas describe()."
-    artifact = {'describe_df': description_df.to_dict()}
+    artifact = {"describe_df": description_df.to_dict()}
     return content, artifact
 
 
-@tool(response_format='content_and_artifact')
+@tool(response_format="content_and_artifact")
 def visualize_missing(
-    data_raw: Annotated[dict, InjectedState("data_raw")],
-    n_sample: int = None
+    data_raw: Annotated[dict, InjectedState("data_raw")], n_sample: int = None
 ) -> Tuple[str, Dict]:
     """
     Tool: visualize_missing
     Description:
         Missing value analysis using the missingno library. Generates a matrix plot, bar plot, and heatmap plot.
-        
+
     Parameters:
     -----------
     data_raw : dict
         The raw data in dictionary format.
     n_sample : int, optional (default: None)
         The number of rows to sample from the dataset if it is large.
-        
+
     Returns:
     -------
     Tuple[str, Dict]:
@@ -103,12 +105,14 @@ def visualize_missing(
                   corresponding base64 encoded PNG image.
     """
     print("    * Tool: visualize_missing")
-    
+
     try:
         import missingno as msno  # Ensure missingno is installed
     except ImportError:
-        raise ImportError("Please install the 'missingno' package to use this tool. pip install missingno")
-    
+        raise ImportError(
+            "Please install the 'missingno' package to use this tool. pip install missingno"
+        )
+
     import pandas as pd
     import base64
     from io import BytesIO
@@ -136,20 +140,21 @@ def visualize_missing(
 
     # Create and encode the matrix plot.
     encoded_plots["matrix_plot"] = create_and_encode_plot(msno.matrix, "matrix")
-    
+
     # Create and encode the bar plot.
     encoded_plots["bar_plot"] = create_and_encode_plot(msno.bar, "bar")
-    
+
     # Create and encode the heatmap plot.
     encoded_plots["heatmap_plot"] = create_and_encode_plot(msno.heatmap, "heatmap")
 
-    content = "Missing data visualizations (matrix, bar, and heatmap) have been generated."
+    content = (
+        "Missing data visualizations (matrix, bar, and heatmap) have been generated."
+    )
     artifact = encoded_plots
     return content, artifact
 
 
-
-@tool(response_format='content_and_artifact')
+@tool(response_format="content_and_artifact")
 def correlation_funnel(
     data_raw: Annotated[dict, InjectedState("data_raw")],
     target: str,
@@ -163,7 +168,7 @@ def correlation_funnel(
     Tool: correlation_funnel
     Description:
         Correlation analysis using the correlation funnel method. The tool binarizes the data and computes correlation versus a target column.
-    
+
     Parameters:
     ----------
     target : str
@@ -171,8 +176,8 @@ def correlation_funnel(
         with this string followed by '__' (e.g., 'Member_Status__Gold', 'Member_Status__Platinum').
     target_bin_index : int or str, default -1
         If an integer, selects the target level by position from the matching columns.
-        If a string (e.g., "Yes"), attempts to match to the suffix of a column name 
-        (i.e., 'target__Yes'). 
+        If a string (e.g., "Yes"), attempts to match to the suffix of a column name
+        (i.e., 'target__Yes').
     corr_method : str
         The correlation method ('pearson', 'kendall', or 'spearman'). Default is 'pearson'.
     n_bins : int
@@ -186,7 +191,9 @@ def correlation_funnel(
     try:
         import pytimetk as tk
     except ImportError:
-        raise ImportError("Please install the 'pytimetk' package to use this tool. pip install pytimetk")
+        raise ImportError(
+            "Please install the 'pytimetk' package to use this tool. pip install pytimetk"
+        )
     import pandas as pd
     import base64
     from io import BytesIO
@@ -198,18 +205,20 @@ def correlation_funnel(
 
     # Convert the raw injected state into a DataFrame.
     df = pd.DataFrame(data_raw)
-    
+
     # Apply the binarization method.
     df_binarized = df.binarize(
-        n_bins=n_bins, 
-        thresh_infreq=thresh_infreq, 
-        name_infreq=name_infreq, 
-        one_hot=True
+        n_bins=n_bins,
+        thresh_infreq=thresh_infreq,
+        name_infreq=name_infreq,
+        one_hot=True,
     )
-    
+
     # Determine the full target column name.
     # Look for all columns that start with "target__"
-    matching_columns = [col for col in df_binarized.columns if col.startswith(f"{target}__")]
+    matching_columns = [
+        col for col in df_binarized.columns if col.startswith(f"{target}__")
+    ]
     if not matching_columns:
         # If no matching columns are found, warn and use the provided target as-is.
         full_target = target
@@ -230,15 +239,15 @@ def correlation_funnel(
             except IndexError:
                 # If index is out of bounds, use the last matching column.
                 full_target = matching_columns[-1]
-    
+
     # Compute correlation funnel using the full target column name.
     df_correlated = df_binarized.correlate(target=full_target, method=corr_method)
-    
+
     # Attempt to generate a static plot.
     encoded = None
     try:
         # Here we assume that your DataFrame has a method plot_correlation_funnel.
-        fig = df_correlated.plot_correlation_funnel(engine='plotnine', height=600)
+        fig = df_correlated.plot_correlation_funnel(engine="plotnine", height=600)
         buf = BytesIO()
         # Use the appropriate save method for your figure object.
         fig.save(buf, format="png")
@@ -247,18 +256,20 @@ def correlation_funnel(
         encoded = base64.b64encode(buf.getvalue()).decode("utf-8")
     except Exception as e:
         encoded = {"error": str(e)}
-    
+
     # Attempt to generate a Plotly plot.
     fig_dict = None
     try:
-        fig = df_correlated.plot_correlation_funnel(engine='plotly')
+        fig = df_correlated.plot_correlation_funnel(engine="plotly")
         fig_json = pio.to_json(fig)
         fig_dict = json.loads(fig_json)
     except Exception as e:
         fig_dict = {"error": str(e)}
 
-    content = (f"Correlation funnel computed using method '{corr_method}' for target level '{full_target}'. "
-               f"Base target was '{target}' with target_bin_index '{target_bin_index}'.")
+    content = (
+        f"Correlation funnel computed using method '{corr_method}' for target level '{full_target}'. "
+        f"Base target was '{target}' with target_bin_index '{target_bin_index}'."
+    )
     artifact = {
         "correlation_data": df_correlated.to_dict(orient="list"),
         "plot_image": encoded,
@@ -267,8 +278,7 @@ def correlation_funnel(
     return content, artifact
 
 
-
-@tool(response_format='content_and_artifact')
+@tool(response_format="content_and_artifact")
 def generate_sweetviz_report(
     data_raw: Annotated[dict, InjectedState("data_raw")],
     target: str = None,
@@ -280,7 +290,7 @@ def generate_sweetviz_report(
     Tool: generate_sweetviz_report
     Description:
         Make an Exploratory Data Analysis (EDA) report using the Sweetviz library.
-    
+
     Parameters:
     -----------
     data_raw : dict
@@ -290,11 +300,11 @@ def generate_sweetviz_report(
     report_name : str, optional
         The file name to save the Sweetviz HTML report. Default is "sweetviz_report.html".
     report_directory : str, optional
-        The directory where the report should be saved. 
+        The directory where the report should be saved.
         If None, a temporary directory is created and used.
     open_browser : bool, optional
         Whether to open the report in a web browser. Default is False.
-    
+
     Returns:
     --------
     Tuple[str, Dict]:
@@ -307,13 +317,15 @@ def generate_sweetviz_report(
     try:
         import sweetviz as sv
     except ImportError:
-        raise ImportError("Please install the 'sweetviz' package to use this tool. Run: pip install sweetviz")
-    
+        raise ImportError(
+            "Please install the 'sweetviz' package to use this tool. Run: pip install sweetviz"
+        )
+
     import pandas as pd
-    
+
     # Convert injected raw data to a DataFrame.
     df = pd.DataFrame(data_raw)
-    
+
     # If no directory is specified, use a temporary directory.
     if not report_directory:
         report_directory = tempfile.mkdtemp()
@@ -322,26 +334,26 @@ def generate_sweetviz_report(
         # Ensure user-specified directory exists.
         if not os.path.exists(report_directory):
             os.makedirs(report_directory)
-    
+
     # Create the Sweetviz report.
     report = sv.analyze(df, target_feat=target)
-    
+
     # Determine the full path for the report.
     full_report_path = os.path.join(report_directory, report_name)
-    
+
     # Save the report to the specified HTML file.
     report.show_html(
         filepath=full_report_path,
         open_browser=open_browser,
     )
-    
+
     # Optionally, read the HTML content (if desired to pass along in the artifact).
     try:
         with open(full_report_path, "r", encoding="utf-8") as f:
             html_content = f.read()
     except Exception:
         html_content = None
-    
+
     content = (
         f"Sweetviz EDA report generated and saved as '{os.path.abspath(full_report_path)}'. "
         f"{'This was saved in a temporary directory.' if 'tmp' in report_directory else ''}"
@@ -352,3 +364,53 @@ def generate_sweetviz_report(
     }
     return content, artifact
 
+
+@tool(response_format="content_and_artifact")
+def generate_dtale_report(
+    data_raw: Annotated[dict, InjectedState("data_raw")],
+    host: str = "localhost",
+    port: int = 40000,
+    open_browser: bool = False,
+) -> Tuple[str, Dict]:
+    """
+    Tool: generate_dtale_report
+    Description:
+        Creates an interactive data exploration report using the dtale library.
+
+    Parameters:
+    -----------
+    data_raw : dict
+        The raw data in dictionary format.
+    host : str, optional
+        The host IP address to serve the dtale app. Default is "localhost".
+    port : int, optional
+        The port number to serve the dtale app. Default is 40000.
+    open_browser : bool, optional
+        Whether to open the report in a web browser. Default is False.
+
+    Returns:
+    --------
+    Tuple[str, Dict]:
+        content: A summary message describing the dtale report.
+        artifact: A dictionary containing the URL of the dtale report.
+    """
+    print("    * Tool: generate_dtale_report")
+
+    try:
+        import dtale
+    except ImportError:
+        raise ImportError(
+            "Please install the 'dtale' package to use this tool. Run: pip install dtale"
+        )
+
+    import pandas as pd
+
+    df = pd.DataFrame(data_raw)
+
+    # Create the dtale report
+    d = dtale.show(df, host=host, port=port, open_browser=open_browser)
+
+    content = f"Dtale report generated and available at: {d.main_url()}"
+    artifact = {"dtale_url": d.main_url()}
+
+    return content, artifact
