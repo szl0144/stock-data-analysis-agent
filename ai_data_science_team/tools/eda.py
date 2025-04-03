@@ -199,9 +199,7 @@ def generate_correlation_funnel(
     from io import BytesIO
     import matplotlib.pyplot as plt
     import json
-    import plotly.graph_objects as go
     import plotly.io as pio
-    from typing import Union
 
     # Convert the raw injected state into a DataFrame.
     df = pd.DataFrame(data_raw)
@@ -260,7 +258,8 @@ def generate_correlation_funnel(
     # Attempt to generate a Plotly plot.
     fig_dict = None
     try:
-        fig = df_correlated.plot_correlation_funnel(engine="plotly")
+        fig = df_correlated.plot_correlation_funnel(engine="plotly", base_size=14)
+
         fig_json = pio.to_json(fig)
         fig_dict = json.loads(fig_json)
     except Exception as e:
