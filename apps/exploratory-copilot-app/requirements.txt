@@ -10,3 +10,4 @@ openai
 missingno
 sweetviz
 pytimetk
+dtale
