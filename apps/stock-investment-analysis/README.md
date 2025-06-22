@@ -13,7 +13,7 @@ An intelligent stock investment analysis application powered by AI, featuring da
 
 ## Prerequisites
 
-- Python 3.10 or higher
+- Python 3.10.10
 - OpenAI API key
 - Git
 
@@ -42,6 +42,7 @@ source .venv/bin/activate
 ### 3. Install Dependencies
 
 ```bash
+pip install -r ../../requirements.txt
 pip install -r requirements.txt
 ```
 
