@@ -13,3 +13,5 @@ streamlit
 scikit-learn
 xgboost
 psutil
+# Fix PyArrow version to avoid compilation issues
+pyarrow==17.0.0
